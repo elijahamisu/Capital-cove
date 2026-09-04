@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account | CAPITAL COVE</title>
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-light: #1e293b;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --bg-light: #f8fafc;
+            --white: #ffffff;
+            --border: #e2e8f0;
+            --error: #ef4444;
+            --success: #10b981;
+            --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --radius: 12px;
+            --transition: all 0.2s ease;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: var(--bg-light);
+            background-image: radial-gradient(circle at top right, #e2e8f0, transparent),
+                              radial-gradient(circle at bottom left, #e2e8f0, transparent);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .auth-container { width: 100%; max-width: 480px; animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .back-link {
+            display: inline-flex; align-items: center; gap: 8px; color: var(--text-muted);
+            text-decoration: none; font-size: 0.9rem; font-weight: 500; margin-bottom: 24px; transition: var(--transition);
+        }
+        .back-link:hover { color: var(--primary); }
+
+        .auth-card {
+            background: var(--white); padding: 40px; border-radius: var(--radius);
+            box-shadow: var(--shadow); border: 1px solid var(--border);
+        }
+
+        .auth-header { text-align: center; margin-bottom: 32px; }
+        .logo {
+            font-size: 1.5rem; font-weight: 800; color: var(--primary);
+            display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 12px;
+        }
+        .logo-icon {
+            width: 36px; height: 36px; background: var(--primary); border-radius: 8px;
+            display: flex; align-items: center; justify-content: center; color: var(--accent); font-weight: 900;
+        }
+        .auth-header h1 { font-size: 1.5rem; font-weight: 700; color: var(--primary); margin-bottom: 8px; }
+        .auth-header p { color: var(--text-muted); font-size: 0.95rem; }
+
+        /* Form Grid */
+        .form-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        @media (min-width: 640px) { .form-grid { grid-template-columns: 1fr 1fr; } .full-width { grid-column: span 2; } }
+
+        .form-group { position: relative; }
+        .form-label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--primary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .input-wrapper { position: relative; display: flex; align-items: center; }
+        .form-input {
+            width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border);
+            font-size: 0.95rem; transition: var(--transition); outline: none; background: var(--bg-light);
+        }
+        .form-input:focus { border-color: var(--accent); background: var(--white); box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1); }
+
+        /* Referral Hint */
+        .ref-hint { font-size: 0.75rem; font-weight: 600; color: var(--success); margin-top: 4px; display: none; }
+
+        /* Password Toggle */
+        .password-toggle {
+            position: absolute; right: 12px; background: none; border: none; color: var(--text-muted);
+            cursor: pointer; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+        }
+
+        /* Checkbox */
+        .checkbox-group { display: flex; align-items: flex-start; gap: 10px; margin-top: 10px; }
+        .checkbox-group input { margin-top: 4px; cursor: pointer; width: 18px; height: 18px; accent-color: var(--accent); }
+        .checkbox-label { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; cursor: pointer; }
+        .checkbox-label a { color: var(--accent-hover); font-weight: 600; text-decoration: none; }
+
+        /* Button */
+        .btn-submit {
+            width: 100%; background: var(--primary); color: var(--white); padding: 14px; border-radius: 8px;
+            border: none; font-size: 1rem; font-weight: 700; cursor: pointer; transition: var(--transition);
+            margin-top: 24px; display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-submit:hover:not(:disabled) { background: var(--primary-light); transform: translateY(-1px); }
+        .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; }
+
+        /* Alerts */
+        .alert { padding: 12px 16px; border-radius: 8px; font-size: 0.9rem; margin-bottom: 20px; display: none; align-items: center; gap: 10px; line-height: 1.4; }
+        .alert-error { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+        .alert-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+
+        .spinner {
+            width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%; border-top-color: var(--white); animation: spin 0.8s linear infinite; display: none;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .auth-footer { margin-top: 24px; text-align: center; font-size: 0.9rem; color: var(--text-muted); }
+        .auth-footer a { color: var(--accent-hover); text-decoration: none; font-weight: 600; }
+
+        @media (max-width: 480px) {
+            body { padding: 20px 10px; justify-content: flex-start; }
+            .auth-card { padding: 24px 20px; border: none; box-shadow: none; background: transparent; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="auth-container">
+        <a href="index.html" class="back-link">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            Back to Capital Cove
+        </a>
+
+        <div class="auth-card">
+            <header class="auth-header">
+                <div class="logo">
+                    <div class="logo-icon">C</div>
+                    CAPITAL COVE
+                </div>
+                <h1>Create Your Account</h1>
+                <p>Join the marketplace and start your bulk resale journey.</p>
+            </header>
+
+            <div id="alert-box" class="alert" aria-live="polite"></div>
+
+            <form id="register-form">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" id="fullname" class="form-input" placeholder="John Doe" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" id="email" class="form-input" placeholder="john@example.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Phone Number</label>
+                        <input type="tel" id="phone" class="form-input" placeholder="08012345678" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="password" class="form-input" placeholder="••••••••" required>
+                            <button type="button" class="password-toggle" onclick="togglePassword('password')">Show</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Confirm Password</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="confirm-password" class="form-input" placeholder="••••••••" required>
+                            <button type="button" class="password-toggle" onclick="togglePassword('confirm-password')">Show</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label class="form-label">Referral Code (Optional)</label>
+                        <input type="text" id="referral-code" class="form-input" placeholder="ABC12345">
+                        <p id="ref-hint" class="ref-hint">✓ Referral code applied</p>
+                    </div>
+                </div>
+
+                <div class="checkbox-group full-width">
+                    <input type="checkbox" id="terms" required>
+                    <label for="terms" class="checkbox-label">
+                        I agree to the <a href="terms.html" target="_blank">Terms of Service</a> and <a href="privacy.html" target="_blank">Privacy Policy</a>.
+                    </label>
+                </div>
+
+                <button type="submit" class="btn-submit" id="btn-submit">
+                    <span id="btn-text">Create Account</span>
+                    <div class="spinner" id="btn-spinner"></div>
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                Already have an account? <a href="login.html">Sign In</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIG ---
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        // --- DOM ---
+        const registerForm = document.getElementById('register-form');
+        const alertBox = document.getElementById('alert-box');
+        const btnSubmit = document.getElementById('btn-submit');
+        const btnText = document.getElementById('btn-text');
+        const btnSpinner = document.getElementById('btn-spinner');
+        const refInput = document.getElementById('referral-code');
+        const refHint = document.getElementById('ref-hint');
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            checkSession();
+            captureReferral();
+        });
+
+        async function checkSession() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) window.location.href = 'dashboard.html';
+        }
+
+        function captureReferral() {
+            const params = new URLSearchParams(window.location.search);
+            const ref = params.get('ref');
+            if (ref) {
+                refInput.value = ref.toUpperCase().trim();
+                refHint.style.display = 'block';
+            }
+        }
+
+        window.togglePassword = (id) => {
+            const input = document.getElementById(id);
+            const btn = input.nextElementSibling;
+            const isPass = input.type === 'password';
+            input.type = isPass ? 'text' : 'password';
+            btn.textContent = isPass ? 'Hide' : 'Show';
+        };
+
+        function showAlert(msg, type = 'error') {
+            alertBox.style.display = 'flex';
+            alertBox.textContent = msg;
+            alertBox.className = `alert alert-${type}`;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function setLoading(isLoading) {
+            btnSubmit.disabled = isLoading;
+            btnText.style.display = isLoading ? 'none' : 'block';
+            btnSpinner.style.display = isLoading ? 'block' : 'none';
+        }
+
+        // --- SUBMISSION ---
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            setLoading(true);
+            alertBox.style.display = 'none';
+
+            const fullName = document.getElementById('fullname').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const referralCode = refInput.value.trim().toUpperCase();
+
+            // Validations
+            if (password !== confirmPassword) {
+                showAlert('Passwords do not match.');
+                setLoading(false);
+                return;
+            }
+
+            if (password.length < 6) {
+                showAlert('Password must be at least 6 characters.');
+                setLoading(false);
+                return;
+            }
+
+            try {
+                let referredById = null;
+
+                // Validate Referral Code if provided
+                if (referralCode) {
+                    const { data: refOwner, error: refError } = await supabase
+                        .from('profiles')
+                        .select('id')
+                        .eq('referral_code', referralCode)
+                        .single();
+                    
+                    if (refError || !refOwner) {
+                        showAlert('Invalid referral code. Please check or leave empty.');
+                        setLoading(false);
+                        return;
+                    }
+                    referredById = refOwner.id;
+                }
+
+                // Supabase Auth SignUp
+                const { data, error } = await supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: {
+                            full_name: fullName,
+                            phone: phone,
+                            referred_by: referredById
+                        }
+                    }
+                });
+
+                if (error) {
+                    let msg = error.message;
+                    if (msg.includes('already registered')) msg = 'This email is already registered.';
+                    showAlert(msg);
+                    setLoading(false);
+                    return;
+                }
+
+                if (data.user) {
+                    // Check if email confirmation is required
+                    if (data.session) {
+                        showAlert('Account created successfully! Redirecting...', 'success');
+                        setTimeout(() => window.location.href = 'dashboard.html', 1500);
+                    } else {
+                        showAlert('Registration successful! Please check your email to confirm your account.', 'success');
+                        registerForm.reset();
+                        setLoading(false);
+                    }
+                }
+
+            } catch (err) {
+                console.error(err);
+                showAlert('An unexpected error occurred. Please try again.');
+                setLoading(false);
+            }
+        });
+    </script>
+</body>
+</html>
