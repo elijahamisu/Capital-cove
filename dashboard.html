@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dashboard | CAPITAL COVE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-light: #1e293b;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --success: #10b981;
+            --error: #ef4444;
+            --bg: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --radius: 16px;
+            --nav-height: 70px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+
+        body { background-color: var(--bg); color: var(--text-main); padding-bottom: 100px; min-height: 100vh; }
+
+        /* LOADING OVERLAY */
+        #page-loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg); z-index: 9999; display: flex;
+            align-items: center; justify-content: center;
+        }
+
+        /* LAYOUT */
+        .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+        /* HEADER */
+        header {
+            background: var(--card-bg); padding: 20px; border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 100; display: flex;
+            justify-content: space-between; align-items: center;
+        }
+        .greeting h1 { font-size: 1.1rem; font-weight: 800; color: var(--primary); }
+        .greeting p { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
+        
+        .header-actions { display: flex; gap: 12px; align-items: center; }
+        .icon-btn {
+            width: 40px; height: 40px; border-radius: 10px; background: var(--bg);
+            border: 1px solid var(--border); display: flex; align-items: center;
+            justify-content: center; cursor: pointer; position: relative; color: var(--primary);
+        }
+        .badge {
+            position: absolute; top: -5px; right: -5px; background: var(--error);
+            color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 10px;
+            font-weight: 800; border: 2px solid var(--card-bg);
+        }
+
+        /* WALLET CARD */
+        .wallet-card {
+            background: var(--primary); color: white; padding: 24px;
+            border-radius: var(--radius); margin-bottom: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+            position: relative; overflow: hidden;
+        }
+        .wallet-card::after {
+            content: ''; position: absolute; top: -50%; right: -20%;
+            width: 200px; height: 200px; background: rgba(255,255,255,0.03);
+            border-radius: 50%;
+        }
+        .wallet-label { font-size: 0.8rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        .balance-main { font-size: 2.2rem; font-weight: 800; margin: 8px 0; display: flex; align-items: center; gap: 8px; }
+        .pending-box { font-size: 0.85rem; color: #cbd5e1; background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; display: inline-block; }
+        
+        .wallet-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
+        .btn {
+            padding: 14px; border-radius: 12px; font-weight: 700; font-size: 0.95rem;
+            cursor: pointer; transition: all 0.2s; border: none; text-align: center; text-decoration: none;
+        }
+        .btn-accent { background: var(--accent); color: var(--primary); }
+        .btn-accent:hover { background: var(--accent-hover); transform: translateY(-2px); }
+        .btn-white { background: rgba(255,255,255,0.15); color: white; backdrop-filter: blur(5px); }
+
+        /* GRID SYSTEM */
+        .dashboard-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        @media (min-width: 1024px) { .dashboard-grid { grid-template-columns: 2fr 1fr; } }
+
+        /* CARDS */
+        .card { background: var(--card-bg); border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .card-title { font-size: 1rem; font-weight: 700; color: var(--primary); }
+        .card-link { font-size: 0.85rem; color: var(--accent-hover); font-weight: 600; text-decoration: none; }
+
+        /* STATS GRID */
+        .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .stat-box { background: var(--bg); padding: 16px; border-radius: 12px; border: 1px solid var(--border); }
+        .stat-box .val { font-size: 1.2rem; font-weight: 800; color: var(--primary); }
+        .stat-box .lbl { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; margin-top: 4px; }
+
+        /* PRODUCT LIST ITEM */
+        .product-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .product-item:last-child { border-bottom: none; }
+        .product-img { width: 60px; height: 60px; border-radius: 10px; object-fit: cover; background: var(--bg); }
+        .product-meta { flex: 1; }
+        .product-name { font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; }
+        .product-progress { height: 6px; background: var(--bg); border-radius: 10px; margin: 8px 0; overflow: hidden; }
+        .progress-bar { height: 100%; background: var(--success); border-radius: 10px; transition: width 0.5s ease; }
+        .product-stats { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); }
+
+        /* QUICK ACTIONS */
+        .quick-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .action-item {
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            padding: 16px; background: var(--card-bg); border-radius: 16px;
+            border: 1px solid var(--border); text-decoration: none; color: var(--primary);
+            transition: all 0.2s; font-size: 0.75rem; font-weight: 700;
+        }
+        .action-item:hover { transform: translateY(-3px); border-color: var(--accent); }
+        .action-icon { width: 44px; height: 44px; background: var(--bg); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+
+        /* TRANSACTION ITEM */
+        .tx-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .tx-info h4 { font-size: 0.85rem; font-weight: 700; }
+        .tx-info p { font-size: 0.75rem; color: var(--text-muted); }
+        .tx-amount { font-weight: 800; font-size: 0.9rem; }
+        .tx-credit { color: var(--success); }
+        .tx-debit { color: var(--error); }
+
+        /* REFERRAL CARD */
+        .referral-box { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: none; }
+        .ref-code-wrap {
+            display: flex; background: white; padding: 10px; border-radius: 10px;
+            margin-top: 12px; justify-content: space-between; align-items: center;
+            border: 1px dashed var(--accent);
+        }
+        .ref-code { font-weight: 800; font-family: monospace; font-size: 1.1rem; color: var(--primary); }
+        .copy-btn { color: var(--accent-hover); font-size: 0.75rem; font-weight: 800; cursor: pointer; text-transform: uppercase; }
+
+        /* BOTTOM NAV */
+        .bottom-nav {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: calc(100% - 40px); max-width: 500px; background: var(--primary);
+            height: 64px; border-radius: 20px; display: flex; align-items: center;
+            justify-content: space-around; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8; text-decoration: none; font-size: 0.65rem; font-weight: 600; }
+        .nav-item.active { color: var(--accent); }
+        .nav-icon { font-size: 1.2rem; }
+
+        /* SKELETONS */
+        .sk { background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* EMPTY STATE */
+        .empty-state { text-align: center; padding: 30px 10px; color: var(--text-muted); font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+    <div id="page-loader">
+        <div style="color: var(--primary); font-weight: 800; font-size: 1.2rem;">CAPITAL COVE</div>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <div class="greeting">
+            <p id="time-greeting">Welcome back,</p>
+            <h1 id="user-name-display">...</h1>
+        </div>
+        <div class="header-actions">
+            <a href="notifications.html" class="icon-btn">
+                <span>🔔</span>
+                <span id="notif-badge" class="badge" style="display:none">0</span>
+            </a>
+            <a href="profile.html" class="icon-btn">
+                <span>👤</span>
+            </a>
+        </div>
+    </header>
+
+    <main class="container">
+        
+        <!-- Wallet Section -->
+        <section class="wallet-card">
+            <div class="wallet-label">Available Balance</div>
+            <div class="balance-main" id="available-balance">₦0.00</div>
+            <div class="pending-box">
+                Pending Settlement: <span id="pending-balance">₦0.00</span>
+            </div>
+            <div class="wallet-actions">
+                <a href="deposit.html" class="btn btn-accent">Deposit</a>
+                <a href="withdraw.html" class="btn btn-white">Withdraw</a>
+            </div>
+        </section>
+
+        <!-- Quick Actions -->
+        <section style="margin-bottom: 24px;">
+            <div class="quick-actions">
+                <a href="marketplace.html" class="action-item">
+                    <div class="action-icon">🛒</div>
+                    Market
+                </a>
+                <a href="my-products.html" class="action-item">
+                    <div class="action-icon">📦</div>
+                    Products
+                </a>
+                <a href="transactions.html" class="action-item">
+                    <div class="action-icon">🧾</div>
+                    History
+                </a>
+            </div>
+        </section>
+
+        <div class="dashboard-grid">
+            
+            <!-- Left Column: Products & Sales -->
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                
+                <!-- Active Products -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Active Bulk Purchases</h2>
+                        <a href="my-products.html" class="card-link">View All</a>
+                    </div>
+                    <div id="active-purchases-container">
+                        <div class="sk" style="height: 60px; margin-bottom: 10px;"></div>
+                        <div class="sk" style="height: 60px;"></div>
+                    </div>
+                </div>
+
+                <!-- Sales Summary -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Performance Summary</h2>
+                    </div>
+                    <div class="stats-row">
+                        <div class="stat-box">
+                            <div class="val" id="total-units">0</div>
+                            <div class="lbl">Units Owned</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="val" id="sold-units">0</div>
+                            <div class="lbl">Units Sold</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 12px; padding: 12px; background: #f8fafc; border-radius: 12px; border: 1px solid var(--border);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Overall Sales Progress</span>
+                            <span style="font-size: 0.75rem; color: var(--primary); font-weight: 800;" id="progress-percent">0%</span>
+                        </div>
+                        <div class="product-progress">
+                            <div class="progress-bar" id="overall-progress-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Transactions & Referrals -->
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                
+                <!-- Recent Transactions -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Recent Activity</h2>
+                        <a href="transactions.html" class="card-link">See More</a>
+                    </div>
+                    <div id="recent-tx-container">
+                        <div class="sk" style="height: 50px; margin-bottom: 10px;"></div>
+                        <div class="sk" style="height: 50px;"></div>
+                    </div>
+                </div>
+
+                <!-- Referral Card -->
+                <div class="card referral-box">
+                    <h2 class="card-title" style="color: #92400e;">Invite & Earn</h2>
+                    <p style="font-size: 0.75rem; color: #b45309; margin-top: 4px; font-weight: 500;">Earn 20% on qualifying bulk product acquisitions from your referrals.</p>
+                    <div class="ref-code-wrap">
+                        <span class="ref-code" id="ref-code-display">---</span>
+                        <span class="copy-btn" id="copy-ref-btn">Copy</span>
+                    </div>
+                </div>
+
+                <!-- Gift Code Promo -->
+                <a href="gift-code.html" style="text-decoration: none;">
+                    <div class="card" style="background: var(--primary); color: white; display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <h2 class="card-title" style="color: white;">Gift Code</h2>
+                            <p style="font-size: 0.7rem; color: #94a3b8;">Redeem your code here</p>
+                        </div>
+                        <span style="font-size: 1.5rem;">🎁</span>
+                    </div>
+                </a>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="dashboard.html" class="nav-item active">
+            <span class="nav-icon">🏠</span>
+            Home
+        </a>
+        <a href="marketplace.html" class="nav-item">
+            <span class="nav-icon">🛒</span>
+            Market
+        </a>
+        <a href="my-products.html" class="nav-item">
+            <span class="nav-icon">📦</span>
+            Products
+        </a>
+        <a href="wallet.html" class="nav-item">
+            <span class="nav-icon">💳</span>
+            Wallet
+        </a>
+        <a href="profile.html" class="nav-item">
+            <span class="nav-icon">👤</span>
+            Profile
+        </a>
+    </nav>
+
+    <script>
+        // --- CONFIG & SUPABASE ---
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        // --- STATE ---
+        let currentUser = null;
+
+        // --- DOM ELEMENTS ---
+        const pageLoader = document.getElementById('page-loader');
+        const availableDisplay = document.getElementById('available-balance');
+        const pendingDisplay = document.getElementById('pending-balance');
+        const userNameDisplay = document.getElementById('user-name-display');
+        const purchaseContainer = document.getElementById('active-purchases-container');
+        const txContainer = document.getElementById('recent-tx-container');
+        const refCodeDisplay = document.getElementById('ref-code-display');
+        const notifBadge = document.getElementById('notif-badge');
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAuth();
+            if (currentUser) {
+                setGreeting();
+                await Promise.all([
+                    fetchProfileAndWallet(),
+                    fetchActivePurchases(),
+                    fetchTransactions(),
+                    fetchNotificationCount()
+                ]);
+            }
+            hideLoader();
+        });
+
+        async function checkAuth() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+            currentUser = session.user;
+        }
+
+        function setGreeting() {
+            const hour = new Date().getHours();
+            const text = hour < 12 ? 'Good morning,' : hour < 18 ? 'Good afternoon,' : 'Good evening,';
+            document.getElementById('time-greeting').textContent = text;
+        }
+
+        function hideLoader() {
+            pageLoader.style.opacity = '0';
+            setTimeout(() => pageLoader.style.display = 'none', 300);
+        }
+
+        // --- DATA FETCHING ---
+        async function fetchProfileAndWallet() {
+            try {
+                // Fetch Profile for name and referral code
+                const { data: profile } = await supabase.from('profiles').select('full_name, referral_code').eq('id', currentUser.id).single();
+                if (profile) {
+                    userNameDisplay.textContent = profile.full_name.split(' ')[0];
+                    refCodeDisplay.textContent = profile.referral_code;
+                }
+
+                // Fetch Wallet
+                const { data: wallet } = await supabase.from('wallets').select('*').eq('user_id', currentUser.id).single();
+                if (wallet) {
+                    availableDisplay.textContent = formatNaira(wallet.available_balance);
+                    pendingDisplay.textContent = formatNaira(wallet.pending_balance);
+                }
+            } catch (e) { console.error("Profile/Wallet error:", e); }
+        }
+
+        async function fetchActivePurchases() {
+            try {
+                const { data: purchases, error } = await supabase
+                    .from('bulk_purchases')
+                    .select('*, products(name, image_url)')
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false })
+                    .limit(3);
+
+                if (error) throw error;
+
+                if (!purchases || purchases.length === 0) {
+                    purchaseContainer.innerHTML = `<div class="empty-state">No bulk purchases yet.<br><a href="marketplace.html" style="color:var(--accent-hover); font-weight:700;">Browse Marketplace</a></div>`;
+                    return;
+                }
+
+                // Get unit counts for stats (In a real app, use a view or count trigger)
+                const { data: units } = await supabase.from('product_units').select('status').eq('owner_id', currentUser.id);
+                
+                const total = units.length;
+                const sold = units.filter(u => u.status === 'SOLD').length;
+                const percent = total > 0 ? Math.round((sold / total) * 100) : 0;
+
+                document.getElementById('total-units').textContent = total;
+                document.getElementById('sold-units').textContent = sold;
+                document.getElementById('progress-percent').textContent = `${percent}%`;
+                document.getElementById('overall-progress-bar').style.width = `${percent}%`;
+
+                // Render list
+                purchaseContainer.innerHTML = purchases.map(p => {
+                    // Simplified unit calculation for demo display
+                    const pTotal = p.unit_count;
+                    const pSold = Math.floor(Math.random() * pTotal); // Replace with real unit join in production
+                    const pPercent = Math.round((pSold/pTotal)*100);
+
+                    return `
+                        <div class="product-item">
+                            <img src="${p.products.image_url || 'https://via.placeholder.com/100'}" class="product-img">
+                            <div class="product-meta">
+                                <h3 class="product-name">${p.products.name}</h3>
+                                <div class="product-progress">
+                                    <div class="progress-bar" style="width: ${pPercent}%"></div>
+                                </div>
+                                <div class="product-stats">
+                                    <span>${pTotal} Units</span>
+                                    <span>${pPercent}% Sold</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (e) { purchaseContainer.innerHTML = `<div class="empty-state">Error loading products.</div>`; }
+        }
+
+        async function fetchTransactions() {
+            try {
+                const { data: txs } = await supabase
+                    .from('wallet_transactions')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false })
+                    .limit(4);
+
+                if (!txs || txs.length === 0) {
+                    txContainer.innerHTML = `<div class="empty-state">No recent activity.</div>`;
+                    return;
+                }
+
+                txContainer.innerHTML = txs.map(t => {
+                    const isCredit = t.amount > 0;
+                    return `
+                        <div class="tx-item">
+                            <div class="tx-info">
+                                <h4>${t.description || t.type.replace('_', ' ')}</h4>
+                                <p>${new Date(t.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })}</p>
+                            </div>
+                            <div class="tx-amount ${isCredit ? 'tx-credit' : 'tx-debit'}">
+                                ${isCredit ? '+' : ''}${formatNaira(t.amount)}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) { txContainer.innerHTML = `<div class="empty-state">Error loading activity.</div>`; }
+        }
+
+        async function fetchNotificationCount() {
+            const { count } = await supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id).eq('is_read', false);
+            if (count > 0) {
+                notifBadge.textContent = count;
+                notifBadge.style.display = 'block';
+            }
+        }
+
+        // --- HELPERS ---
+        function formatNaira(amount) {
+            return '₦' + Number(amount).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        document.getElementById('copy-ref-btn').addEventListener('click', () => {
+            const code = refCodeDisplay.textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = document.getElementById('copy-ref-btn');
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = 'Copy', 2000);
+            });
+        });
+
+    </script>
+</body>
+</html>
