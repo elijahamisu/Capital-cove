@@ -6,8 +6,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        //login: resolve(__dirname, 'login.html'),
-        //register: resolve(__dirname, 'register.html'),
+        login: resolve(__dirname, 'login.html'),
+        register: resolve(__dirname, 'register.html'),
        // dashboard: resolve(__dirname, 'dashboard.html'),
         //marketplace: resolve(__dirname, 'marketplace.html'),
        // productDetails: resolve(__dirname, 'product-details.html'),
