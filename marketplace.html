@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Marketplace | CAPITAL COVE</title>
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-light: #1e293b;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --success: #10b981;
+            --error: #ef4444;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --radius: 16px;
+            --radius-sm: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg); color: var(--text-main); line-height: 1.5; padding-bottom: 100px; }
+        a { text-decoration: none; color: inherit; }
+        button { cursor: pointer; border: none; background: none; transition: all 0.2s; }
+
+        .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+        /* HEADER */
+        header {
+            background: var(--card-bg); height: 70px; border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 1000; display: flex; align-items: center;
+        }
+        .header-wrap { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .logo { font-weight: 800; font-size: 1.1rem; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        .logo-box { width: 32px; height: 32px; background: var(--primary); color: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+        .header-right { display: flex; align-items: center; gap: 15px; }
+
+        /* SEARCH & FILTER BAR */
+        .search-section { background: var(--card-bg); padding: 20px 0; border-bottom: 1px solid var(--border); }
+        .search-box { position: relative; width: 100%; max-width: 600px; margin: 0 auto; }
+        .search-input {
+            width: 100%; padding: 14px 14px 14px 45px; border-radius: 12px; border: 1px solid var(--border);
+            font-size: 1rem; outline: none; transition: all 0.2s; background: var(--bg);
+        }
+        .search-input:focus { border-color: var(--accent); background: white; box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1); }
+        .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }
+        
+        .filters-wrap { display: flex; gap: 10px; overflow-x: auto; padding: 15px 0 5px; scrollbar-width: none; }
+        .filters-wrap::-webkit-scrollbar { display: none; }
+        .filter-pill {
+            padding: 8px 18px; background: white; border: 1px solid var(--border);
+            border-radius: 100px; font-size: 0.85rem; font-weight: 600; white-space: nowrap; color: var(--text-muted);
+        }
+        .filter-pill.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* PRODUCT GRID */
+        .marketplace-grid { 
+            display: grid; grid-template-columns: 1fr; gap: 20px; padding: 20px 0;
+        }
+        @media (min-width: 640px) { .marketplace-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1024px) { .marketplace-grid { grid-template-columns: repeat(3, 1fr); } }
+
+        /* PRODUCT CARD */
+        .product-card {
+            background: var(--card-bg); border-radius: var(--radius); overflow: hidden;
+            border: 1px solid var(--border); box-shadow: var(--shadow-sm); transition: transform 0.2s, box-shadow 0.2s;
+            display: flex; flex-direction: column;
+        }
+        .product-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+        
+        .product-img-wrap { position: relative; width: 100%; height: 200px; background: #e2e8f0; }
+        .product-img { width: 100%; height: 100%; object-fit: cover; }
+        .product-badge {
+            position: absolute; top: 12px; right: 12px; background: rgba(15, 23, 42, 0.8);
+            color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 700;
+            backdrop-filter: blur(4px);
+        }
+        .sold-out-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.7); display: flex; align-items: center;
+            justify-content: center; font-weight: 800; color: var(--error); font-size: 1.2rem;
+            text-transform: uppercase; letter-spacing: 2px;
+        }
+
+        .product-content { padding: 20px; flex: 1; display: flex; flex-direction: column; }
+        .product-cat { font-size: 0.7rem; font-weight: 800; color: var(--accent-hover); text-transform: uppercase; margin-bottom: 6px; }
+        .product-name { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 8px; line-height: 1.3; }
+        
+        .product-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; padding: 12px; background: var(--bg); border-radius: 12px; }
+        .stat-item .lbl { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; display: block; }
+        .stat-item .val { font-size: 0.9rem; font-weight: 800; color: var(--primary); }
+
+        .price-row { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; }
+        .price-main .lbl { font-size: 0.75rem; color: var(--text-muted); display: block; font-weight: 600; }
+        .price-main .val { font-size: 1.3rem; font-weight: 800; color: var(--primary); }
+        .inventory-hint { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); }
+        .inventory-hint.low { color: var(--error); }
+
+        .card-btns { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; }
+        .btn {
+            padding: 12px; border-radius: 10px; font-weight: 700; font-size: 0.9rem;
+            text-align: center; transition: all 0.2s;
+        }
+        .btn-outline { border: 1.5px solid var(--border); color: var(--primary); }
+        .btn-outline:hover { border-color: var(--primary); background: var(--bg); }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-light); }
+        .btn-disabled { background: var(--border); color: var(--text-muted); cursor: not-allowed; }
+
+        /* SKELETONS */
+        .skeleton { background: #e2e8f0; border-radius: var(--radius); height: 350px; position: relative; overflow: hidden; }
+        .skeleton::after { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+        /* BOTTOM NAVIGATION */
+        .bottom-nav {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: calc(100% - 40px); max-width: 500px; background: var(--primary);
+            height: 64px; border-radius: 20px; display: flex; align-items: center;
+            justify-content: space-around; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8; font-size: 0.65rem; font-weight: 600; }
+        .nav-item.active { color: var(--accent); }
+        .nav-icon { font-size: 1.2rem; }
+
+        /* EMPTY STATES */
+        .empty-state { text-align: center; padding: 60px 20px; grid-column: 1 / -1; }
+        .empty-state h3 { font-size: 1.25rem; margin-bottom: 10px; }
+        .empty-state p { color: var(--text-muted); margin-bottom: 20px; }
+
+        /* SORT DROPDOWN */
+        .sort-select { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: white; font-weight: 600; font-size: 0.85rem; outline: none; }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="container header-wrap">
+            <a href="index.html" class="logo">
+                <div class="logo-box">C</div>
+                CAPITAL COVE
+            </a>
+            <div class="header-right" id="header-auth">
+                <!-- Dynamic: Wallet icon or Login btn -->
+            </div>
+        </div>
+    </header>
+
+    <!-- Search Section -->
+    <section class="search-section">
+        <div class="container">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="search-input" class="search-input" placeholder="Search bulk packages...">
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+                <div id="category-filters" class="filters-wrap">
+                    <!-- Dynamic Categories -->
+                </div>
+                <select id="sort-select" class="sort-select">
+                    <option value="newest">Newest First</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                </select>
+            </div>
+            <p id="results-count" style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-top: 15px;">Loading products...</p>
+        </div>
+    </section>
+
+    <!-- Products Grid -->
+    <main class="container">
+        <div id="products-grid" class="marketplace-grid">
+            <!-- Skeletons -->
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+        </div>
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="dashboard.html" class="nav-item">
+            <span class="nav-icon">🏠</span>
+            Home
+        </a>
+        <a href="marketplace.html" class="nav-item active">
+            <span class="nav-icon">🛒</span>
+            Market
+        </a>
+        <a href="my-products.html" class="nav-item">
+            <span class="nav-icon">📦</span>
+            Products
+        </a>
+        <a href="wallet.html" class="nav-item">
+            <span class="nav-icon">💳</span>
+            Wallet
+        </a>
+        <a href="profile.html" class="nav-item">
+            <span class="nav-icon">👤</span>
+            Profile
+        </a>
+    </nav>
+
+    <script>
+        // --- CONFIG ---
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        // --- STATE ---
+        let allProducts = [];
+        let filteredProducts = [];
+        let activeCategory = 'All';
+        let searchQuery = '';
+        let currentUser = null;
+
+        // --- DOM ---
+        const productsGrid = document.getElementById('products-grid');
+        const searchInput = document.getElementById('search-input');
+        const categoryContainer = document.getElementById('category-filters');
+        const sortSelect = document.getElementById('sort-select');
+        const resultsCount = document.getElementById('results-count');
+        const headerAuth = document.getElementById('header-auth');
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            initAuth();
+            await fetchProducts();
+            
+            searchInput.addEventListener('input', (e) => {
+                searchQuery = e.target.value.toLowerCase();
+                applyFilters();
+            });
+
+            sortSelect.addEventListener('change', () => applyFilters());
+        });
+
+        async function initAuth() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                const { data: wallet } = await supabase.from('wallets').select('available_balance').eq('user_id', currentUser.id).single();
+                headerAuth.innerHTML = `
+                    <a href="wallet.html" style="background:var(--bg); padding:6px 12px; border-radius:100px; font-weight:800; font-size:0.85rem; display:flex; align-items:center; gap:6px;">
+                        <span>💳</span> ₦${Number(wallet?.available_balance || 0).toLocaleString()}
+                    </a>
+                `;
+            } else {
+                headerAuth.innerHTML = `<a href="login.html" class="btn btn-outline" style="padding:6px 15px; font-size:0.8rem;">Login</a>`;
+            }
+        }
+
+        async function fetchProducts() {
+            try {
+                const { data, error } = await supabase
+                    .from('products')
+                    .select('*')
+                    .eq('status', 'ACTIVE')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                allProducts = data || [];
+                renderCategories();
+                applyFilters();
+
+            } catch (err) {
+                console.error(err);
+                productsGrid.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Oops! Something went wrong</h3>
+                        <p>We couldn't load the marketplace products right now.</p>
+                        <button class="btn btn-primary" onclick="location.reload()">Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        function renderCategories() {
+            const categories = ['All', ...new Set(allProducts.map(p => p.category).filter(Boolean))];
+            categoryContainer.innerHTML = categories.map(cat => `
+                <button class="filter-pill ${cat === activeCategory ? 'active' : ''}" onclick="setCategory('${cat}')">
+                    ${cat}
+                </button>
+            `).join('');
+        }
+
+        window.setCategory = (cat) => {
+            activeCategory = cat;
+            renderCategories();
+            applyFilters();
+        };
+
+        function applyFilters() {
+            filteredProducts = allProducts.filter(p => {
+                const matchesSearch = p.name.toLowerCase().includes(searchQuery) || 
+                                     (p.description && p.description.toLowerCase().includes(searchQuery));
+                const matchesCat = activeCategory === 'All' || p.category === activeCategory;
+                return matchesSearch && matchesCat;
+            });
+
+            // Sort
+            const sortVal = sortSelect.value;
+            if (sortVal === 'price-low') filteredProducts.sort((a, b) => a.bulk_price - b.bulk_price);
+            if (sortVal === 'price-high') filteredProducts.sort((a, b) => b.bulk_price - a.bulk_price);
+            if (sortVal === 'newest') filteredProducts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            renderProducts();
+        }
+
+        function renderProducts() {
+            resultsCount.textContent = `${filteredProducts.length} product${filteredProducts.length === 1 ? '' : 's'} available`;
+
+            if (filteredProducts.length === 0) {
+                productsGrid.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No products found</h3>
+                        <p>Try adjusting your filters or search terms.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            productsGrid.innerHTML = filteredProducts.map(p => {
+                const isSoldOut = p.available_inventory <= 0;
+                const isLowStock = p.available_inventory > 0 && p.available_inventory < 10;
+
+                return `
+                    <div class="product-card">
+                        <div class="product-img-wrap">
+                            <img src="${p.image_url || 'https://via.placeholder.com/400x250?text=Capital+Cove'}" class="product-img" loading="lazy">
+                            <span class="product-badge">${p.units_per_bulk} Units</span>
+                            ${isSoldOut ? '<div class="sold-out-overlay">Sold Out</div>' : ''}
+                        </div>
+                        <div class="product-content">
+                            <span class="product-cat">${p.category || 'Bulk Pack'}</span>
+                            <h3 class="product-name">${p.name}</h3>
+                            
+                            <div class="product-stats">
+                                <div class="stat-item">
+                                    <span class="lbl">Unit Cost</span>
+                                    <span class="val">₦${Number(p.bulk_price / p.units_per_bulk).toLocaleString()}</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="lbl">Resale Target</span>
+                                    <span class="val">₦${Number(p.unit_selling_price).toLocaleString()}</span>
+                                </div>
+                            </div>
+
+                            <div class="price-row">
+                                <div class="price-main">
+                                    <span class="lbl">Bulk Price</span>
+                                    <span class="val">₦${Number(p.bulk_price).toLocaleString()}</span>
+                                </div>
+                                <span class="inventory-hint ${isLowStock ? 'low' : ''}">
+                                    ${isSoldOut ? 'Out of stock' : `${p.available_inventory} available`}
+                                </span>
+                            </div>
+
+                            <div class="card-btns">
+                                <a href="product-details.html?id=${p.id}" class="btn btn-outline">Details</a>
+                                ${isSoldOut 
+                                    ? '<button class="btn btn-disabled" disabled>Sold Out</button>' 
+                                    : `<a href="buy-bulk.html?product=${p.id}" class="btn btn-primary">Buy Bulk</a>`
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+    </script>
+</body>
+</html>
