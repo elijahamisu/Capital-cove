@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Support Center | CAPITAL COVE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-light: #1e293b;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --success: #10b981;
+            --error: #ef4444;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 16px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg); color: var(--text-main); line-height: 1.6; padding-bottom: 100px; }
+        .container { width: 100%; max-width: 900px; margin: 0 auto; padding: 0 20px; }
+
+        /* HEADER */
+        header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px 0; position: sticky; top: 0; z-index: 100; }
+        .header-content { display: flex; justify-content: space-between; align-items: center; }
+        .back-link { color: var(--text-muted); font-size: 0.9rem; font-weight: 600; text-decoration: none; }
+        .page-title { font-size: 1.1rem; font-weight: 800; color: var(--primary); }
+
+        /* HERO */
+        .hero { padding: 30px 0; text-align: center; }
+        .hero h2 { font-size: 1.5rem; font-weight: 800; color: var(--primary); margin-bottom: 8px; }
+        .hero p { font-size: 0.9rem; color: var(--text-muted); max-width: 500px; margin: 0 auto; }
+
+        /* LAYOUT GRID */
+        .support-grid { display: grid; grid-template-columns: 1fr; gap: 24px; margin-top: 20px; }
+        @media (min-width: 1024px) { .support-grid { grid-template-columns: 1fr 1.5fr; align-items: start; } }
+
+        /* CARDS */
+        .card { background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); padding: 24px; box-shadow: var(--shadow); }
+        .section-title { font-size: 1rem; font-weight: 800; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+
+        /* FORM */
+        .form-group { margin-bottom: 16px; }
+        .label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+        .input, .select, .textarea { 
+            width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border); 
+            font-size: 0.95rem; font-weight: 500; outline: none; transition: 0.2s; background: var(--bg);
+        }
+        .textarea { height: 120px; resize: none; }
+        .input:focus, .select:focus, .textarea:focus { border-color: var(--accent); background: white; }
+
+        .btn { width: 100%; padding: 14px; border-radius: 12px; font-weight: 800; border: none; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover:not(:disabled) { background: var(--primary-light); transform: translateY(-1px); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* TICKET LIST */
+        .ticket-list { display: flex; flex-direction: column; gap: 12px; }
+        .ticket-item { 
+            background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); 
+            padding: 16px; cursor: pointer; transition: 0.2s; position: relative;
+        }
+        .ticket-item:hover { border-color: var(--accent); }
+        .ticket-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+        .ticket-subject { font-size: 0.9rem; font-weight: 700; color: var(--primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; }
+        .status-badge { font-size: 0.65rem; font-weight: 800; padding: 4px 10px; border-radius: 20px; text-transform: uppercase; }
+        .st-open { background: #fef3c7; color: #92400e; }
+        .st-pending { background: #e0f2fe; color: #0369a1; }
+        .st-resolved { background: #dcfce7; color: #15803d; }
+        .st-closed { background: #f1f5f9; color: #64748b; }
+
+        .ticket-meta { font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 12px; align-items: center; }
+        .reply-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; }
+
+        /* DETAIL MODAL */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { width: 100%; max-width: 600px; background: var(--bg); border-radius: 24px; overflow: hidden; position: relative; animation: slideIn 0.3s ease-out; max-height: 90vh; display: flex; flex-direction: column; }
+        @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        .modal-header { padding: 24px; background: white; border-bottom: 1px solid var(--border); }
+        .modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+        .modal-close { position: absolute; top: 20px; right: 20px; cursor: pointer; font-size: 1.5rem; color: var(--text-muted); z-index: 10; }
+
+        .chat-bubble { padding: 16px; border-radius: 16px; font-size: 0.9rem; margin-bottom: 20px; position: relative; }
+        .bubble-user { background: white; border: 1px solid var(--border); margin-right: 40px; border-bottom-left-radius: 4px; }
+        .bubble-admin { background: var(--primary); color: white; margin-left: 40px; border-bottom-right-radius: 4px; }
+        .bubble-meta { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 700; text-transform: uppercase; }
+        .bubble-admin .bubble-meta { color: #94a3b8; }
+
+        /* STATES */
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+        .sk-item { height: 80px; border-radius: 12px; background: #e2e8f0; animation: pulse 1.5s infinite; margin-bottom: 12px; }
+        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+
+        /* BOTTOM NAV */
+        .bottom-nav {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: calc(100% - 40px); max-width: 460px; background: var(--primary);
+            height: 64px; border-radius: 20px; display: flex; align-items: center;
+            justify-content: space-around; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8; text-decoration: none; font-size: 0.65rem; font-weight: 600; }
+        .nav-item.active { color: var(--accent); }
+        .nav-icon { font-size: 1.2rem; }
+
+        .spinner { width: 18px; height: 18px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 0.8s linear infinite; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container header-content">
+            <a href="dashboard.html" class="back-link">← Home</a>
+            <h1 class="page-title">Support Center</h1>
+            <div style="width: 40px;"></div>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <h2>How can we help you?</h2>
+            <p>If you're having issues with bulk purchases, sales recording, or wallet settlements, please create a ticket below.</p>
+        </section>
+
+        <div class="support-grid">
+            <!-- Left: Create Ticket -->
+            <section class="card">
+                <h3 class="section-title">📩 Create Support Request</h3>
+                <form id="ticket-form">
+                    <div class="form-group">
+                        <label class="label">Issue Category</label>
+                        <select id="t-category" class="select" required>
+                            <option value="ACCOUNT">Account Management</option>
+                            <option value="PURCHASE">Bulk Purchase Issues</option>
+                            <option value="SALE">Sales Recording</option>
+                            <option value="DEPOSIT">Deposit Verification</option>
+                            <option value="WITHDRAWAL">Withdrawal Request</option>
+                            <option value="REFERRAL">Referral & Commissions</option>
+                            <option value="GIFT_CODE">Gift Code Redemption</option>
+                            <option value="TECHNICAL">Technical Issue</option>
+                            <option value="OTHER">Other Inquiry</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="label">Subject</label>
+                        <input type="text" id="t-subject" class="input" placeholder="Summarize your issue" maxlength="100" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="label">Message</label>
+                        <textarea id="t-message" class="textarea" placeholder="Provide as much detail as possible..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="submit-btn">
+                        <span id="btn-text">Send Request</span>
+                        <div class="spinner" id="btn-spinner"></div>
+                    </button>
+                </form>
+            </section>
+
+            <!-- Right: History -->
+            <section>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 class="section-title" style="margin-bottom:0">📋 My Requests</h3>
+                    <button id="refresh-btn" style="background:none; border:none; color:var(--accent-hover); font-size:0.75rem; font-weight:700; cursor:pointer;">Refresh</button>
+                </div>
+                <div class="ticket-list" id="ticket-container">
+                    <!-- Skeletons -->
+                    <div class="sk-item"></div>
+                    <div class="sk-item"></div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Ticket Detail Modal -->
+    <div class="modal-overlay" id="ticket-modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal()">&times;</span>
+            <div class="modal-header">
+                <div id="m-status-badge" class="status-badge" style="display:inline-block; margin-bottom:10px;">STATUS</div>
+                <h2 id="m-subject" style="font-size:1.1rem; font-weight:800;">Subject</h2>
+                <div id="m-category" style="font-size:0.7rem; font-weight:700; color:var(--text-muted); margin-top:4px;">CATEGORY</div>
+            </div>
+            <div class="modal-body" id="m-chat-container">
+                <!-- Chat bubbles injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="dashboard.html" class="nav-item">
+            <span class="nav-icon">🏠</span> Home
+        </a>
+        <a href="marketplace.html" class="nav-item">
+            <span class="nav-icon">🛒</span> Market
+        </a>
+        <a href="wallet.html" class="nav-item">
+            <span class="nav-icon">💳</span> Wallet
+        </a>
+        <a href="notifications.html" class="nav-item">
+            <span class="nav-icon">🔔</span> Alerts
+        </a>
+        <a href="support.html" class="nav-item active">
+            <span class="nav-icon">🎧</span> Support
+        </a>
+    </nav>
+
+    <script>
+        // --- SUPABASE CONFIG ---
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        // --- STATE ---
+        let user = null;
+        let tickets = [];
+
+        // --- DOM ---
+        const ticketForm = document.getElementById('ticket-form');
+        const container = document.getElementById('ticket-container');
+        const modal = document.getElementById('ticket-modal');
+        const submitBtn = document.getElementById('submit-btn');
+        const btnText = document.getElementById('btn-text');
+        const btnSpinner = document.getElementById('btn-spinner');
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+            user = session.user;
+            await loadTickets();
+            initListeners();
+        });
+
+        async function loadTickets() {
+            const { data, error } = await supabase
+                .from('support_tickets')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('updated_at', { ascending: false });
+
+            if (error) {
+                container.innerHTML = `<div class="empty-state">Failed to load history.</div>`;
+                return;
+            }
+
+            tickets = data || [];
+            renderTickets();
+        }
+
+        function renderTickets() {
+            if (tickets.length === 0) {
+                container.innerHTML = `<div class="empty-state">No support requests yet. If you need help, create a ticket.</div>`;
+                return;
+            }
+
+            container.innerHTML = tickets.map(t => `
+                <div class="ticket-item" onclick="openTicket('${t.id}')">
+                    <div class="ticket-header">
+                        <span class="ticket-subject">${escapeHTML(t.subject)}</span>
+                        <span class="status-badge st-${t.status.toLowerCase()}">${t.status}</span>
+                    </div>
+                    <div class="ticket-meta">
+                        <span>${t.category}</span>
+                        <span>•</span>
+                        <span>${new Date(t.created_at).toLocaleDateString()}</span>
+                        ${t.admin_reply ? '<div class="reply-dot"></div>' : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function initListeners() {
+            ticketForm.onsubmit = handleSubmit;
+            document.getElementById('refresh-btn').onclick = loadTickets;
+            window.onclick = (e) => { if (e.target == modal) closeModal(); };
+        }
+
+        async function handleSubmit(e) {
+            e.preventDefault();
+            const subject = document.getElementById('t-subject').value.trim();
+            const category = document.getElementById('t-category').value;
+            const message = document.getElementById('t-message').value.trim();
+
+            if (!subject || !message) return;
+
+            setLoading(true);
+
+            try {
+                const { data, error } = await supabase
+                    .from('support_tickets')
+                    .insert([{
+                        user_id: user.id,
+                        subject,
+                        category,
+                        message,
+                        status: 'OPEN'
+                    }])
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                alert(`Ticket created successfully. Reference: ${data.id.substring(0,8).toUpperCase()}`);
+                ticketForm.reset();
+                await loadTickets();
+
+            } catch (err) {
+                console.error(err);
+                alert("Could not submit request. Please try again.");
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        window.openTicket = (id) => {
+            const t = tickets.find(x => x.id === id);
+            if (!t) return;
+
+            document.getElementById('m-subject').textContent = t.subject;
+            document.getElementById('m-category').textContent = t.category;
+            const badge = document.getElementById('m-status-badge');
+            badge.textContent = t.status;
+            badge.className = `status-badge st-${t.status.toLowerCase()}`;
+
+            const chat = document.getElementById('m-chat-container');
+            let chatHTML = `
+                <div class="chat-bubble bubble-user">
+                    <div class="bubble-meta">You • ${new Date(t.created_at).toLocaleString()}</div>
+                    ${escapeHTML(t.message)}
+                </div>
+            `;
+
+            if (t.admin_reply) {
+                chatHTML += `
+                    <div class="chat-bubble bubble-admin">
+                        <div class="bubble-meta">Support Team • ${new Date(t.updated_at).toLocaleString()}</div>
+                        ${escapeHTML(t.admin_reply)}
+                    </div>
+                `;
+            } else {
+                chatHTML += `<div style="text-align:center; font-size:0.75rem; color:var(--text-muted); margin-top:10px;">Awaiting response from our support team...</div>`;
+            }
+
+            chat.innerHTML = chatHTML;
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        };
+
+        window.closeModal = () => {
+            modal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        };
+
+        // --- HELPERS ---
+        function setLoading(isLoading) {
+            submitBtn.disabled = isLoading;
+            btnText.style.display = isLoading ? 'none' : 'block';
+            btnSpinner.style.display = isLoading ? 'block' : 'none';
+        }
+
+        function escapeHTML(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function formatTime(dateStr) {
+            return new Date(dateStr).toLocaleDateString();
+        }
+    </script>
+</body>
+</html>
