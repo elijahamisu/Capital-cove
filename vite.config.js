@@ -18,7 +18,7 @@ export default defineConfig({
         deposit: resolve(__dirname, 'deposit.html'),
         withdraw: resolve(__dirname, 'withdraw.html'),
         transactions: resolve(__dirname, 'transactions.html'),
-      //  referrals: resolve(__dirname, 'referrals.html'),
+        referrals: resolve(__dirname, 'referrals.html'),
         //giftCode: resolve(__dirname, 'gift-code.html'),
         //notifications: resolve(__dirname, 'notifications.html'),
         //profile: resolve(__dirname, 'profile.html'),
