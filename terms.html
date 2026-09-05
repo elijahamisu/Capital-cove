@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Terms & Conditions | CAPITAL COVE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-light: #1e293b;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 16px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+        body { background-color: var(--bg); color: var(--text-main); line-height: 1.7; }
+        .container { width: 100%; max-width: 900px; margin: 0 auto; padding: 0 20px; }
+
+        /* HEADER */
+        header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px 0; position: sticky; top: 0; z-index: 100; }
+        .header-content { display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.1rem; font-weight: 800; text-decoration: none; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        .logo-icon { background: var(--primary); color: var(--accent); padding: 4px 8px; border-radius: 6px; font-size: 0.9rem; }
+        .nav-link { font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-decoration: none; transition: 0.2s; }
+        .nav-link:hover { color: var(--primary); }
+
+        /* LEGAL CONTENT */
+        .legal-hero { padding: 60px 0 40px; text-align: center; }
+        .legal-hero h1 { font-size: 2.2rem; font-weight: 800; color: var(--primary); margin-bottom: 12px; }
+        .last-updated { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+
+        .legal-layout { display: grid; grid-template-columns: 1fr; gap: 40px; margin-bottom: 80px; }
+        @media (min-width: 1024px) { .legal-layout { grid-template-columns: 250px 1fr; align-items: start; } }
+
+        /* TOC */
+        .toc { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; position: sticky; top: 90px; display: none; }
+        @media (min-width: 1024px) { .toc { display: block; } }
+        .toc-title { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 15px; letter-spacing: 1px; }
+        .toc-list { list-style: none; }
+        .toc-item { margin-bottom: 10px; }
+        .toc-link { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-decoration: none; transition: 0.2s; }
+        .toc-link:hover { color: var(--accent-hover); }
+
+        /* SECTIONS */
+        .content-body section { margin-bottom: 40px; background: var(--card-bg); padding: 30px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .content-body h2 { font-size: 1.25rem; font-weight: 800; color: var(--primary); margin-bottom: 20px; display: flex; gap: 10px; }
+        .content-body p { margin-bottom: 15px; font-size: 0.95rem; color: var(--text-main); }
+        .content-body ul { margin-bottom: 15px; padding-left: 20px; }
+        .content-body li { margin-bottom: 8px; font-size: 0.95rem; }
+
+        .important-box { background: #fef3c7; border-left: 4px solid var(--accent); padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .important-box strong { color: #92400e; display: block; margin-bottom: 5px; font-size: 0.9rem; text-transform: uppercase; }
+
+        /* FOOTER */
+        footer { background: var(--card-bg); border-top: 1px solid var(--border); padding: 60px 0; }
+        .footer-grid { display: grid; grid-template-columns: 1fr; gap: 40px; }
+        @media (min-width: 768px) { .footer-grid { grid-template-columns: 2fr 1fr 1fr; } }
+        .footer-logo { font-size: 1.2rem; font-weight: 800; margin-bottom: 15px; display: block; text-decoration: none; color: var(--primary); }
+        .footer-desc { font-size: 0.9rem; color: var(--text-muted); line-height: 1.6; }
+        .footer-title { font-size: 0.85rem; font-weight: 800; text-transform: uppercase; color: var(--primary); margin-bottom: 20px; letter-spacing: 1px; }
+        .footer-links { list-style: none; }
+        .footer-links li { margin-bottom: 12px; }
+        .footer-links a { font-size: 0.9rem; color: var(--text-muted); text-decoration: none; transition: 0.2s; }
+        .footer-links a:hover { color: var(--accent-hover); }
+        .footer-bottom { border-top: 1px solid var(--border); margin-top: 40px; padding-top: 20px; text-align: center; font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container header-content">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">C</div>
+                CAPITAL COVE
+            </a>
+            <div style="display: flex; gap: 20px;">
+                <a href="login.html" class="nav-link">Login</a>
+                <a href="register.html" class="nav-link" style="color: var(--accent-hover);">Join Now</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="legal-hero">
+            <span class="last-updated">Last Updated: September 5, 2026</span>
+            <h1>Terms & Conditions</h1>
+        </div>
+
+        <div class="legal-layout">
+            <aside class="toc">
+                <div class="toc-title">On this page</div>
+                <nav>
+                    <ul class="toc-list">
+                        <li class="toc-item"><a href="#acceptance" class="toc-link">1. Acceptance</a></li>
+                        <li class="toc-item"><a href="#eligibility" class="toc-link">2. Eligibility</a></li>
+                        <li class="toc-item"><a href="#accounts" class="toc-link">3. User Accounts</a></li>
+                        <li class="toc-item"><a href="#marketplace" class="toc-link">4. Marketplace Listings</a></li>
+                        <li class="toc-item"><a href="#purchases" class="toc-link">5. Bulk Purchases</a></li>
+                        <li class="toc-item"><a href="#reselling" class="toc-link">6. Reselling Products</a></li>
+                        <li class="toc-item"><a href="#wallet" class="toc-link">7. Wallet & Payments</a></li>
+                        <li class="toc-item"><a href="#withdrawals" class="toc-link">8. Withdrawals</a></li>
+                        <li class="toc-item"><a href="#guarantees" class="toc-link">9. No Guarantees</a></li>
+                        <li class="toc-item"><a href="#prohibited" class="toc-link">10. Prohibited Activities</a></li>
+                        <li class="toc-item"><a href="#liability" class="toc-link">11. Liability & Rights</a></li>
+                    </ul>
+                </nav>
+            </aside>
+
+            <article class="content-body">
+                
+                <section id="acceptance">
+                    <h2>1. Acceptance of These Terms</h2>
+                    <p>By accessing or using the CAPITAL COVE platform, you agree to be bound by these Terms and Conditions. If you do not agree with any part of these terms, you must not use our services. These terms apply to all visitors, users, and others who access or use the Service.</p>
+                </section>
+
+                <section id="eligibility">
+                    <h2>2. Eligibility</h2>
+                    <p>To use CAPITAL COVE, you must have the legal capacity to enter into a binding agreement. You are responsible for ensuring that your use of the platform complies with all applicable laws and regulations in your jurisdiction.</p>
+                </section>
+
+                <section id="accounts">
+                    <h2>3. User Accounts</h2>
+                    <p>When you create an account with us, you must provide information that is accurate, complete, and current at all times. You are responsible for:</p>
+                    <ul>
+                        <li>Safeguarding the password that you use to access the Service.</li>
+                        <li>All activities or actions that occur under your account.</li>
+                        <li>Informing CAPITAL COVE immediately upon becoming aware of any breach of security or unauthorized use of your account.</li>
+                    </ul>
+                </section>
+
+                <section id="marketplace">
+                    <h2>4. Marketplace and Listings</h2>
+                    <p>CAPITAL COVE provides a marketplace for the acquisition and resale of physical products in bulk. Product listings may include names, descriptions, images, bulk prices, and suggested individual selling prices.</p>
+                    <div class="important-box">
+                        <strong>Important Clarification</strong>
+                        Suggested selling prices displayed in the marketplace are guidance only and do not constitute a guarantee of revenue, sales volume, or resale price.
+                    </div>
+                </section>
+
+                <section id="purchases">
+                    <h2>5. Bulk Purchases</h2>
+                    <p>Users may purchase products in bulk quantity where inventory is available. A bulk purchase represents the acquisition of a specific number of individual product units. Ownership of these units is assigned to the user upon successful wallet transaction and recorded in the database ledger.</p>
+                </section>
+
+                <section id="reselling">
+                    <h2>6. Reselling Products</h2>
+                    <p>Purchased units may be made available for resale through the platform. Resale outcomes depend entirely on real marketplace activity and customer transactions. CAPITAL COVE does not guarantee that any specific unit will be sold within a certain timeframe or at a specific price.</p>
+                </section>
+
+                <section id="wallet">
+                    <h2>7. Wallet and Account Balances</h2>
+                    <p>The CAPITAL COVE wallet reflects your available and pending balances based on recorded transactions, including:</p>
+                    <ul>
+                        <li>Verified manual deposits.</li>
+                        <li>Deductions for bulk product acquisitions.</li>
+                        <li>Proceeds from recorded individual unit sales.</li>
+                        <li>Referral commissions and gift rewards.</li>
+                    </ul>
+                    <p>Deposits are processed manually via ZAP transfer and are subject to administrative verification. A submitted request does not grant automatic credit.</p>
+                </section>
+
+                <section id="withdrawals">
+                    <h2>8. Withdrawals and Fees</h2>
+                    <p>Users may request withdrawals to a Nigerian bank account subject to the following rules:</p>
+                    <ul>
+                        <li><strong>Minimum Withdrawal:</strong> ₦1,000.</li>
+                        <li><strong>Withdrawal Charge:</strong> A 15% service fee applies to each withdrawal request.</li>
+                        <li><strong>Review:</strong> Requests are reviewed by administrators before payout processing.</li>
+                    </ul>
+                    <p>All fees are subject to configuration within the platform settings and may be updated periodically.</p>
+                </section>
+
+                <section id="guarantees">
+                    <h2>9. No Guaranteed Sales or Profit</h2>
+                    <div class="important-box">
+                        <strong>Disclaimer of Returns</strong>
+                        CAPITAL COVE is NOT an investment scheme, passive income platform, or savings service. We do not provide "daily returns," "fixed profits," or "guaranteed income." We are a commerce marketplace. Resale proceeds are based on actual recorded product sales.
+                    </div>
+                    <p>You acknowledge that product resale involves market risk and that individual results may vary based on product demand and marketplace conditions.</p>
+                </section>
+
+                <section id="prohibited">
+                    <h2>10. Prohibited Activities</h2>
+                    <p>Users are strictly prohibited from:</p>
+                    <ul>
+                        <li>Attempting to manipulate wallet balances or sales records.</li>
+                        <li>Abusing the referral or gift code systems.</li>
+                        <li>Submitting fraudulent payment proof.</li>
+                        <li>Exploiting technical bugs for financial gain.</li>
+                        <li>Interfering with the security or operation of the platform.</li>
+                    </ul>
+                    <p>Violation of these rules may result in immediate account suspension or restriction.</p>
+                </section>
+
+                <section id="liability">
+                    <h2>11. Limitation of Liability</h2>
+                    <p>To the maximum extent permitted by applicable law, CAPITAL COVE shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including without limitation, loss of profits, data, or other intangible losses resulting from your access to or use of the platform.</p>
+                </section>
+
+                <section>
+                    <h2>12. Questions and Support</h2>
+                    <p>If you have any questions about these Terms, please contact our support team through the official support center:</p>
+                    <a href="support.html" class="btn btn-primary" style="text-decoration: none; width: auto; display: inline-flex;">Visit Support Center</a>
+                </section>
+
+            </article>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container footer-grid">
+            <div>
+                <a href="index.html" class="footer-logo">CAPITAL COVE</a>
+                <p class="footer-desc">The modern marketplace for bulk product acquisition and automated resale management.</p>
+            </div>
+            <div>
+                <h4 class="footer-title">Platform</h4>
+                <ul class="footer-links">
+                    <li><a href="marketplace.html">Marketplace</a></li>
+                    <li><a href="support.html">Support</a></li>
+                    <li><a href="gift-code.html">Redeem Code</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="footer-title">Legal</h4>
+                <ul class="footer-links">
+                    <li><a href="terms.html">Terms & Conditions</a></li>
+                    <li><a href="privacy.html">Privacy Policy</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            &copy; <span id="year"></span> CAPITAL COVE. All rights reserved.
+        </div>
+    </footer>
+
+    <script>
+        // Update year
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        // Accessible Anchor Handling for TOC
+        document.querySelectorAll('.toc-link').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    const headerOffset = 100;
+                    const elementPosition = target.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: "smooth"
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
