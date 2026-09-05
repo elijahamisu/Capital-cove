@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Checkout | CAPITAL COVE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-light: #1e293b;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --success: #10b981;
+            --error: #ef4444;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 16px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg); color: var(--text-main); line-height: 1.6; padding-bottom: 40px; }
+        .container { width: 100%; max-width: 600px; margin: 0 auto; padding: 0 20px; }
+
+        /* HEADER */
+        header { padding: 20px 0; display: flex; align-items: center; justify-content: space-between; }
+        .back-link { color: var(--text-muted); font-size: 0.9rem; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 5px; }
+
+        /* SECTION TITLES */
+        .page-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 24px; color: var(--primary); }
+
+        /* CARDS */
+        .card { background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .card-header { font-size: 0.85rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; display: block; }
+
+        /* PRODUCT ROW */
+        .product-row { display: flex; gap: 15px; align-items: center; }
+        .product-thumb { width: 60px; height: 60px; border-radius: 10px; object-fit: cover; background: var(--bg); }
+        .product-info h3 { font-size: 1rem; font-weight: 700; }
+        .product-info p { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
+
+        /* CALCULATOR */
+        .qty-input-wrap { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: var(--bg); border-radius: 12px; margin: 15px 0; }
+        .qty-controls { display: flex; align-items: center; gap: 20px; }
+        .qty-btn { width: 32px; height: 32px; background: white; border: 1px solid var(--border); border-radius: 8px; font-size: 1.2rem; font-weight: 400; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .qty-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .qty-val { font-weight: 800; font-size: 1.1rem; }
+
+        /* LEDGER ROWS */
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem; }
+        .summary-row.total { border-top: 1px solid var(--border); padding-top: 15px; margin-top: 15px; font-weight: 800; font-size: 1.1rem; }
+        .summary-row.wallet { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+        .summary-row.remaining { font-size: 0.8rem; color: var(--success); font-weight: 700; }
+
+        /* CHECKBOX */
+        .confirm-wrap { display: flex; gap: 12px; align-items: flex-start; margin: 20px 0; }
+        .confirm-wrap input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--accent); }
+        .confirm-wrap label { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; font-weight: 500; }
+
+        /* BUTTONS */
+        .btn-pay { width: 100%; background: var(--primary); color: white; padding: 16px; border-radius: 12px; font-weight: 800; font-size: 1rem; border: none; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-pay:hover:not(:disabled) { background: var(--primary-light); transform: translateY(-2px); }
+        .btn-pay:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-deposit { display: inline-block; background: var(--accent); color: var(--primary); padding: 8px 16px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.8rem; margin-top: 10px; }
+
+        /* SUCCESS STATE */
+        .success-overlay { position: fixed; inset: 0; background: var(--white); z-index: 1000; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center; }
+        .success-icon { width: 80px; height: 80px; background: var(--success); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; margin-bottom: 24px; }
+        
+        /* ALERTS */
+        .alert { padding: 12px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; margin-bottom: 20px; display: none; }
+        .alert-error { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+
+        .spinner { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 0.8s linear infinite; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="main-content">
+        <header>
+            <a href="marketplace.html" class="back-link">← Marketplace</a>
+        </header>
+
+        <h1 class="page-title">Confirm Purchase</h1>
+
+        <div id="error-alert" class="alert alert-error"></div>
+
+        <!-- Product Summary -->
+        <div class="card">
+            <span class="card-header">Bulk Product</span>
+            <div id="product-card-body">
+                <div style="height: 60px; background: #e2e8f0; border-radius: 10px; animate: pulse;"></div>
+            </div>
+        </div>
+
+        <!-- Quantity Selector -->
+        <div class="card">
+            <span class="card-header">Select Quantity</span>
+            <div class="qty-input-wrap">
+                <div>
+                    <span style="font-weight: 700; display: block; font-size: 0.9rem;">Number of Bulks</span>
+                    <span id="inventory-hint" style="font-size: 0.7rem; color: var(--text-muted);">Checking inventory...</span>
+                </div>
+                <div class="qty-controls">
+                    <button class="qty-btn" id="minus-btn" onclick="updateQty(-1)">−</button>
+                    <span class="qty-val" id="qty-display">1</span>
+                    <button class="qty-btn" id="plus-btn" onclick="updateQty(1)">+</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Summary -->
+        <div class="card">
+            <span class="card-header">Payment Summary</span>
+            <div class="summary-row">
+                <span>Units to receive</span>
+                <span id="summary-units" style="font-weight: 700;">--</span>
+            </div>
+            <div class="summary-row">
+                <span>Price per bulk</span>
+                <span id="summary-price-bulk">--</span>
+            </div>
+            <div class="summary-row total">
+                <span>Total Amount</span>
+                <span id="summary-total">--</span>
+            </div>
+            
+            <div style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--border);">
+                <div class="summary-row wallet">
+                    <span>Available Balance</span>
+                    <span id="wallet-balance">₦0.00</span>
+                </div>
+                <div class="summary-row remaining" id="remaining-row">
+                    <span>Remaining Balance</span>
+                    <span id="remaining-balance">₦0.00</span>
+                </div>
+                <div id="insufficient-balance-msg" style="display:none; margin-top: 10px; color: var(--error); font-size: 0.8rem; font-weight: 700;">
+                    Insufficient funds. Please top up your wallet.
+                    <br>
+                    <a href="deposit.html" class="btn-deposit">Deposit Funds</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirmation -->
+        <div class="confirm-wrap">
+            <input type="checkbox" id="resale-confirm">
+            <label for="resale-confirm">
+                I understand that I am purchasing bulk product units for resale. I acknowledge that actual results depend on market sales and service settlements.
+            </label>
+        </div>
+
+        <button class="btn-pay" id="pay-btn" disabled>
+            <span id="btn-text">Confirm & Pay</span>
+            <div class="spinner" id="btn-spinner"></div>
+        </button>
+    </div>
+
+    <!-- Success Screen -->
+    <div class="success-overlay" id="success-screen">
+        <div class="success-icon">✓</div>
+        <h1 style="font-weight: 800; margin-bottom: 10px;">Purchase Successful!</h1>
+        <p style="color: var(--text-muted); margin-bottom: 30px;" id="success-details">Your bulk packages have been acquired and units have been assigned to your account.</p>
+        <div style="width: 100%; display: flex; flex-direction: column; gap: 12px;">
+            <a href="my-products.html" class="btn-pay" style="text-decoration: none;">View My Products</a>
+            <a href="dashboard.html" style="color: var(--primary); font-weight: 700; text-decoration: none; font-size: 0.9rem;">Go to Dashboard</a>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIG ---
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        // --- STATE ---
+        let user = null;
+        let product = null;
+        let wallet = null;
+        let quantity = 1;
+
+        // --- DOM ---
+        const errorAlert = document.getElementById('error-alert');
+        const productBody = document.getElementById('product-card-body');
+        const qtyDisplay = document.getElementById('qty-display');
+        const summaryUnits = document.getElementById('summary-units');
+        const summaryPriceBulk = document.getElementById('summary-price-bulk');
+        const summaryTotal = document.getElementById('summary-total');
+        const walletBalance = document.getElementById('wallet-balance');
+        const remainingBalance = document.getElementById('remaining-balance');
+        const remainingRow = document.getElementById('remaining-row');
+        const insufficientMsg = document.getElementById('insufficient-balance-msg');
+        const confirmCheck = document.getElementById('resale-confirm');
+        const payBtn = document.getElementById('pay-btn');
+        const btnText = document.getElementById('btn-text');
+        const btnSpinner = document.getElementById('btn-spinner');
+        const inventoryHint = document.getElementById('inventory-hint');
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.href);
+                return;
+            }
+            user = session.user;
+
+            const params = new URLSearchParams(window.location.search);
+            const productId = params.get('product');
+            const urlQty = parseInt(params.get('quantity')) || 1;
+            quantity = urlQty;
+
+            await Promise.all([
+                fetchProduct(productId),
+                fetchWallet()
+            ]);
+
+            initListeners();
+        });
+
+        async function fetchProduct(id) {
+            try {
+                const { data, error } = await supabase.from('products').select('*').eq('id', id).eq('status', 'ACTIVE').single();
+                if (error || !data) throw new Error("Product not available");
+                product = data;
+                
+                // Sanitize URL quantity against constraints
+                const max = Math.min(product.purchase_limit || 9999, product.available_inventory);
+                if (quantity > max) quantity = max;
+                if (quantity < 1) quantity = 1;
+
+                renderProduct();
+                updateCalculations();
+            } catch (err) {
+                showError("This product is no longer available for purchase.");
+                payBtn.style.display = 'none';
+            }
+        }
+
+        async function fetchWallet() {
+            const { data } = await supabase.from('wallets').select('*').eq('user_id', user.id).single();
+            if (data) {
+                wallet = data;
+                walletBalance.textContent = formatNaira(wallet.available_balance);
+                updateCalculations();
+            }
+        }
+
+        function renderProduct() {
+            productBody.innerHTML = `
+                <div class="product-row">
+                    <img src="${product.image_url || 'https://via.placeholder.com/100'}" class="product-thumb">
+                    <div class="product-info">
+                        <h3>${product.name}</h3>
+                        <p>${product.units_per_bulk} units per bulk</p>
+                    </div>
+                </div>
+            `;
+            inventoryHint.textContent = `Available: ${product.available_inventory} packages`;
+        }
+
+        function updateCalculations() {
+            if (!product || !wallet) return;
+
+            const totalCost = product.bulk_price * quantity;
+            const totalUnits = product.units_per_bulk * quantity;
+            const remaining = wallet.available_balance - totalCost;
+
+            qtyDisplay.textContent = quantity;
+            summaryUnits.textContent = totalUnits + ' Units';
+            summaryPriceBulk.textContent = formatNaira(product.bulk_price);
+            summaryTotal.textContent = formatNaira(totalCost);
+            remainingBalance.textContent = formatNaira(remaining);
+
+            const hasFunds = remaining >= 0;
+            insufficientMsg.style.display = hasFunds ? 'none' : 'block';
+            remainingRow.style.display = hasFunds ? 'flex' : 'none';
+            
+            togglePayButton();
+        }
+
+        function togglePayButton() {
+            const confirmed = confirmCheck.checked;
+            const hasFunds = (wallet && product) ? (wallet.available_balance >= (product.bulk_price * quantity)) : false;
+            payBtn.disabled = !confirmed || !hasFunds || !product;
+        }
+
+        function initListeners() {
+            confirmCheck.addEventListener('change', togglePayButton);
+            payBtn.addEventListener('click', handlePurchase);
+        }
+
+        window.updateQty = (delta) => {
+            if (!product) return;
+            const max = Math.min(product.purchase_limit || 9999, product.available_inventory);
+            const next = quantity + delta;
+            if (next >= 1 && next <= max) {
+                quantity = next;
+                updateCalculations();
+            }
+        };
+
+        async function handlePurchase() {
+            setLoading(true);
+            errorAlert.style.display = 'none';
+
+            try {
+                // CALL SUPABASE RPC
+                const { data, error } = await supabase.rpc('process_bulk_purchase', {
+                    p_user_id: user.id,
+                    p_product_id: product.id,
+                    p_quantity: quantity
+                });
+
+                if (error) throw error;
+
+                // Success
+                document.getElementById('success-details').textContent = `Purchased ${quantity} bulk package(s) of ${product.name}. ${quantity * product.units_per_bulk} individual units have been added to your collection.`;
+                document.getElementById('success-screen').style.display = 'flex';
+                
+            } catch (err) {
+                console.error(err);
+                showError(err.message || "Purchase failed. Please try again.");
+                setLoading(false);
+            }
+        }
+
+        function setLoading(isLoading) {
+            payBtn.disabled = isLoading;
+            btnText.style.display = isLoading ? 'none' : 'block';
+            btnSpinner.style.display = isLoading ? 'block' : 'none';
+        }
+
+        function showError(msg) {
+            errorAlert.textContent = msg;
+            errorAlert.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function formatNaira(amount) {
+            return '₦' + Number(amount).toLocaleString('en-NG', { minimumFractionDigits: 2 });
+        }
+    </script>
+</body>
+</html>
