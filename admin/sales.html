@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sales Management | CAPITAL COVE Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --admin-bg: #020617;
+            --admin-surface: #0f172a;
+            --admin-card: #1e293b;
+            --admin-border: #334155;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --error: #ef4444;
+            --info: #3b82f6;
+            --radius: 12px;
+            --sidebar-width: 260px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--admin-bg); color: var(--text-main); min-height: 100vh; overflow-x: hidden; }
+
+        /* AUTH GUARD */
+        #auth-guard { position: fixed; inset: 0; background: var(--admin-bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+
+        /* SIDEBAR */
+        .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-width); background: var(--admin-surface); border-right: 1px solid var(--admin-border); z-index: 1000; transition: transform 0.3s ease; }
+        .sidebar-header { padding: 24px; border-bottom: 1px solid var(--admin-border); display: flex; align-items: center; gap: 12px; }
+        .logo-box { width: 32px; height: 32px; background: var(--accent); color: var(--admin-bg); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+        .nav-list { padding: 20px 12px; list-style: none; }
+        .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; color: var(--text-muted); text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: 0.2s; }
+        .nav-link:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-link.active { background: var(--accent); color: var(--admin-bg); }
+
+        /* MAIN CONTENT */
+        .main-wrapper { margin-left: var(--sidebar-width); transition: margin 0.3s ease; }
+        .top-bar { height: 70px; background: var(--admin-surface); border-bottom: 1px solid var(--admin-border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 900; }
+        .container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+        /* STATS */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 20px; }
+        .stat-lbl { font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .stat-val { font-size: 1.4rem; font-weight: 800; margin-top: 8px; display: block; }
+
+        /* CONTROLS */
+        .action-bar { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 16px; margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+        .search-box { flex: 1; min-width: 250px; }
+        .input { width: 100%; background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 8px; padding: 10px 14px; color: white; font-size: 0.85rem; outline: none; }
+        .select { background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 8px; padding: 10px; color: white; font-size: 0.85rem; cursor: pointer; outline: none; }
+
+        /* DATA TABLE */
+        .table-wrap { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); overflow: hidden; margin-bottom: 24px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        th { text-align: left; padding: 14px 16px; color: var(--text-muted); font-weight: 700; border-bottom: 1px solid var(--admin-border); background: rgba(0,0,0,0.1); }
+        td { padding: 14px 16px; border-bottom: 1px solid var(--admin-border); vertical-align: middle; }
+        
+        .badge { font-size: 0.6rem; font-weight: 800; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; }
+        .st-completed { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .st-pending { background: rgba(245, 158, 11, 0.1); color: var(--accent); }
+        
+        .btn-view { padding: 6px 12px; border-radius: 6px; background: var(--admin-border); color: white; border: none; font-size: 0.7rem; font-weight: 700; cursor: pointer; }
+
+        /* MODAL */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+        .modal-overlay.active { display: flex; }
+        .modal-card { background: var(--admin-surface); border: 1px solid var(--admin-border); width: 100%; max-width: 600px; padding: 32px; border-radius: var(--radius); position: relative; }
+        .modal-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 20px; color: var(--accent); border-bottom: 1px solid var(--admin-border); padding-bottom: 10px; }
+        .detail-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; }
+        .detail-lbl { color: var(--text-muted); font-weight: 600; }
+        .detail-val { font-weight: 700; text-align: right; }
+
+        /* MOBILE VIEW */
+        .mobile-list { display: none; flex-direction: column; gap: 12px; }
+        .mobile-card { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 16px; }
+
+        @media (max-width: 1023px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-wrapper { margin-left: 0; }
+            .menu-toggle { display: block; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+            .table-wrap table { display: none; }
+            .mobile-list { display: flex; }
+            .action-bar { flex-direction: column; align-items: stretch; }
+        }
+
+        .menu-toggle { display: none; }
+        .pagination { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: rgba(0,0,0,0.1); }
+        .page-btn { padding: 8px 16px; border-radius: 6px; background: var(--admin-surface); border: 1px solid var(--admin-border); color: white; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+        .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <div id="auth-guard">
+        <div style="text-align: center;"><p style="font-weight: 800; letter-spacing: 2px;">AUTHORIZING ADMIN...</p></div>
+    </div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header"><div class="logo-box">C</div><span style="font-weight: 800; letter-spacing: 1px;">ADMIN</span></div>
+        <nav class="nav-list">
+            <a href="index.html" class="nav-link">📊 Dashboard</a>
+            <a href="users.html" class="nav-link">👥 Users</a>
+            <a href="products.html" class="nav-link">📦 Products</a>
+            <a href="inventory.html" class="nav-link">🏠 Inventory</a>
+            <a href="bulk-purchases.html" class="nav-link">🛍️ Bulk Purchases</a>
+            <a href="sales.html" class="nav-link active">💰 Sales</a>
+            <a href="settlements.html" class="nav-link">🧾 Settlements</a>
+            <a href="deposits.html" class="nav-link">📥 Deposits</a>
+            <a href="withdrawals.html" class="nav-link">📤 Withdrawals</a>
+            <button onclick="signOut()" class="nav-link" style="width:100%; background:none; border:none; margin-top:40px; border-top:1px solid var(--admin-border); padding-top:20px;">🚪 Logout</button>
+        </nav>
+    </aside>
+
+    <div class="main-wrapper">
+        <header class="top-bar">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <h1 style="font-size: 1.1rem; font-weight: 800;">Sales Management</h1>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <select id="date-range" class="select" onchange="loadAll()">
+                    <option value="all">All Time</option>
+                    <option value="today">Today</option>
+                    <option value="7days">Last 7 Days</option>
+                    <option value="30days">Last 30 Days</option>
+                </select>
+                <button class="page-btn" onclick="loadAll()">↻ Refresh</button>
+            </div>
+        </header>
+
+        <main class="container">
+            <!-- Stats -->
+            <section class="stats-grid">
+                <div class="stat-card"><span class="stat-lbl">Total Sales</span><span class="stat-val" id="stat-total">0</span></div>
+                <div class="stat-card"><span class="stat-lbl">Gross Marketplace Sales</span><span class="stat-val" id="stat-gross">₦0.00</span></div>
+                <div class="stat-card"><span class="stat-lbl">Collected Fees</span><span class="stat-val" id="stat-fees" style="color:var(--accent)">₦0.00</span></div>
+                <div class="stat-card"><span class="stat-lbl">Net User Proceeds</span><span class="stat-val" id="stat-net" style="color:var(--success)">₦0.00</span></div>
+            </section>
+
+            <!-- Filters -->
+            <section class="action-bar">
+                <div class="search-box">
+                    <input type="text" id="search-input" class="input" placeholder="Search Sale ID, Unit, Product or Seller...">
+                </div>
+                <select id="status-filter" class="select">
+                    <option value="all">All Statuses</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="CANCELLED">Cancelled</option>
+                </select>
+            </section>
+
+            <!-- Table -->
+            <div class="table-wrap">
+                <table id="sales-table">
+                    <thead>
+                        <tr>
+                            <th>Sale ID</th>
+                            <th>Product / Unit</th>
+                            <th>Seller</th>
+                            <th>Sale Amount</th>
+                            <th>Net Proceed</th>
+                            <th>Status</th>
+                            <th>Settlement</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sales-tbody"></tbody>
+                </table>
+
+                <div class="mobile-list" id="mobile-list"></div>
+                <div id="empty-state" class="empty-state" style="display:none; padding:40px; text-align:center; color:var(--text-muted);">No sales records found.</div>
+
+                <div class="pagination">
+                    <button class="page-btn" id="prev-btn" disabled>Previous</button>
+                    <span id="page-info" style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted);">Page 1</span>
+                    <button class="page-btn" id="next-btn">Next</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Details Modal -->
+    <div class="modal-overlay" id="detail-modal">
+        <div class="modal-card">
+            <h3 class="modal-title">Sale Audit Log</h3>
+            <div id="modal-content"></div>
+            <button class="btn-view" style="width:100%; margin-top:20px; padding:14px; background:var(--admin-border);" onclick="closeModal()">Close Audit</button>
+        </div>
+    </div>
+
+    <script>
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        let page = 0;
+        const limit = 15;
+        let salesData = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAdmin();
+            loadAll();
+            initListeners();
+            initMobileMenu();
+        });
+
+        async function checkAdmin() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return window.location.href = 'login.html';
+            const { data: admin } = await supabase.from('admin_users').select('id').eq('id', session.user.id).single();
+            if (!admin) { await supabase.auth.signOut(); return window.location.href = 'login.html'; }
+            document.getElementById('auth-guard').style.display = 'none';
+        }
+
+        async function loadAll() {
+            loadStats();
+            fetchSales();
+        }
+
+        async function loadStats() {
+            let query = supabase.from('sales').select('sale_amount, platform_fee, net_amount, sold_at');
+            const range = document.getElementById('date-range').value;
+            
+            if (range !== 'all') {
+                const now = new Date();
+                let dateLimit = new Date();
+                if (range === 'today') dateLimit.setHours(0,0,0,0);
+                if (range === '7days') dateLimit.setDate(now.getDate() - 7);
+                if (range === '30days') dateLimit.setDate(now.getDate() - 30);
+                query = query.gte('sold_at', dateLimit.toISOString());
+            }
+
+            const { data } = await query;
+            if (data) {
+                const total = data.length;
+                const gross = data.reduce((acc, s) => acc + parseFloat(s.sale_amount), 0);
+                const fees = data.reduce((acc, s) => acc + parseFloat(s.platform_fee), 0);
+                const net = data.reduce((acc, s) => acc + parseFloat(s.net_amount), 0);
+                
+                document.getElementById('stat-total').textContent = total;
+                document.getElementById('stat-gross').textContent = formatNaira(gross);
+                document.getElementById('stat-fees').textContent = formatNaira(fees);
+                document.getElementById('stat-net').textContent = formatNaira(net);
+            }
+        }
+
+        async function fetchSales() {
+            const tbody = document.getElementById('sales-tbody');
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:40px;">Fetching sales ledger...</td></tr>`;
+
+            const start = page * limit;
+            const end = start + limit - 1;
+
+            let query = supabase
+                .from('sales')
+                .select('*, products(name), product_units(unit_code), profiles(full_name, email), settlements(status)', { count: 'exact' });
+
+            const status = document.getElementById('status-filter').value;
+            const search = document.getElementById('search-input').value.trim();
+            const range = document.getElementById('date-range').value;
+
+            if (status !== 'all') query = query.eq('status', status);
+            if (search) query = query.or(`id.ilike.%${search}%, products.name.ilike.%${search}%, product_units.unit_code.ilike.%${search}%, profiles.full_name.ilike.%${search}%`);
+            
+            if (range !== 'all') {
+                const now = new Date();
+                let dateLimit = new Date();
+                if (range === 'today') dateLimit.setHours(0,0,0,0);
+                if (range === '7days') dateLimit.setDate(now.getDate() - 7);
+                if (range === '30days') dateLimit.setDate(now.getDate() - 30);
+                query = query.gte('sold_at', dateLimit.toISOString());
+            }
+
+            const { data, count, error } = await query.order('sold_at', { ascending: false }).range(start, end);
+
+            if (error || !data) {
+                tbody.innerHTML = '';
+                document.getElementById('empty-state').style.display = 'block';
+                return;
+            }
+
+            salesData = data;
+            renderSales(data, count);
+        }
+
+        function renderSales(data, count) {
+            const tbody = document.getElementById('sales-tbody');
+            const mList = document.getElementById('mobile-list');
+            const empty = document.getElementById('empty-state');
+
+            if (!data.length) { tbody.innerHTML = ''; mList.innerHTML = ''; empty.style.display = 'block'; return; }
+            empty.style.display = 'none';
+
+            tbody.innerHTML = data.map(s => {
+                const settlement = s.settlements?.[0]?.status || 'NO RECORD';
+                return `
+                <tr>
+                    <td style="font-family:monospace; font-weight:700;">${s.id.substring(0,8)}</td>
+                    <td><div style="font-weight:700;">${escape(s.products?.name)}</div><div style="font-size:0.65rem; font-family:monospace; color:var(--accent);">${s.product_units?.unit_code}</div></td>
+                    <td><div style="font-weight:600;">${escape(s.profiles?.full_name)}</div><div style="font-size:0.65rem; color:var(--text-muted);">${s.profiles?.email}</div></td>
+                    <td style="font-weight:700;">${formatNaira(s.sale_amount)}</td>
+                    <td style="font-weight:800; color:var(--success);">${formatNaira(s.net_amount)}</td>
+                    <td><span class="badge st-${s.status.toLowerCase()}">${s.status}</span></td>
+                    <td><span class="badge" style="background:rgba(255,255,255,0.05); color:#94a3b8;">${settlement}</span></td>
+                    <td>${new Date(s.sold_at).toLocaleDateString()}</td>
+                    <td><button class="btn-view" onclick="openDetails('${s.id}')">Audit</button></td>
+                </tr>`;
+            }).join('');
+
+            mList.innerHTML = data.map(s => `
+                <div class="mobile-card">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span style="font-family:monospace; font-weight:800; color:var(--accent);">#${s.id.substring(0,8)}</span>
+                        <span class="badge st-${s.status.toLowerCase()}">${s.status}</span>
+                    </div>
+                    <div style="font-weight:800; margin-bottom:4px;">${escape(s.products?.name)}</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:12px;">Seller: ${escape(s.profiles?.full_name)}</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:800; color:var(--success);">${formatNaira(s.net_amount)}</span>
+                        <button class="btn-view" onclick="openDetails('${s.id}')">View Details</button>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('page-info').textContent = `Page ${page + 1} of ${Math.ceil(count / limit) || 1}`;
+            document.getElementById('prev-btn').disabled = (page === 0);
+            document.getElementById('next-btn').disabled = (start + limit >= count);
+        }
+
+        window.openDetails = (id) => {
+            const s = salesData.find(x => x.id === id);
+            if (!s) return;
+            const settlement = s.settlements?.[0]?.status || 'PENDING';
+            const content = document.getElementById('modal-content');
+            content.innerHTML = `
+                <div class="detail-row"><span class="detail-lbl">Transaction ID</span><span class="detail-val" style="font-size:0.7rem;">${s.id}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Product Name</span><span class="detail-val">${escape(s.products.name)}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Unit Tracking Code</span><span class="detail-val" style="color:var(--accent); font-family:monospace;">${s.product_units.unit_code}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Seller Profile</span><span class="detail-val">${escape(s.profiles.full_name)}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Gross Sale Amount</span><span class="detail-val">${formatNaira(s.sale_amount)}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Platform Service Fee</span><span class="detail-val" style="color:var(--accent);">${formatNaira(s.platform_fee)}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Seller Net Proceed</span><span class="detail-val" style="color:var(--success); font-size:1.1rem;">${formatNaira(s.net_amount)}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Sale Status</span><span class="detail-val">${s.status}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Wallet Settlement</span><span class="detail-val">${settlement}</span></div>
+                <div class="detail-row" style="border:none;"><span class="detail-lbl">Recorded At</span><span class="detail-val">${new Date(s.sold_at).toLocaleString()}</span></div>
+            `;
+            document.getElementById('detail-modal').classList.add('active');
+        };
+
+        function initListeners() {
+            let timer;
+            document.getElementById('search-input').oninput = () => {
+                clearTimeout(timer);
+                timer = setTimeout(() => { page = 0; fetchSales(); }, 500);
+            };
+            document.getElementById('status-filter').onchange = () => { page = 0; fetchSales(); };
+            document.getElementById('prev-btn').onclick = () => { if(page > 0) { page--; fetchSales(); } };
+            document.getElementById('next-btn').onclick = () => { page++; fetchSales(); };
+        }
+
+        window.closeModal = () => document.getElementById('detail-modal').classList.remove('active');
+        window.toggleSidebar = () => document.getElementById('sidebar').classList.toggle('open');
+        function formatNaira(amount) { return '₦' + Number(amount).toLocaleString('en-NG', { minimumFractionDigits: 2 }); }
+        async function signOut() { await supabase.auth.signOut(); window.location.href = 'login.html'; }
+        function escape(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+        function initMobileMenu() { document.getElementById('sidebar').onclick = (e) => { if(e.target.id === 'sidebar') toggleSidebar(); } }
+    </script>
+</body>
+</html>
