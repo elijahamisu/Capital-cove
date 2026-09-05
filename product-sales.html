@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Record Sale | CAPITAL COVE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-light: #1e293b;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --success: #10b981;
+            --error: #ef4444;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 16px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg); color: var(--text-main); line-height: 1.6; padding-bottom: 100px; }
+        .container { width: 100%; max-width: 700px; margin: 0 auto; padding: 0 20px; }
+
+        /* HEADER */
+        header { padding: 20px 0; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--bg); z-index: 100; }
+        .back-link { color: var(--text-muted); font-size: 0.9rem; font-weight: 600; text-decoration: none; }
+
+        .page-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 24px; }
+
+        /* CARDS */
+        .card { background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .card-header { font-size: 0.85rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; display: block; }
+
+        /* FORM */
+        .form-group { margin-bottom: 20px; }
+        .label { display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 8px; color: var(--primary); }
+        .input-wrap { position: relative; display: flex; align-items: center; }
+        .input-icon { position: absolute; left: 15px; font-weight: 800; color: var(--text-muted); }
+        .input { width: 100%; padding: 12px 12px 12px 35px; border-radius: 10px; border: 1px solid var(--border); outline: none; font-size: 1rem; font-weight: 600; transition: 0.2s; background: var(--bg); }
+        .input:focus { border-color: var(--accent); background: white; }
+
+        /* UNIT SELECTOR */
+        .unit-display { display: flex; align-items: center; gap: 12px; background: var(--bg); padding: 12px; border-radius: 10px; border: 1px dashed var(--border); }
+        .unit-info h4 { font-size: 0.9rem; font-weight: 700; }
+        .unit-info p { font-size: 0.75rem; color: var(--text-muted); font-family: monospace; }
+
+        /* PREVIEW */
+        .preview-row { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 8px; }
+        .preview-row.total { margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border); font-weight: 800; font-size: 1.1rem; color: var(--success); }
+
+        /* HISTORY */
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .history-item:last-child { border-bottom: none; }
+        .h-info h5 { font-size: 0.85rem; font-weight: 700; }
+        .h-info p { font-size: 0.7rem; color: var(--text-muted); font-family: monospace; }
+        .h-amount { text-align: right; }
+        .h-val { font-size: 0.9rem; font-weight: 800; display: block; }
+        .h-status { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--success); }
+
+        /* BUTTONS */
+        .btn { width: 100%; padding: 14px; border-radius: 12px; font-weight: 800; border: none; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover:not(:disabled) { background: var(--primary-light); transform: translateY(-1px); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* ALERTS */
+        .alert { padding: 12px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; margin-bottom: 20px; display: none; }
+        .alert-error { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+        .alert-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+
+        .spinner { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 0.8s linear infinite; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* BOTTOM NAV */
+        .bottom-nav {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: calc(100% - 40px); max-width: 500px; background: var(--primary);
+            height: 64px; border-radius: 20px; display: flex; align-items: center;
+            justify-content: space-around; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8; text-decoration: none; font-size: 0.65rem; font-weight: 600; }
+        .nav-icon { font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <a href="my-products.html" class="back-link">← My Products</a>
+        </header>
+
+        <h1 class="page-title">Record a Sale</h1>
+
+        <div id="alert-box" class="alert"></div>
+
+        <!-- 1. Selection Area -->
+        <div class="card" id="selection-card">
+            <span class="card-header">Target Product Unit</span>
+            <div id="selected-unit-display">
+                <!-- Loading State -->
+                <div style="height: 50px; background: #e2e8f0; border-radius: 10px; animate: pulse;"></div>
+            </div>
+        </div>
+
+        <!-- 2. Form -->
+        <div class="card" id="form-card" style="display:none">
+            <span class="card-header">Sale Details</span>
+            <div class="form-group">
+                <label class="label">Actual Sale Amount</label>
+                <div class="input-wrap">
+                    <span class="input-icon">₦</span>
+                    <input type="number" id="sale-amount-input" class="input" placeholder="0.00" step="0.01">
+                </div>
+                <p id="suggested-hint" style="font-size: 0.7rem; color: var(--text-muted); margin-top: 8px;"></p>
+            </div>
+
+            <div style="background: var(--bg); padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                <div class="preview-row">
+                    <span>Gross Sale Amount</span>
+                    <span id="preview-gross">₦0.00</span>
+                </div>
+                <div class="preview-row">
+                    <span>Platform Service Fee</span>
+                    <span>₦0.00</span>
+                </div>
+                <div class="preview-row total">
+                    <span>Net Settlement</span>
+                    <span id="preview-net">₦0.00</span>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" id="record-btn">
+                <span id="btn-text">Record Sale Now</span>
+                <div class="spinner" id="btn-spinner"></div>
+            </button>
+            <p style="font-size: 0.7rem; text-align: center; color: var(--text-muted); margin-top: 10px;">
+                Recording a sale will mark the unit as sold and credit the net amount to your wallet ledger.
+            </p>
+        </div>
+
+        <!-- 3. History -->
+        <div class="card">
+            <span class="card-header">Recent Sales History</span>
+            <div id="sales-history-list">
+                <!-- Data injected here -->
+                <div style="text-align:center; padding: 20px; color: var(--text-muted); font-size: 0.8rem;">Loading history...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="dashboard.html" class="nav-item">
+            <span class="nav-icon">🏠</span> Home
+        </a>
+        <a href="marketplace.html" class="nav-item">
+            <span class="nav-icon">🛒</span> Market
+        </a>
+        <a href="my-products.html" class="nav-item">
+            <span class="nav-icon">📦</span> Products
+        </a>
+        <a href="wallet.html" class="nav-item">
+            <span class="nav-icon">💳</span> Wallet
+        </a>
+        <a href="profile.html" class="nav-item">
+            <span class="nav-icon">👤</span> Profile
+        </a>
+    </nav>
+
+    <script>
+        // --- CONFIG ---
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        // --- STATE ---
+        let user = null;
+        let selectedUnit = null;
+
+        // --- DOM ---
+        const alertBox = document.getElementById('alert-box');
+        const selectionDisplay = document.getElementById('selected-unit-display');
+        const formCard = document.getElementById('form-card');
+        const amountInput = document.getElementById('sale-amount-input');
+        const suggestedHint = document.getElementById('suggested-hint');
+        const previewGross = document.getElementById('preview-gross');
+        const previewNet = document.getElementById('preview-net');
+        const recordBtn = document.getElementById('record-btn');
+        const btnText = document.getElementById('btn-text');
+        const btnSpinner = document.getElementById('btn-spinner');
+        const historyList = document.getElementById('sales-history-list');
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+            user = session.user;
+
+            const params = new URLSearchParams(window.location.search);
+            const unitId = params.get('unit');
+            const productId = params.get('product');
+
+            if (unitId) {
+                await fetchSpecificUnit(unitId);
+            } else if (productId) {
+                await fetchFirstAvailableUnit(productId);
+            } else {
+                renderSelectionError("Please select a unit from your 'My Products' page first.");
+            }
+
+            fetchHistory();
+            initListeners();
+        });
+
+        async function fetchSpecificUnit(id) {
+            const { data, error } = await supabase
+                .from('product_units')
+                .select('*, products(*)')
+                .eq('id', id)
+                .eq('owner_id', user.id)
+                .single();
+            
+            if (error || !data) {
+                renderSelectionError("Unit not found or unauthorized.");
+            } else {
+                handleUnitSelected(data);
+            }
+        }
+
+        async function fetchFirstAvailableUnit(pid) {
+            const { data, error } = await supabase
+                .from('product_units')
+                .select('*, products(*)')
+                .eq('product_id', pid)
+                .eq('owner_id', user.id)
+                .neq('status', 'SOLD')
+                .limit(1)
+                .single();
+
+            if (error || !data) {
+                renderSelectionError("No available units found for this product.");
+            } else {
+                handleUnitSelected(data);
+            }
+        }
+
+        function handleUnitSelected(unit) {
+            if (unit.status === 'SOLD') {
+                renderSelectionError("This unit has already been sold.");
+                return;
+            }
+            selectedUnit = unit;
+            selectionDisplay.innerHTML = `
+                <div class="unit-display">
+                    <div class="unit-info">
+                        <h4>${unit.products.name}</h4>
+                        <p>ID: ${unit.unit_code}</p>
+                    </div>
+                </div>
+            `;
+            suggestedHint.textContent = `Suggested selling price: ₦${Number(unit.products.unit_selling_price).toLocaleString()}`;
+            amountInput.value = unit.products.unit_selling_price;
+            formCard.style.display = 'block';
+            updatePreview();
+        }
+
+        function initListeners() {
+            amountInput.addEventListener('input', updatePreview);
+            recordBtn.addEventListener('click', handleRecordSale);
+        }
+
+        function updatePreview() {
+            const val = parseFloat(amountInput.value) || 0;
+            previewGross.textContent = formatNaira(val);
+            previewNet.textContent = formatNaira(val); // No fee logic for now
+            recordBtn.disabled = val <= 0;
+        }
+
+        async function handleRecordSale() {
+            if (!selectedUnit || !amountInput.value) return;
+            
+            setLoading(true);
+            hideAlert();
+
+            try {
+                const amount = parseFloat(amountInput.value);
+                const { data, error } = await supabase.rpc('record_product_sale', {
+                    p_unit_id: selectedUnit.id,
+                    p_sale_amount: amount
+                });
+
+                if (error) throw error;
+
+                showAlert("Sale recorded successfully! Net proceeds added to wallet.", "success");
+                formCard.style.display = 'none';
+                selectionDisplay.innerHTML = `<div style="text-align:center; color:var(--success); font-weight:700;">Transaction Completed ✓</div>`;
+                fetchHistory();
+
+            } catch (err) {
+                console.error(err);
+                showAlert(err.message || "An error occurred while recording the sale.", "error");
+                setLoading(false);
+            }
+        }
+
+        async function fetchHistory() {
+            try {
+                const { data, error } = await supabase
+                    .from('sales')
+                    .select('*, product_units(unit_code), products(name)')
+                    .eq('seller_user_id', user.id)
+                    .order('sold_at', { ascending: false })
+                    .limit(10);
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    historyList.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--text-muted); font-size: 0.8rem;">No sales recorded yet.</div>`;
+                    return;
+                }
+
+                historyList.innerHTML = data.map(s => `
+                    <div class="history-item">
+                        <div class="h-info">
+                            <h5>${s.products.name}</h5>
+                            <p>${s.product_units.unit_code}</p>
+                        </div>
+                        <div class="h-amount">
+                            <span class="h-val">${formatNaira(s.net_amount)}</span>
+                            <span class="h-status">${s.status}</span>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (e) {
+                historyList.innerHTML = `<div style="color:var(--error); text-align:center; font-size:0.75rem;">Failed to load history.</div>`;
+            }
+        }
+
+        // --- HELPERS ---
+        function formatNaira(amount) {
+            return '₦' + Number(amount).toLocaleString('en-NG', { minimumFractionDigits: 2 });
+        }
+
+        function showAlert(msg, type) {
+            alertBox.textContent = msg;
+            alertBox.className = `alert alert-${type}`;
+            alertBox.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function hideAlert() {
+            alertBox.style.display = 'none';
+        }
+
+        function setLoading(isLoading) {
+            recordBtn.disabled = isLoading;
+            btnText.style.display = isLoading ? 'none' : 'block';
+            btnSpinner.style.display = isLoading ? 'block' : 'none';
+        }
+
+        function renderSelectionError(msg) {
+            selectionDisplay.innerHTML = `<div style="color:var(--error); font-size:0.8rem; font-weight:600; text-align:center;">${msg}</div>`;
+        }
+    </script>
+</body>
+</html>
