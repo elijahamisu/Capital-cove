@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Deposit Funds | CAPITAL COVE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-light: #1e293b;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --success: #10b981;
+            --error: #ef4444;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 16px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg); color: var(--text-main); line-height: 1.6; padding-bottom: 100px; }
+        .container { width: 100%; max-width: 600px; margin: 0 auto; padding: 0 20px; }
+
+        /* HEADER */
+        header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px 0; position: sticky; top: 0; z-index: 100; }
+        .header-content { display: flex; justify-content: space-between; align-items: center; }
+        .back-link { color: var(--text-muted); font-size: 0.9rem; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 5px; }
+
+        .page-title { font-size: 1.5rem; font-weight: 800; margin: 24px 0 10px; color: var(--primary); }
+
+        /* BANK CARD */
+        .bank-card {
+            background: var(--primary); color: white; padding: 24px; border-radius: var(--radius);
+            margin-bottom: 24px; position: relative; overflow: hidden;
+            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.2);
+        }
+        .bank-card::before { content: 'ZAP ACCOUNT'; position: absolute; top: 15px; right: 20px; font-size: 0.6rem; font-weight: 900; opacity: 0.4; letter-spacing: 2px; }
+        .bank-label { font-size: 0.7rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; display: block; }
+        .bank-val-wrap { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .bank-val { font-size: 1.1rem; font-weight: 700; }
+        .copy-btn { background: rgba(255,255,255,0.1); color: var(--accent); border: none; padding: 6px 12px; border-radius: 8px; font-size: 0.7rem; font-weight: 800; cursor: pointer; transition: 0.2s; }
+        .copy-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.2); }
+
+        /* INSTRUCTIONS */
+        .instruction-box { background: #fef3c7; border: 1px solid #fde68a; padding: 16px; border-radius: 12px; margin-bottom: 24px; }
+        .instruction-box h4 { font-size: 0.85rem; font-weight: 800; color: #92400e; margin-bottom: 8px; }
+        .instruction-box p { font-size: 0.75rem; color: #b45309; font-weight: 500; }
+
+        /* FORM */
+        .card { background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .form-group { margin-bottom: 20px; }
+        .label { display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 8px; color: var(--primary); }
+        .input { width: 100%; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border); outline: none; font-size: 0.95rem; transition: 0.2s; background: var(--bg); }
+        .input:focus { border-color: var(--accent); background: white; }
+        
+        .file-input-wrap { border: 2px dashed var(--border); border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: 0.2s; position: relative; }
+        .file-input-wrap:hover { border-color: var(--accent); background: #fffcf0; }
+        .file-input-wrap input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .file-hint { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+        .preview-img { width: 100%; max-height: 150px; object-fit: contain; margin-top: 10px; display: none; border-radius: 8px; }
+
+        .btn-submit { width: 100%; background: var(--primary); color: white; padding: 16px; border-radius: 12px; font-weight: 800; font-size: 1rem; border: none; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* RECENT DEPOSITS */
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); }
+        .history-item:last-child { border-bottom: none; }
+        .h-info h5 { font-size: 0.9rem; font-weight: 700; }
+        .h-info p { font-size: 0.7rem; color: var(--text-muted); }
+        .status-badge { font-size: 0.65rem; font-weight: 800; padding: 3px 8px; border-radius: 5px; text-transform: uppercase; }
+        .st-pending { background: #fef3c7; color: #92400e; }
+        .st-approved { background: #dcfce7; color: #15803d; }
+        .st-rejected { background: #fee2e2; color: #991b1b; }
+
+        /* ALERTS */
+        .alert { padding: 12px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; margin-bottom: 20px; display: none; text-align: center; }
+        .alert-error { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+        .alert-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+
+        .spinner { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 0.8s linear infinite; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* BOTTOM NAV */
+        .bottom-nav {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: calc(100% - 40px); max-width: 500px; background: var(--primary);
+            height: 64px; border-radius: 20px; display: flex; align-items: center;
+            justify-content: space-around; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8; text-decoration: none; font-size: 0.65rem; font-weight: 600; }
+        .nav-icon { font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container header-content">
+            <a href="wallet.html" class="back-link">← Wallet</a>
+            <span id="min-dep-tag" style="font-size: 0.75rem; font-weight: 800; color: var(--accent);">Min: ₦3,500</span>
+        </div>
+    </header>
+
+    <main class="container">
+        <h1 class="page-title">Deposit</h1>
+        
+        <div id="alert-box" class="alert"></div>
+
+        <!-- Bank Details -->
+        <div class="bank-card">
+            <div>
+                <span class="bank-label">Bank Name</span>
+                <div class="bank-val-wrap">
+                    <span class="bank-val">Fidelity Bank</span>
+                    <button class="copy-btn" onclick="copyText('Fidelity Bank')">Copy</button>
+                </div>
+            </div>
+            <div>
+                <span class="bank-label">Account Name</span>
+                <div class="bank-val-wrap">
+                    <span class="bank-val">AMISU ELIJAH</span>
+                    <button class="copy-btn" onclick="copyText('AMISU ELIJAH')">Copy</button>
+                </div>
+            </div>
+            <div>
+                <span class="bank-label">Account Number</span>
+                <div class="bank-val-wrap">
+                    <span class="bank-val" style="font-size: 1.6rem;">4580003805</span>
+                    <button class="copy-btn" onclick="copyText('4580003805')">Copy</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="instruction-box">
+            <h4>Instructions</h4>
+            <p>1. Transfer funds to the account above.<br>2. Note your payment reference.<br>3. Upload your transfer receipt here.<br>4. Wait for admin approval (usually within 1-24 hours).</p>
+        </div>
+
+        <!-- Deposit Form -->
+        <div class="card">
+            <div class="form-group">
+                <label class="label">Amount Transferred</label>
+                <input type="number" id="dep-amount" class="input" placeholder="e.g. 5000">
+            </div>
+            <div class="form-group">
+                <label class="label">Payment Reference / Remarks</label>
+                <input type="text" id="dep-ref" class="input" placeholder="e.g. Your Name / Bank Ref">
+            </div>
+            <div class="form-group">
+                <label class="label">Payment Proof (Screenshot/Receipt)</label>
+                <div class="file-input-wrap">
+                    <input type="file" id="dep-proof" accept="image/*">
+                    <span class="file-hint" id="file-label">Click to upload receipt</span>
+                    <img id="img-preview" class="preview-img">
+                </div>
+            </div>
+
+            <button class="btn-submit" id="submit-btn">
+                <span id="btn-text">Submit Deposit Request</span>
+                <div class="spinner" id="btn-spinner"></div>
+            </button>
+        </div>
+
+        <!-- History -->
+        <div class="card">
+            <span class="label" style="margin-bottom: 15px;">Recent Deposit Requests</span>
+            <div id="history-list">
+                <div style="text-align:center; padding: 20px; font-size: 0.8rem; color: var(--text-muted);">Loading history...</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="dashboard.html" class="nav-item">
+            <span class="nav-icon">🏠</span> Home
+        </a>
+        <a href="marketplace.html" class="nav-item">
+            <span class="nav-icon">🛒</span> Market
+        </a>
+        <a href="wallet.html" class="nav-item">
+            <span class="nav-icon">💳</span> Wallet
+        </a>
+        <a href="profile.html" class="nav-item">
+            <span class="nav-icon">👤</span> Profile
+        </a>
+    </nav>
+
+    <script>
+        // --- CONFIG ---
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        // --- STATE ---
+        let user = null;
+        let minDeposit = 3500;
+
+        // --- DOM ---
+        const amountInput = document.getElementById('dep-amount');
+        const refInput = document.getElementById('dep-ref');
+        const proofInput = document.getElementById('dep-proof');
+        const submitBtn = document.getElementById('submit-btn');
+        const btnText = document.getElementById('btn-text');
+        const btnSpinner = document.getElementById('btn-spinner');
+        const alertBox = document.getElementById('alert-box');
+        const fileLabel = document.getElementById('file-label');
+        const imgPreview = document.getElementById('img-preview');
+        const historyList = document.getElementById('history-list');
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+            user = session.user;
+            await fetchSettings();
+            fetchHistory();
+            initListeners();
+        });
+
+        async function fetchSettings() {
+            const { data } = await supabase.from('settings').select('value').eq('key', 'minimum_deposit').single();
+            if (data) {
+                minDeposit = parseFloat(data.value);
+                document.getElementById('min-dep-tag').textContent = `Min: ₦${minDeposit.toLocaleString()}`;
+            }
+        }
+
+        function initListeners() {
+            proofInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    fileLabel.textContent = file.name;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        imgPreview.src = e.target.result;
+                        imgPreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            submitBtn.addEventListener('click', handleSubmit);
+        }
+
+        async function handleSubmit() {
+            const amount = parseFloat(amountInput.value);
+            const ref = refInput.value.trim();
+            const file = proofInput.files[0];
+
+            if (!amount || amount < minDeposit) return showAlert(`Minimum deposit is ₦${minDeposit}`, 'error');
+            if (!ref) return showAlert('Please provide a payment reference', 'error');
+            if (!file) return showAlert('Please upload your payment receipt', 'error');
+
+            setLoading(true);
+            hideAlert();
+
+            try {
+                // 1. Upload Proof to Storage
+                const fileName = `${user.id}/${Date.now()}_${file.name}`;
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('deposit-proofs')
+                    .upload(fileName, file);
+
+                if (uploadError) throw uploadError;
+
+                const proofUrl = uploadData.path;
+
+                // 2. Create Deposit Record
+                const { error: dbError } = await supabase.from('deposits').insert({
+                    user_id: user.id,
+                    amount: amount,
+                    reference: ref,
+                    proof_url: proofUrl,
+                    status: 'PENDING'
+                });
+
+                if (dbError) throw dbError;
+
+                showAlert('Deposit request submitted! Awaiting admin approval.', 'success');
+                resetForm();
+                fetchHistory();
+
+            } catch (err) {
+                console.error(err);
+                showAlert(err.message || 'Submission failed. Please try again.', 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function fetchHistory() {
+            const { data, error } = await supabase
+                .from('deposits')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(10);
+
+            if (!data || data.length === 0) {
+                historyList.innerHTML = `<div style="text-align:center; padding: 20px; font-size: 0.8rem; color: var(--text-muted);">No recent deposits found.</div>`;
+                return;
+            }
+
+            historyList.innerHTML = data.map(d => `
+                <div class="history-item">
+                    <div class="h-info">
+                        <h5>₦${Number(d.amount).toLocaleString()}</h5>
+                        <p>Ref: ${d.reference}</p>
+                        <p style="font-size: 0.6rem;">${new Date(d.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                        <span class="status-badge st-${d.status.toLowerCase()}">${d.status}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- HELPERS ---
+        window.copyText = (text) => {
+            navigator.clipboard.writeText(text).then(() => {
+                const target = event.target;
+                const oldText = target.textContent;
+                target.textContent = 'Copied!';
+                setTimeout(() => target.textContent = oldText, 2000);
+            });
+        };
+
+        function showAlert(msg, type) {
+            alertBox.textContent = msg;
+            alertBox.className = `alert alert-${type}`;
+            alertBox.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function hideAlert() { alertBox.style.display = 'none'; }
+
+        function setLoading(isLoading) {
+            submitBtn.disabled = isLoading;
+            btnText.style.display = isLoading ? 'none' : 'block';
+            btnSpinner.style.display = isLoading ? 'block' : 'none';
+        }
+
+        function resetForm() {
+            amountInput.value = '';
+            refInput.value = '';
+            proofInput.value = '';
+            fileLabel.textContent = 'Click to upload receipt';
+            imgPreview.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
