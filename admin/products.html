@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Manage Products | CAPITAL COVE Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --admin-bg: #020617;
+            --admin-surface: #0f172a;
+            --admin-card: #1e293b;
+            --admin-border: #334155;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --error: #ef4444;
+            --radius: 12px;
+            --sidebar-width: 260px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--admin-bg); color: var(--text-main); min-height: 100vh; overflow-x: hidden; }
+
+        /* AUTH GUARD */
+        #auth-guard { position: fixed; inset: 0; background: var(--admin-bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+
+        /* SIDEBAR */
+        .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-width); background: var(--admin-surface); border-right: 1px solid var(--admin-border); z-index: 1000; transition: transform 0.3s ease; }
+        .sidebar-header { padding: 24px; border-bottom: 1px solid var(--admin-border); display: flex; align-items: center; gap: 12px; }
+        .logo-box { width: 32px; height: 32px; background: var(--accent); color: var(--admin-bg); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+        .nav-list { padding: 20px 12px; list-style: none; }
+        .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; color: var(--text-muted); text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: 0.2s; }
+        .nav-link:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-link.active { background: var(--accent); color: var(--admin-bg); }
+
+        /* MAIN CONTENT */
+        .main-wrapper { margin-left: var(--sidebar-width); transition: margin 0.3s ease; }
+        .top-bar { height: 70px; background: var(--admin-surface); border-bottom: 1px solid var(--admin-border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 900; }
+        .container { padding: 24px; max-width: 1200px; margin: 0 auto; }
+
+        /* STATS */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 20px; }
+        .stat-lbl { font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .stat-val { font-size: 1.5rem; font-weight: 800; margin-top: 8px; display: block; }
+
+        /* ACTION BAR */
+        .action-bar { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 16px; margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+        .search-box { flex: 1; min-width: 250px; }
+        .input { width: 100%; background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 8px; padding: 10px 14px; color: white; font-size: 0.85rem; outline: none; }
+        .input:focus { border-color: var(--accent); }
+        .select { background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 8px; padding: 10px; color: white; font-size: 0.85rem; outline: none; cursor: pointer; }
+
+        .btn-add { background: var(--accent); color: var(--admin-bg); padding: 10px 20px; border-radius: 8px; font-weight: 800; font-size: 0.85rem; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+
+        /* TABLE */
+        .table-wrap { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th { text-align: left; padding: 14px; color: var(--text-muted); font-weight: 700; border-bottom: 1px solid var(--admin-border); background: rgba(0,0,0,0.1); }
+        td { padding: 14px; border-bottom: 1px solid var(--admin-border); vertical-align: middle; }
+        
+        .prod-cell { display: flex; align-items: center; gap: 12px; }
+        .prod-thumb { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; background: var(--admin-surface); border: 1px solid var(--admin-border); }
+        .prod-info-main { display: flex; flex-direction: column; }
+        .prod-name { font-weight: 700; color: white; }
+        .prod-slug { font-size: 0.65rem; color: var(--text-muted); font-family: monospace; }
+
+        .badge { font-size: 0.6rem; font-weight: 800; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; }
+        .st-active { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .st-inactive { background: rgba(148, 163, 184, 0.1); color: var(--text-muted); }
+        .st-sold_out { background: rgba(239, 68, 68, 0.1); color: var(--error); }
+
+        .btn-edit { padding: 6px 12px; border-radius: 6px; background: var(--admin-border); color: white; border: none; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+        .btn-edit:hover { background: var(--accent); color: var(--admin-bg); }
+
+        /* MODAL */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+        .modal-overlay.active { display: flex; }
+        .modal-card { background: var(--admin-surface); border: 1px solid var(--admin-border); width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; padding: 32px; border-radius: var(--radius); position: relative; }
+        .modal-title { font-size: 1.25rem; font-weight: 800; margin-bottom: 24px; color: var(--accent); }
+        
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+        @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+        .form-group { margin-bottom: 16px; }
+        .full-width { grid-column: 1 / -1; }
+        .label { display: block; font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+
+        .modal-btns { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; }
+        .btn-cancel { background: transparent; border: 1px solid var(--admin-border); color: white; padding: 10px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+        .btn-save { background: var(--accent); color: var(--admin-bg); padding: 10px 24px; border-radius: 8px; font-weight: 800; border: none; cursor: pointer; }
+
+        /* MOBILE CARDS */
+        .mobile-prod-list { display: none; flex-direction: column; gap: 12px; }
+        .mobile-card { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 16px; }
+
+        @media (max-width: 1023px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-wrapper { margin-left: 0; }
+            .menu-toggle { display: block; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+            .prod-table-wrap table { display: none; }
+            .mobile-prod-list { display: flex; }
+        }
+
+        .spinner { width: 18px; height: 18px; border: 3px solid rgba(0,0,0,0.1); border-radius: 50%; border-top-color: var(--admin-bg); animation: spin 0.8s linear infinite; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="auth-guard">
+        <div style="text-align: center;"><p style="font-weight: 800; letter-spacing: 2px;">AUTHORIZING ACCESS...</p></div>
+    </div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header"><div class="logo-box">C</div><span style="font-weight: 800; letter-spacing: 1px;">ADMIN</span></div>
+        <nav class="nav-list">
+            <a href="index.html" class="nav-link">📊 Dashboard</a>
+            <a href="users.html" class="nav-link">👥 Users</a>
+            <a href="products.html" class="nav-link active">📦 Products</a>
+            <a href="inventory.html" class="nav-link">🏠 Inventory</a>
+            <a href="deposits.html" class="nav-link">📥 Deposits</a>
+            <a href="withdrawals.html" class="nav-link">📤 Withdrawals</a>
+            <button onclick="signOut()" class="nav-link" style="width:100%; background:none; border:none; margin-top:40px; border-top:1px solid var(--admin-border); padding-top:20px;">🚪 Logout</button>
+        </nav>
+    </aside>
+
+    <div class="main-wrapper">
+        <header class="top-bar">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <h1 style="font-size: 1.1rem; font-weight: 800;">Marketplace Products</h1>
+            </div>
+            <button class="btn-add" onclick="openModal()">+ Add Product</button>
+        </header>
+
+        <main class="container">
+            <!-- Stats -->
+            <section class="stats-grid">
+                <div class="stat-card"><span class="stat-lbl">Total Products</span><span class="stat-val" id="stat-total">0</span></div>
+                <div class="stat-card"><span class="stat-lbl">Active</span><span class="stat-val" id="stat-active" style="color:var(--success)">0</span></div>
+                <div class="stat-card"><span class="stat-lbl">Sold Out</span><span class="stat-val" id="stat-soldout" style="color:var(--error)">0</span></div>
+            </section>
+
+            <!-- Filters -->
+            <section class="action-bar">
+                <div class="search-box">
+                    <input type="text" id="search-input" class="input" placeholder="Search product name or slug...">
+                </div>
+                <select id="status-filter" class="select">
+                    <option value="all">All Statuses</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                    <option value="SOLD_OUT">Sold Out</option>
+                </select>
+                <button class="btn-cancel" onclick="loadData()">↻ Refresh</button>
+            </section>
+
+            <!-- List -->
+            <div class="prod-table-wrap">
+                <table id="product-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Bulk Price</th>
+                            <th>Units</th>
+                            <th>Inventory</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="product-tbody"></tbody>
+                </table>
+
+                <div class="mobile-prod-list" id="mobile-prod-list"></div>
+                <div id="empty-state" class="empty-state" style="display:none; padding:40px; text-align:center; color:var(--text-muted);">No products found.</div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Product Modal -->
+    <div class="modal-overlay" id="product-modal">
+        <div class="modal-card">
+            <h3 class="modal-title" id="modal-heading">Add New Product</h3>
+            <form id="product-form">
+                <input type="hidden" id="prod-id">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label class="label">Product Name</label>
+                        <input type="text" id="prod-name" class="input" required placeholder="Premium Cotton T-Shirts">
+                    </div>
+                    <div class="form-group">
+                        <label class="label">Slug (Unique)</label>
+                        <input type="text" id="prod-slug" class="input" required placeholder="premium-cotton-tees">
+                    </div>
+                    <div class="form-group">
+                        <label class="label">Category</label>
+                        <input type="text" id="prod-cat" class="input" placeholder="Apparel">
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="label">Description</label>
+                        <textarea id="prod-desc" class="input" style="height:80px; resize:none;" placeholder="High quality bulk pack of 20 t-shirts..."></textarea>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="label">Image URL</label>
+                        <input type="url" id="prod-img" class="input" placeholder="https://example.com/image.jpg">
+                    </div>
+                    <div class="form-group">
+                        <label class="label">Bulk Price (₦)</label>
+                        <input type="number" id="prod-bulk-price" class="input" required step="0.01" placeholder="3500">
+                    </div>
+                    <div class="form-group">
+                        <label class="label">Units per Bulk</label>
+                        <input type="number" id="prod-units" class="input" required placeholder="20">
+                    </div>
+                    <div class="form-group">
+                        <label class="label">Sug. Selling Price/Unit (₦)</label>
+                        <input type="number" id="prod-unit-price" class="input" required step="0.01" placeholder="500">
+                    </div>
+                    <div class="form-group">
+                        <label class="label">Available Inventory (Bulks)</label>
+                        <input type="number" id="prod-inv" class="input" required placeholder="100">
+                    </div>
+                    <div class="form-group">
+                        <label class="label">Purchase Limit</label>
+                        <input type="number" id="prod-limit" class="input" placeholder="5">
+                    </div>
+                    <div class="form-group">
+                        <label class="label">Status</label>
+                        <select id="prod-status" class="select" style="width:100%">
+                            <option value="ACTIVE">ACTIVE</option>
+                            <option value="INACTIVE">INACTIVE</option>
+                            <option value="SOLD_OUT">SOLD OUT</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-btns">
+                    <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn-save" id="save-btn">
+                        <span id="save-btn-text">Save Product</span>
+                        <div class="spinner" id="save-spinner"></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        let adminId = null;
+        let allProducts = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAdmin();
+            loadData();
+            initListeners();
+        });
+
+        async function checkAdmin() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return window.location.href = 'login.html';
+            const { data: admin } = await supabase.from('admin_users').select('id').eq('id', session.user.id).single();
+            if (!admin) { await supabase.auth.signOut(); return window.location.href = 'login.html'; }
+            adminId = admin.id;
+            document.getElementById('auth-guard').style.display = 'none';
+        }
+
+        async function loadData() {
+            const [total, active, soldout, products] = await Promise.all([
+                supabase.from('products').select('*', { count: 'exact', head: true }),
+                supabase.from('products').select('*', { count: 'exact', head: true }).eq('status', 'ACTIVE'),
+                supabase.from('products').select('*', { count: 'exact', head: true }).eq('status', 'SOLD_OUT'),
+                supabase.from('products').select('*').order('created_at', { ascending: false })
+            ]);
+
+            document.getElementById('stat-total').textContent = total.count || 0;
+            document.getElementById('stat-active').textContent = active.count || 0;
+            document.getElementById('stat-soldout').textContent = soldout.count || 0;
+
+            allProducts = products.data || [];
+            applyFilters();
+        }
+
+        function initListeners() {
+            document.getElementById('search-input').oninput = applyFilters;
+            document.getElementById('status-filter').onchange = applyFilters;
+            document.getElementById('product-form').onsubmit = handleSave;
+            
+            // Auto-slug generation
+            document.getElementById('prod-name').oninput = (e) => {
+                if (!document.getElementById('prod-id').value) {
+                    document.getElementById('prod-slug').value = e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+                }
+            };
+        }
+
+        function applyFilters() {
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const status = document.getElementById('status-filter').value;
+
+            const filtered = allProducts.filter(p => {
+                const matchesSearch = p.name.toLowerCase().includes(search) || p.slug.toLowerCase().includes(search);
+                const matchesStatus = status === 'all' || p.status === status;
+                return matchesSearch && matchesStatus;
+            });
+
+            renderProducts(filtered);
+        }
+
+        function renderProducts(prods) {
+            const tbody = document.getElementById('product-tbody');
+            const mList = document.getElementById('mobile-prod-list');
+            const empty = document.getElementById('empty-state');
+
+            if (!prods.length) { tbody.innerHTML = ''; mList.innerHTML = ''; empty.style.display = 'block'; return; }
+            empty.style.display = 'none';
+
+            tbody.innerHTML = prods.map(p => `
+                <tr>
+                    <td>
+                        <div class="prod-cell">
+                            <img src="${p.image_url || 'https://via.placeholder.com/40x40?text=CC'}" class="prod-thumb" onerror="this.src='https://via.placeholder.com/40x40?text=Err'">
+                            <div class="prod-info-main">
+                                <span class="prod-name">${escape(p.name)}</span>
+                                <span class="prod-slug">${p.slug}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${escape(p.category || 'Bulk')}</td>
+                    <td style="font-weight:700;">₦${p.bulk_price.toLocaleString()}</td>
+                    <td>${p.units_per_bulk} pcs</td>
+                    <td>${p.available_inventory}</td>
+                    <td><span class="badge st-${p.status.toLowerCase()}">${p.status}</span></td>
+                    <td><button class="btn-edit" onclick="openModal('${p.id}')">Edit</button></td>
+                </tr>
+            `).join('');
+
+            mList.innerHTML = prods.map(p => `
+                <div class="mobile-card">
+                    <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
+                        <span class="prod-name">${escape(p.name)}</span>
+                        <span class="badge st-${p.status.toLowerCase()}">${p.status}</span>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:0.75rem; color:var(--text-muted); margin-bottom:15px;">
+                        <div>Price: ₦${p.bulk_price.toLocaleString()}</div>
+                        <div>Stock: ${p.available_inventory}</div>
+                        <div>Units: ${p.units_per_bulk}</div>
+                        <div>Cat: ${escape(p.category || 'Bulk')}</div>
+                    </div>
+                    <button class="btn-edit" style="width:100%" onclick="openModal('${p.id}')">Edit Product</button>
+                </div>
+            `).join('');
+        }
+
+        async function handleSave(e) {
+            e.preventDefault();
+            const id = document.getElementById('prod-id').value;
+            const data = {
+                name: document.getElementById('prod-name').value.trim(),
+                slug: document.getElementById('prod-slug').value.trim(),
+                category: document.getElementById('prod-cat').value.trim(),
+                description: document.getElementById('prod-desc').value.trim(),
+                image_url: document.getElementById('prod-img').value.trim(),
+                bulk_price: parseFloat(document.getElementById('prod-bulk-price').value),
+                units_per_bulk: parseInt(document.getElementById('prod-units').value),
+                unit_selling_price: parseFloat(document.getElementById('prod-unit-price').value),
+                available_inventory: parseInt(document.getElementById('prod-inv').value),
+                purchase_limit: parseInt(document.getElementById('prod-limit').value) || null,
+                status: document.getElementById('prod-status').value,
+                updated_at: new Date()
+            };
+
+            setLoading(true);
+            const { error } = id 
+                ? await supabase.from('products').update(data).eq('id', id)
+                : await supabase.from('products').insert(data);
+
+            if (error) {
+                alert("Error: " + (error.code === '23505' ? 'Slug already exists' : error.message));
+                setLoading(false);
+            } else {
+                await supabase.from('admin_logs').insert({ admin_id: adminId, action: id ? 'PRODUCT_UPDATED' : 'PRODUCT_CREATED', target_id: id || data.slug, details: { name: data.name } });
+                closeModal();
+                loadData();
+            }
+        }
+
+        window.openModal = (id) => {
+            document.getElementById('product-form').reset();
+            document.getElementById('prod-id').value = '';
+            document.getElementById('modal-heading').textContent = "Add New Product";
+            
+            if (id) {
+                const p = allProducts.find(x => x.id === id);
+                if (p) {
+                    document.getElementById('prod-id').value = p.id;
+                    document.getElementById('prod-name').value = p.name;
+                    document.getElementById('prod-slug').value = p.slug;
+                    document.getElementById('prod-cat').value = p.category || '';
+                    document.getElementById('prod-desc').value = p.description || '';
+                    document.getElementById('prod-img').value = p.image_url || '';
+                    document.getElementById('prod-bulk-price').value = p.bulk_price;
+                    document.getElementById('prod-units').value = p.units_per_bulk;
+                    document.getElementById('prod-unit-price').value = p.unit_selling_price;
+                    document.getElementById('prod-inv').value = p.available_inventory;
+                    document.getElementById('prod-limit').value = p.purchase_limit || '';
+                    document.getElementById('prod-status').value = p.status;
+                    document.getElementById('modal-heading').textContent = "Edit Product";
+                }
+            }
+            document.getElementById('product-modal').classList.add('active');
+        };
+
+        window.closeModal = () => { document.getElementById('product-modal').classList.remove('active'); setLoading(false); };
+        window.toggleSidebar = () => document.getElementById('sidebar').classList.toggle('open');
+        function setLoading(isLoading) {
+            const btn = document.getElementById('save-btn');
+            btn.disabled = isLoading;
+            document.getElementById('save-btn-text').style.display = isLoading ? 'none' : 'block';
+            document.getElementById('save-spinner').style.display = isLoading ? 'block' : 'none';
+        }
+        function escape(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+        async function signOut() { await supabase.auth.signOut(); window.location.href = 'login.html'; }
+    </script>
+</body>
+</html>
