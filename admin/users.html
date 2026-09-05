@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Manage Users | CAPITAL COVE Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --admin-bg: #020617;
+            --admin-surface: #0f172a;
+            --admin-card: #1e293b;
+            --admin-border: #334155;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --error: #ef4444;
+            --radius: 12px;
+            --sidebar-width: 260px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--admin-bg); color: var(--text-main); min-height: 100vh; overflow-x: hidden; }
+
+        /* AUTH GUARD */
+        #auth-guard { position: fixed; inset: 0; background: var(--admin-bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+
+        /* SIDEBAR (Consistent with Admin Index) */
+        .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-width); background: var(--admin-surface); border-right: 1px solid var(--admin-border); z-index: 1000; transition: transform 0.3s ease; }
+        .sidebar-header { padding: 24px; border-bottom: 1px solid var(--admin-border); display: flex; align-items: center; gap: 12px; }
+        .logo-box { width: 32px; height: 32px; background: var(--accent); color: var(--admin-bg); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+        .nav-list { padding: 20px 12px; list-style: none; }
+        .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; color: var(--text-muted); text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: 0.2s; }
+        .nav-link:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-link.active { background: var(--accent); color: var(--admin-bg); }
+
+        /* MAIN CONTENT */
+        .main-wrapper { margin-left: var(--sidebar-width); transition: margin 0.3s ease; }
+        .top-bar { height: 70px; background: var(--admin-surface); border-bottom: 1px solid var(--admin-border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 900; }
+        .container { padding: 24px; max-width: 1200px; margin: 0 auto; }
+
+        /* STATS */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 20px; }
+        .stat-lbl { font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .stat-val { font-size: 1.5rem; font-weight: 800; margin-top: 8px; display: block; }
+
+        /* FILTERS & SEARCH */
+        .action-bar { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 16px; margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+        .search-box { flex: 1; min-width: 250px; position: relative; }
+        .input { width: 100%; background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 8px; padding: 10px 14px; color: white; font-size: 0.85rem; outline: none; }
+        .input:focus { border-color: var(--accent); }
+        .select { background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 8px; padding: 10px; color: white; font-size: 0.85rem; outline: none; cursor: pointer; }
+
+        /* USER LIST */
+        .user-table-wrap { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th { text-align: left; padding: 14px; color: var(--text-muted); font-weight: 700; border-bottom: 1px solid var(--admin-border); background: rgba(0,0,0,0.1); }
+        td { padding: 14px; border-bottom: 1px solid var(--admin-border); vertical-align: middle; }
+        
+        .user-cell { display: flex; align-items: center; gap: 12px; }
+        .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: var(--admin-bg); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.75rem; }
+        .user-info-main { display: flex; flex-direction: column; }
+        .user-name { font-weight: 700; color: white; }
+        .user-id { font-size: 0.65rem; color: var(--text-muted); font-family: monospace; }
+
+        .badge { font-size: 0.65rem; font-weight: 800; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; }
+        .status-active { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .status-suspended { background: rgba(239, 68, 68, 0.1); color: var(--error); }
+
+        .btn-view { padding: 6px 12px; border-radius: 6px; background: var(--admin-border); color: white; text-decoration: none; font-size: 0.75rem; font-weight: 700; transition: 0.2s; }
+        .btn-view:hover { background: var(--accent); color: var(--admin-bg); }
+
+        /* PAGINATION */
+        .pagination { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: rgba(0,0,0,0.1); }
+        .page-btn { padding: 8px 16px; border-radius: 6px; background: var(--admin-surface); border: 1px solid var(--admin-border); color: white; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+        .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* MOBILE CARDS */
+        .mobile-user-list { display: none; flex-direction: column; gap: 12px; }
+        .mobile-card { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 16px; }
+
+        @media (max-width: 1023px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-wrapper { margin-left: 0; }
+            .user-table-wrap table { display: none; }
+            .mobile-user-list { display: flex; }
+            .action-bar { flex-direction: column; align-items: stretch; }
+        }
+
+        /* LOADING */
+        .sk { background: linear-gradient(90deg, var(--admin-card) 25%, #2d3748 50%, var(--admin-card) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        .menu-toggle { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; display: none; }
+        @media (max-width: 1023px) { .menu-toggle { display: block; } }
+    </style>
+</head>
+<body>
+
+    <div id="auth-guard">
+        <div style="text-align: center;">
+            <p style="font-weight: 800; letter-spacing: 2px;">AUTHORIZING...</p>
+        </div>
+    </div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-box">C</div>
+            <span style="font-weight: 800; letter-spacing: 1px;">ADMIN</span>
+        </div>
+        <nav class="nav-list">
+            <a href="index.html" class="nav-link">📊 Dashboard</a>
+            <a href="users.html" class="nav-link active">👥 Users</a>
+            <a href="products.html" class="nav-link">📦 Products</a>
+            <a href="deposits.html" class="nav-link">📥 Deposits</a>
+            <a href="withdrawals.html" class="nav-link">📤 Withdrawals</a>
+            <a href="settings.html" class="nav-link">⚙️ Settings</a>
+            <button onclick="signOut()" class="nav-link" style="width:100%; background:none; border:none; margin-top:40px; border-top:1px solid var(--admin-border); padding-top:20px;">🚪 Logout</button>
+        </nav>
+    </aside>
+
+    <div class="main-wrapper">
+        <header class="top-bar">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button class="menu-toggle" id="menu-toggle">☰</button>
+                <h1 style="font-size: 1.1rem; font-weight: 800;">User Management</h1>
+            </div>
+            <button class="page-btn" onclick="loadData()">↻ Refresh</button>
+        </header>
+
+        <main class="container">
+            <!-- Stats -->
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-lbl">Total Registered</span>
+                    <span class="stat-val" id="stat-total">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-lbl">Active Accounts</span>
+                    <span class="stat-val" id="stat-active" style="color:var(--success)">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-lbl">Suspended</span>
+                    <span class="stat-val" id="stat-suspended" style="color:var(--error)">0</span>
+                </div>
+            </section>
+
+            <!-- Search & Filters -->
+            <section class="action-bar">
+                <div class="search-box">
+                    <input type="text" id="search-input" class="input" placeholder="Search name, email, phone or ref code...">
+                </div>
+                <select id="status-filter" class="select">
+                    <option value="all">All Statuses</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="SUSPENDED">Suspended</option>
+                </select>
+                <select id="sort-filter" class="select">
+                    <option value="created_at.desc">Newest First</option>
+                    <option value="created_at.asc">Oldest First</option>
+                    <option value="full_name.asc">Name A-Z</option>
+                </select>
+            </section>
+
+            <!-- Table -->
+            <section class="user-table-wrap">
+                <table id="user-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Email & Phone</th>
+                            <th>Referral</th>
+                            <th>Status</th>
+                            <th>Joined</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-tbody">
+                        <!-- Rows injected here -->
+                    </tbody>
+                </table>
+
+                <!-- Mobile View -->
+                <div class="mobile-user-list" id="mobile-user-list">
+                    <!-- Cards injected here -->
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination">
+                    <button class="page-btn" id="prev-btn" disabled>Previous</button>
+                    <span id="page-info" style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">Page 1</span>
+                    <button class="page-btn" id="next-btn">Next</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // --- SUPABASE CONFIG ---
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        // --- STATE ---
+        let page = 0;
+        const limit = 15;
+        let searchQuery = '';
+        let statusFilter = 'all';
+        let sortField = 'created_at';
+        let sortOrder = 'desc';
+
+        // --- DOM ---
+        const authGuard = document.getElementById('auth-guard');
+        const userTbody = document.getElementById('user-tbody');
+        const mobileList = document.getElementById('mobile-user-list');
+        const searchInput = document.getElementById('search-input');
+        const statusSel = document.getElementById('status-filter');
+        const sortSel = document.getElementById('sort-filter');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const pageInfo = document.getElementById('page-info');
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAdmin();
+            loadData();
+            initListeners();
+            initMobileMenu();
+        });
+
+        async function checkAdmin() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return window.location.href = 'login.html';
+            
+            const { data: admin } = await supabase.from('admin_users').select('role').eq('id', session.user.id).single();
+            if (!admin) {
+                await supabase.auth.signOut();
+                return window.location.href = 'login.html';
+            }
+            authGuard.style.display = 'none';
+        }
+
+        async function loadData() {
+            loadStats();
+            fetchUsers();
+        }
+
+        async function loadStats() {
+            const [total, active, suspended] = await Promise.all([
+                supabase.from('profiles').select('*', { count: 'exact', head: true }),
+                supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'ACTIVE'),
+                supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'SUSPENDED')
+            ]);
+            document.getElementById('stat-total').textContent = total.count || 0;
+            document.getElementById('stat-active').textContent = active.count || 0;
+            document.getElementById('stat-suspended').textContent = suspended.count || 0;
+        }
+
+        async function fetchUsers() {
+            // Skeleton state
+            userTbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:50px;"><div class="sk" style="height:20px; width:80%; margin:0 auto;"></div></td></tr>`;
+            
+            const start = page * limit;
+            const end = start + limit - 1;
+
+            let query = supabase.from('profiles').select('*', { count: 'exact' });
+
+            // Apply Filters
+            if (statusFilter !== 'all') query = query.eq('status', statusFilter);
+            if (searchQuery) {
+                query = query.or(`full_name.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%,referral_code.ilike.%${searchQuery}%`);
+            }
+
+            // Apply Sorting
+            query = query.order(sortField, { ascending: (sortOrder === 'asc') });
+            
+            // Apply Pagination
+            const { data, count, error } = await query.range(start, end);
+
+            if (error) {
+                userTbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--error); padding:20px;">Failed to load users.</td></tr>`;
+                return;
+            }
+
+            renderUsers(data);
+            
+            // Update Pagination UI
+            pageInfo.textContent = `Page ${page + 1} of ${Math.ceil(count / limit) || 1}`;
+            prevBtn.disabled = (page === 0);
+            nextBtn.disabled = (start + limit >= count);
+        }
+
+        function renderUsers(users) {
+            if (!users.length) {
+                const empty = `<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-muted);">No users found matching your criteria.</td></tr>`;
+                userTbody.innerHTML = empty;
+                mobileList.innerHTML = `<div class="empty-state">No users found.</div>`;
+                return;
+            }
+
+            userTbody.innerHTML = users.map(u => {
+                const initials = u.full_name ? u.full_name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0,2) : '??';
+                const date = new Date(u.created_at).toLocaleDateString();
+                return `
+                <tr>
+                    <td>
+                        <div class="user-cell">
+                            <div class="user-avatar">${initials}</div>
+                            <div class="user-info-main">
+                                <span class="user-name">${escape(u.full_name || 'Anonymous')}</span>
+                                <span class="user-id">${u.id.substring(0,8)}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-weight:600;">${u.email}</div>
+                        <div style="font-size:0.7rem; color:var(--text-muted);">${u.phone || 'No phone'}</div>
+                    </td>
+                    <td><code style="color:var(--accent); font-weight:800;">${u.referral_code || '---'}</code></td>
+                    <td><span class="badge status-${(u.status || 'ACTIVE').toLowerCase()}">${u.status || 'ACTIVE'}</span></td>
+                    <td>${date}</td>
+                    <td><a href="user-details.html?id=${u.id}" class="btn-view">Details</a></td>
+                </tr>`;
+            }).join('');
+
+            mobileList.innerHTML = users.map(u => `
+                <div class="mobile-card">
+                    <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
+                        <div>
+                            <div style="font-weight:800; color:white;">${escape(u.full_name || 'Anonymous')}</div>
+                            <div style="font-size:0.7rem; color:var(--text-muted);">${u.email}</div>
+                        </div>
+                        <span class="badge status-${(u.status || 'ACTIVE').toLowerCase()}">${u.status || 'ACTIVE'}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:0.7rem; color:var(--text-muted);">Joined: ${new Date(u.created_at).toLocaleDateString()}</span>
+                        <a href="user-details.html?id=${u.id}" class="btn-view">View Profile</a>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function initListeners() {
+            // Search (Debounced)
+            let timer;
+            searchInput.oninput = (e) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => {
+                    searchQuery = e.target.value.trim();
+                    page = 0;
+                    fetchUsers();
+                }, 500);
+            };
+
+            // Filters
+            statusSel.onchange = (e) => { statusFilter = e.target.value; page = 0; fetchUsers(); };
+            sortSel.onchange = (e) => { 
+                const [field, order] = e.target.value.split('.');
+                sortField = field; sortOrder = order; page = 0; fetchUsers(); 
+            };
+
+            // Pagination
+            prevBtn.onclick = () => { if(page > 0) { page--; fetchUsers(); } };
+            nextBtn.onclick = () => { page++; fetchUsers(); };
+        }
+
+        function initMobileMenu() {
+            const toggle = document.getElementById('menu-toggle');
+            const sidebar = document.getElementById('sidebar');
+            toggle.onclick = () => sidebar.classList.toggle('open');
+        }
+
+        async function signOut() {
+            await supabase.auth.signOut();
+            window.location.href = 'login.html';
+        }
+
+        function escape(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
