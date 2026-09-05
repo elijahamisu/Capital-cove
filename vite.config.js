@@ -12,7 +12,7 @@ export default defineConfig({
         marketplace: resolve(__dirname, 'marketplace.html'),
        productDetails: resolve(__dirname, 'product-details.html'),
        buyBulk: resolve(__dirname, 'buy-bulk.html'),
-       // myProducts: resolve(__dirname, 'my-products.html'),
+        myProducts: resolve(__dirname, 'my-products.html'),
       //  productSales: resolve(__dirname, 'product-sales.html'),
        // wallet: resolve(__dirname, 'wallet.html'),
         //deposit: resolve(__dirname, 'deposit.html'),
