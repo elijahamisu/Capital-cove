@@ -30,7 +30,7 @@ export default defineConfig({
         adminDashboard: resolve(__dirname, 'admin/index.html'),
         adminUsers: resolve(__dirname, 'admin/users.html'),
        adminUserDetails: resolve(__dirname, 'admin/user-details.html'),
-        //adminProducts: resolve(__dirname, 'admin/products.html'),
+        adminProducts: resolve(__dirname, 'admin/products.html'),
        // adminInventory: resolve(__dirname, 'admin/inventory.html'),
        // adminBulkPurchases: resolve(__dirname, 'admin/bulk-purchases.html'),
       //  adminSales: resolve(__dirname, 'admin/sales.html'),
