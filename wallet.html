@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Wallet | CAPITAL COVE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-light: #1e293b;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --success: #10b981;
+            --error: #ef4444;
+            --info: #3b82f6;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 20px;
+            --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg); color: var(--text-main); line-height: 1.6; padding-bottom: 100px; }
+        .container { width: 100%; max-width: 600px; margin: 0 auto; padding: 0 20px; }
+
+        /* HEADER */
+        header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px 0; position: sticky; top: 0; z-index: 100; }
+        .header-content { display: flex; justify-content: space-between; align-items: center; }
+        .page-title { font-size: 1.1rem; font-weight: 800; color: var(--primary); }
+        .refresh-btn { font-size: 0.8rem; font-weight: 700; color: var(--accent-hover); cursor: pointer; }
+
+        /* MAIN WALLET CARD */
+        .wallet-card {
+            background: var(--primary); color: white; padding: 28px; border-radius: var(--radius);
+            margin-top: 20px; position: relative; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.2);
+        }
+        .wallet-card::after { content: ''; position: absolute; top: -50%; right: -20%; width: 200px; height: 200px; background: rgba(255,255,255,0.03); border-radius: 50%; }
+        
+        .balance-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .balance-lbl { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; font-weight: 700; }
+        .visibility-toggle { cursor: pointer; opacity: 0.7; transition: 0.2s; }
+        .visibility-toggle:hover { opacity: 1; }
+
+        .balance-main { font-size: 2.4rem; font-weight: 800; margin-bottom: 20px; letter-spacing: -1px; }
+        .pending-info { background: rgba(255,255,255,0.1); padding: 12px 16px; border-radius: 12px; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; }
+        .pending-val { font-weight: 800; color: #fde68a; }
+
+        /* QUICK ACTIONS */
+        .actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0; }
+        .action-btn { 
+            padding: 14px; border-radius: 14px; font-weight: 700; font-size: 0.9rem; text-align: center;
+            text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: 0.2s;
+        }
+        .btn-deposit { background: var(--accent); color: var(--primary); }
+        .btn-withdraw { background: var(--card-bg); border: 1px solid var(--border); color: var(--primary); }
+
+        /* INFO TILES */
+        .info-strip { display: flex; gap: 10px; margin-bottom: 25px; }
+        .info-tile { flex: 1; background: var(--card-bg); padding: 12px; border-radius: 14px; border: 1px solid var(--border); text-align: center; }
+        .info-tile span { display: block; }
+        .tile-lbl { font-size: 0.65rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; }
+        .tile-val { font-size: 0.85rem; font-weight: 800; margin-top: 2px; }
+
+        /* TABS */
+        .tab-section { margin-top: 30px; }
+        .tab-header { display: flex; gap: 20px; border-bottom: 1px solid var(--border); margin-bottom: 15px; }
+        .tab-trigger { padding: 10px 5px; font-size: 0.85rem; font-weight: 700; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; transition: 0.2s; }
+        .tab-trigger.active { color: var(--primary); border-color: var(--accent); }
+
+        /* ACTIVITY LISTS */
+        .activity-list { display: none; }
+        .activity-list.active { display: block; }
+        
+        .tx-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); }
+        .tx-item:last-child { border-bottom: none; }
+        .tx-details h4 { font-size: 0.85rem; font-weight: 700; margin-bottom: 2px; }
+        .tx-details p { font-size: 0.7rem; color: var(--text-muted); font-weight: 500; }
+        .tx-amount { text-align: right; }
+        .amt-val { font-size: 0.95rem; font-weight: 800; display: block; }
+        .amt-type { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; }
+        .credit { color: var(--success); }
+        .debit { color: var(--error); }
+        
+        .status-badge { font-size: 0.6rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
+        .st-pending { background: #fef3c7; color: #92400e; }
+        .st-completed { background: #dcfce7; color: #15803d; }
+        .st-rejected { background: #fee2e2; color: #991b1b; }
+
+        /* SKELETONS */
+        .sk { background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* EMPTY STATE */
+        .empty-box { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 0.85rem; }
+
+        /* BOTTOM NAV */
+        .bottom-nav {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: calc(100% - 40px); max-width: 500px; background: var(--primary);
+            height: 64px; border-radius: 20px; display: flex; align-items: center;
+            justify-content: space-around; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8; text-decoration: none; font-size: 0.65rem; font-weight: 600; }
+        .nav-item.active { color: var(--accent); }
+        .nav-icon { font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container header-content">
+            <h1 class="page-title">Wallet</h1>
+            <span class="refresh-btn" id="refresh-trigger">Refresh</span>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Wallet Card -->
+        <section class="wallet-card">
+            <div class="balance-header">
+                <span class="balance-lbl">Available Balance</span>
+                <span class="visibility-toggle" id="eye-toggle">👁️</span>
+            </div>
+            <div class="balance-main" id="display-available">₦0.00</div>
+            <div class="pending-info">
+                <span>Pending Settlement</span>
+                <span class="pending-val" id="display-pending">₦0.00</span>
+            </div>
+        </section>
+
+        <!-- Actions -->
+        <div class="actions-grid">
+            <a href="deposit.html" class="action-btn btn-deposit">Deposit</a>
+            <a href="withdraw.html" class="action-btn btn-withdraw">Withdraw</a>
+        </div>
+
+        <!-- Limits Strip -->
+        <div class="info-strip">
+            <div class="info-tile">
+                <span class="tile-lbl">Min. Withdraw</span>
+                <span class="tile-val" id="min-withdraw-val">₦...</span>
+            </div>
+            <div class="info-tile">
+                <span class="tile-lbl">Fee</span>
+                <span class="tile-val" id="withdraw-charge-val">...%</span>
+            </div>
+        </div>
+
+        <!-- Activity Tabs -->
+        <div class="tab-section">
+            <div class="tab-header">
+                <div class="tab-trigger active" data-tab="tx">Activity</div>
+                <div class="tab-trigger" data-tab="dep">Deposits</div>
+                <div class="tab-trigger" data-tab="with">Withdrawals</div>
+            </div>
+
+            <!-- Ledger Activity -->
+            <div id="tx-activity" class="activity-list active">
+                <div class="sk" style="height: 60px; margin-bottom: 10px;"></div>
+                <div class="sk" style="height: 60px;"></div>
+            </div>
+
+            <!-- Deposit History -->
+            <div id="dep-activity" class="activity-list">
+                <div class="empty-box">No deposit history.</div>
+            </div>
+
+            <!-- Withdrawal History -->
+            <div id="with-activity" class="activity-list">
+                <div class="empty-box">No withdrawal history.</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="dashboard.html" class="nav-item">
+            <span class="nav-icon">🏠</span> Home
+        </a>
+        <a href="marketplace.html" class="nav-item">
+            <span class="nav-icon">🛒</span> Market
+        </a>
+        <a href="my-products.html" class="nav-item">
+            <span class="nav-icon">📦</span> Products
+        </a>
+        <a href="wallet.html" class="nav-item active">
+            <span class="nav-icon">💳</span> Wallet
+        </a>
+        <a href="profile.html" class="nav-item">
+            <span class="nav-icon">👤</span> Profile
+        </a>
+    </nav>
+
+    <script>
+        // --- CONFIG & SUPABASE ---
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        // --- STATE ---
+        let user = null;
+        let wallet = null;
+        let isBalanceHidden = localStorage.getItem('cc_mask_balance') === 'true';
+
+        // --- DOM ---
+        const refreshBtn = document.getElementById('refresh-trigger');
+        const availableDisplay = document.getElementById('display-available');
+        const pendingDisplay = document.getElementById('display-pending');
+        const eyeToggle = document.getElementById('eye-toggle');
+        const minWithdrawVal = document.getElementById('min-withdraw-val');
+        const withdrawChargeVal = document.getElementById('withdraw-charge-val');
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+            user = session.user;
+            await loadAll();
+            initTabs();
+        });
+
+        async function loadAll() {
+            await Promise.all([
+                fetchSettings(),
+                fetchWallet(),
+                fetchTransactions(),
+                fetchDeposits(),
+                fetchWithdrawals()
+            ]);
+        }
+
+        async function fetchSettings() {
+            const { data } = await supabase.from('settings').select('key, value');
+            if (data) {
+                const min = data.find(s => s.key === 'minimum_withdrawal')?.value || '1000';
+                const fee = data.find(s => s.key === 'withdrawal_charge_percent')?.value || '15';
+                minWithdrawVal.textContent = formatNaira(min);
+                withdrawChargeVal.textContent = `${fee}%`;
+            }
+        }
+
+        async function fetchWallet() {
+            const { data, error } = await supabase.from('wallets').select('*').eq('user_id', user.id).single();
+            if (data) {
+                wallet = data;
+                renderBalances();
+            }
+        }
+
+        async function fetchTransactions() {
+            const container = document.getElementById('tx-activity');
+            const { data, error } = await supabase
+                .from('wallet_transactions')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(20);
+
+            if (!data || data.length === 0) {
+                container.innerHTML = `<div class="empty-box">No activity yet.</div>`;
+                return;
+            }
+
+            container.innerHTML = data.map(tx => {
+                const isCredit = ['DEPOSIT', 'SALE_PROCEEDS', 'REFERRAL_BONUS', 'GIFT_CODE', 'REFUND'].includes(tx.type);
+                return `
+                    <div class="tx-item">
+                        <div class="tx-details">
+                            <h4>${tx.description || tx.type.replace('_', ' ')}</h4>
+                            <p>${new Date(tx.created_at).toLocaleString('en-NG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                        <div class="tx-amount">
+                            <span class="amt-val ${isCredit ? 'credit' : 'debit'}">
+                                ${isCredit ? '+' : '-'}${formatNaira(Math.abs(tx.amount), false)}
+                            </span>
+                            <span class="amt-type">${tx.type.split('_')[0]}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function fetchDeposits() {
+            const container = document.getElementById('dep-activity');
+            const { data } = await supabase.from('deposits').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+            if (!data || data.length === 0) return;
+            container.innerHTML = data.map(d => `
+                <div class="tx-item">
+                    <div class="tx-details">
+                        <h4>Manual Deposit</h4>
+                        <p>${new Date(d.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <div class="tx-amount">
+                        <span class="amt-val">${formatNaira(d.amount, false)}</span>
+                        <span class="status-badge st-${d.status.toLowerCase()}">${d.status}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function fetchWithdrawals() {
+            const container = document.getElementById('with-activity');
+            const { data } = await supabase.from('withdrawals').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+            if (!data || data.length === 0) return;
+            container.innerHTML = data.map(w => `
+                <div class="tx-item">
+                    <div class="tx-details">
+                        <h4>Withdrawal Request</h4>
+                        <p>${new Date(w.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <div class="tx-amount">
+                        <span class="amt-val">${formatNaira(w.amount, false)}</span>
+                        <span class="status-badge st-${w.status.toLowerCase()}">${w.status}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- UI HELPERS ---
+        function renderBalances() {
+            if (!wallet) return;
+            if (isBalanceHidden) {
+                availableDisplay.textContent = '₦ ••••';
+                pendingDisplay.textContent = '₦ ••••';
+            } else {
+                availableDisplay.textContent = formatNaira(wallet.available_balance);
+                pendingDisplay.textContent = formatNaira(wallet.pending_balance);
+            }
+        }
+
+        eyeToggle.addEventListener('click', () => {
+            isBalanceHidden = !isBalanceHidden;
+            localStorage.setItem('cc_mask_balance', isBalanceHidden);
+            renderBalances();
+        });
+
+        refreshBtn.addEventListener('click', async () => {
+            refreshBtn.textContent = 'Loading...';
+            await loadAll();
+            refreshBtn.textContent = 'Refresh';
+        });
+
+        function initTabs() {
+            document.querySelectorAll('.tab-trigger').forEach(trigger => {
+                trigger.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-trigger').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.activity-list').forEach(l => l.classList.remove('active'));
+                    trigger.classList.add('active');
+                    document.getElementById(`${trigger.dataset.tab}-activity`).classList.add('active');
+                });
+            });
+        }
+
+        function formatNaira(amount, includeSymbol = true) {
+            const sym = includeSymbol ? '₦' : '';
+            return sym + Number(amount).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+    </script>
+</body>
+</html>
