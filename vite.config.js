@@ -28,7 +28,7 @@ export default defineConfig({
         // Admin Routes
         adminLogin: resolve(__dirname, 'admin/login.html'),
         adminDashboard: resolve(__dirname, 'admin/index.html'),
-        //adminUsers: resolve(__dirname, 'admin/users.html'),
+        adminUsers: resolve(__dirname, 'admin/users.html'),
        // adminUserDetails: resolve(__dirname, 'admin/user-details.html'),
         //adminProducts: resolve(__dirname, 'admin/products.html'),
        // adminInventory: resolve(__dirname, 'admin/inventory.html'),
