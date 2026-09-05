@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Privacy Policy | CAPITAL COVE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-light: #1e293b;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 16px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+        body { background-color: var(--bg); color: var(--text-main); line-height: 1.7; }
+        .container { width: 100%; max-width: 900px; margin: 0 auto; padding: 0 20px; }
+
+        /* HEADER */
+        header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px 0; position: sticky; top: 0; z-index: 100; }
+        .header-content { display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.1rem; font-weight: 800; text-decoration: none; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        .logo-icon { background: var(--primary); color: var(--accent); padding: 4px 8px; border-radius: 6px; font-size: 0.9rem; }
+        .nav-link { font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-decoration: none; transition: 0.2s; }
+        .nav-link:hover { color: var(--primary); }
+
+        /* LEGAL CONTENT */
+        .legal-hero { padding: 60px 0 40px; text-align: center; }
+        .legal-hero h1 { font-size: 2.2rem; font-weight: 800; color: var(--primary); margin-bottom: 12px; }
+        .last-updated { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+
+        .legal-layout { display: grid; grid-template-columns: 1fr; gap: 40px; margin-bottom: 80px; }
+        @media (min-width: 1024px) { .legal-layout { grid-template-columns: 250px 1fr; align-items: start; } }
+
+        /* TABLE OF CONTENTS */
+        .toc { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; position: sticky; top: 90px; }
+        @media (max-width: 1023px) { .toc { position: static; margin-bottom: 20px; } }
+        .toc-title { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 15px; letter-spacing: 1px; }
+        .toc-list { list-style: none; }
+        .toc-item { margin-bottom: 10px; }
+        .toc-link { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-decoration: none; transition: 0.2s; }
+        .toc-link:hover { color: var(--accent-hover); }
+
+        /* CONTENT BODY */
+        .content-body section { margin-bottom: 40px; background: var(--card-bg); padding: 30px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .content-body h2 { font-size: 1.25rem; font-weight: 800; color: var(--primary); margin-bottom: 20px; border-bottom: 2px solid var(--bg); padding-bottom: 10px; }
+        .content-body h3 { font-size: 1rem; font-weight: 700; color: var(--primary); margin: 20px 0 10px; }
+        .content-body p { margin-bottom: 15px; font-size: 0.95rem; color: var(--text-main); }
+        .content-body ul { margin-bottom: 15px; padding-left: 20px; }
+        .content-body li { margin-bottom: 8px; font-size: 0.95rem; }
+
+        .notice-box { background: #f1f5f9; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border); }
+        .notice-box p { margin-bottom: 0; font-size: 0.85rem; font-weight: 500; color: var(--text-muted); }
+
+        /* FOOTER */
+        footer { background: var(--card-bg); border-top: 1px solid var(--border); padding: 60px 0; }
+        .footer-grid { display: grid; grid-template-columns: 1fr; gap: 40px; }
+        @media (min-width: 768px) { .footer-grid { grid-template-columns: 2fr 1fr 1fr; } }
+        .footer-logo { font-size: 1.2rem; font-weight: 800; margin-bottom: 15px; display: block; text-decoration: none; color: var(--primary); }
+        .footer-desc { font-size: 0.9rem; color: var(--text-muted); line-height: 1.6; }
+        .footer-title { font-size: 0.85rem; font-weight: 800; text-transform: uppercase; color: var(--primary); margin-bottom: 20px; letter-spacing: 1px; }
+        .footer-links { list-style: none; }
+        .footer-links li { margin-bottom: 12px; }
+        .footer-links a { font-size: 0.9rem; color: var(--text-muted); text-decoration: none; transition: 0.2s; }
+        .footer-links a:hover { color: var(--accent-hover); }
+        .footer-bottom { border-top: 1px solid var(--border); margin-top: 40px; padding-top: 20px; text-align: center; font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
+
+        @media (prefers-reduced-motion: reduce) {
+            * { scroll-behavior: auto !important; transition: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container header-content">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">C</div>
+                CAPITAL COVE
+            </a>
+            <div style="display: flex; gap: 20px;">
+                <a href="login.html" class="nav-link">Login</a>
+                <a href="register.html" class="nav-link" style="color: var(--accent-hover);">Register</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="legal-hero">
+            <span class="last-updated">Last Updated: September 5, 2026</span>
+            <h1>Privacy Policy</h1>
+            <p>Your privacy and the security of your account information are important to us.</p>
+        </div>
+
+        <div class="legal-layout">
+            <aside class="toc">
+                <div class="toc-title">Policy Sections</div>
+                <nav>
+                    <ul class="toc-list">
+                        <li class="toc-item"><a href="#intro" class="toc-link">1. Introduction</a></li>
+                        <li class="toc-item"><a href="#collect" class="toc-link">2. Info We Collect</a></li>
+                        <li class="toc-item"><a href="#use" class="toc-link">3. How We Use Info</a></li>
+                        <li class="toc-item"><a href="#transaction" class="toc-link">4. Transactions</a></li>
+                        <li class="toc-item"><a href="#payments" class="toc-link">5. Payments & Payouts</a></li>
+                        <li class="toc-item"><a href="#referrals" class="toc-link">6. Referrals & Gifts</a></li>
+                        <li class="toc-item"><a href="#sharing" class="toc-link">7. Data Sharing</a></li>
+                        <li class="toc-item"><a href="#security" class="toc-link">8. Data Security</a></li>
+                        <li class="toc-item"><a href="#rights" class="toc-link">9. Your Privacy Rights</a></li>
+                        <li class="toc-item"><a href="#contact" class="toc-link">10. Contact Us</a></li>
+                    </ul>
+                </nav>
+            </aside>
+
+            <article class="content-body">
+                
+                <section id="intro">
+                    <h2>1. Introduction</h2>
+                    <p>This Privacy Policy describes how CAPITAL COVE handles information when you access or use our platform. CAPITAL COVE operates as a physical-product bulk-purchase and resale marketplace. We are committed to protecting the information you share with us.</p>
+                    <div class="notice-box">
+                        <p>This policy is general platform information and should be interpreted together with applicable law. It does not constitute legal advice.</p>
+                    </div>
+                </section>
+
+                <section id="collect">
+                    <h2>2. Information We Collect</h2>
+                    <p>We collect information that is necessary to provide our marketplace services and manage your account securely.</p>
+                    
+                    <h3>Account Information</h3>
+                    <ul>
+                        <li>Full name, email address, and phone number.</li>
+                        <li>Referral code and referral relationships.</li>
+                        <li>Account status and profile details.</li>
+                    </ul>
+
+                    <h3>Support Information</h3>
+                    <p>When you contact our support center, we collect the subject, category, message content, and any administrative responses associated with your request.</p>
+
+                    <h3>Technical Information</h3>
+                    <p>We process information required for authentication, such as session tokens, managed through our authentication infrastructure. We do not store or see your password in plain text.</p>
+                </section>
+
+                <section id="use">
+                    <h2>3. How We Use Information</h2>
+                    <p>We use the information we collect for legitimate business purposes, including:</p>
+                    <ul>
+                        <li>Creating and maintaining your CAPITAL COVE account.</li>
+                        <li>Authenticating your identity and securing your session.</li>
+                        <li>Providing marketplace functionality and inventory management.</li>
+                        <li>Processing wallet transactions and record-keeping.</li>
+                        <li>Managing the referral program and gift-code redemptions.</li>
+                        <li>Communicating account activity and system updates.</li>
+                        <li>Preventing fraud, abuse, and unauthorized access.</li>
+                    </ul>
+                </section>
+
+                <section id="transaction">
+                    <h2>4. Marketplace and Transaction Information</h2>
+                    <p>Information is processed to support the core commerce activity of the platform:</p>
+                    <ul>
+                        <li><strong>Bulk Purchases:</strong> Records of products acquired and total amounts spent.</li>
+                        <li><strong>Product Units:</strong> Tracking of individual unit codes assigned to your account.</li>
+                        <li><strong>Resale Data:</strong> Documentation of actual recorded sales, proceeds, and settlements.</li>
+                        <li><strong>Wallet Ledger:</strong> An immutable history of all credits and debits to your account balance.</li>
+                    </ul>
+                    <p>Private transaction details are not exposed to other users unless a feature explicitly requires public listing data.</p>
+                </section>
+
+                <section id="payments">
+                    <h2>5. Payment and Payout Information</h2>
+                    <h3>Deposits</h3>
+                    <p>When you submit a manual deposit request, we process the amount, reference number, and payment proof you provide to identify and verify the transfer. Deposits are manually reviewed before being credited to your wallet.</p>
+                    
+                    <h3>Withdrawals</h3>
+                    <p>Withdrawal requests require the processing of your bank name, account name, and account number. This information is strictly used to process requested payouts and is not shared publicly.</p>
+                </section>
+
+                <section id="referrals">
+                    <h2>6. Referral and Gift-Code Information</h2>
+                    <p>We process referral links and unique codes to manage our reward systems. We track the qualification status of referred users to determine eligibility for commissions. Gift-code redemptions are processed to verify validity, expiration, and user eligibility before rewarding the associated credit.</p>
+                </section>
+
+                <section id="sharing">
+                    <h2>7. Data Sharing</h2>
+                    <p>CAPITAL COVE does not sell your personal information. We share information only where necessary to:</p>
+                    <ul>
+                        <li>Operate our technical infrastructure (e.g., using Supabase for database and hosting services).</li>
+                        <li>Comply with legal obligations or respond to lawful requests.</li>
+                        <li>Protect the rights and safety of CAPITAL COVE and its users.</li>
+                        <li>Investigate fraud or security incidents.</li>
+                    </ul>
+                </section>
+
+                <section id="security">
+                    <h2>8. Data Security</h2>
+                    <p>We implement reasonable technical and organizational measures to protect your information, including:</p>
+                    <ul>
+                        <li>Authentication and session controls.</li>
+                        <li>Database access controls and Row-Level Security (RLS).</li>
+                        <li>Secure backend operations for all financial and inventory changes.</li>
+                        <li>Administrative audit logging for sensitive platform actions.</li>
+                    </ul>
+                    <p>While we strive to protect your data, no method of transmission over the internet is 100% secure.</p>
+                </section>
+
+                <section id="rights">
+                    <h2>9. Your Privacy Rights</h2>
+                    <p>Depending on your jurisdiction and applicable law, you may have rights concerning:</p>
+                    <ul>
+                        <li>Accessing the personal information we hold about you.</li>
+                        <li>Correcting inaccurate or incomplete profile information.</li>
+                        <li>Requesting the restriction of processing for certain data.</li>
+                        <li>Closing your account through our support center.</li>
+                    </ul>
+                    <p>Please note that certain transaction records must be retained for legal and operational reasons even after an account is closed.</p>
+                </section>
+
+                <section id="contact">
+                    <h2>10. Questions and Support</h2>
+                    <p>If you have questions about this Privacy Policy or how your data is managed, please visit our support center and create a request:</p>
+                    <a href="support.html" class="nav-link" style="color: var(--accent-hover); font-weight: 800; display: inline-block; margin-top: 10px;">Visit Support Center &rarr;</a>
+                    <p style="margin-top: 20px;"><a href="terms.html" style="color: var(--primary); text-decoration: underline; font-weight: 600;">Read our Terms & Conditions</a></p>
+                </section>
+
+            </article>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container footer-grid">
+            <div>
+                <a href="index.html" class="footer-logo">CAPITAL COVE</a>
+                <p class="footer-desc">The modern marketplace for bulk product acquisition and resale management.</p>
+            </div>
+            <div>
+                <h4 class="footer-title">Platform</h4>
+                <ul class="footer-links">
+                    <li><a href="marketplace.html">Marketplace</a></li>
+                    <li><a href="support.html">Support</a></li>
+                    <li><a href="gift-code.html">Redeem Code</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="footer-title">Legal</h4>
+                <ul class="footer-links">
+                    <li><a href="terms.html">Terms & Conditions</a></li>
+                    <li><a href="privacy.html" style="color: var(--accent-hover);">Privacy Policy</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            &copy; <span id="year"></span> CAPITAL COVE. All rights reserved.
+        </div>
+    </footer>
+
+    <script>
+        // Update current year
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        // Smooth Scroll handling for TOC with Header Offset
+        document.querySelectorAll('.toc-link').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    const headerOffset = 90;
+                    const elementPosition = target.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: "smooth"
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
