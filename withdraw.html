@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Withdraw Funds | CAPITAL COVE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-light: #1e293b;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --success: #10b981;
+            --error: #ef4444;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 16px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg); color: var(--text-main); line-height: 1.6; padding-bottom: 100px; }
+        .container { width: 100%; max-width: 600px; margin: 0 auto; padding: 0 20px; }
+
+        /* HEADER */
+        header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px 0; position: sticky; top: 0; z-index: 100; }
+        .header-content { display: flex; justify-content: space-between; align-items: center; }
+        .back-link { color: var(--text-muted); font-size: 0.9rem; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 5px; }
+
+        /* BALANCE CARD */
+        .balance-card {
+            background: var(--primary); color: white; padding: 24px; border-radius: var(--radius);
+            margin-top: 20px; display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.2);
+        }
+        .balance-label { font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .balance-amount { font-size: 1.8rem; font-weight: 800; }
+        .refresh-btn { background: rgba(255,255,255,0.1); border: none; width: 32px; height: 32px; border-radius: 50%; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        /* WITHDRAWAL FORM */
+        .card { background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); padding: 20px; margin-top: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .form-title { font-size: 1rem; font-weight: 800; margin-bottom: 20px; color: var(--primary); }
+        
+        .form-group { margin-bottom: 20px; }
+        .label { display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 8px; color: var(--primary); }
+        .input-group { position: relative; }
+        .input-symbol { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-weight: 700; color: var(--text-muted); }
+        .input { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border); outline: none; font-size: 0.95rem; font-weight: 600; background: var(--bg); transition: 0.2s; }
+        .input:focus { border-color: var(--accent); background: white; }
+        .input-with-symbol { padding-left: 32px; }
+
+        .hint { font-size: 0.7rem; color: var(--text-muted); margin-top: 6px; display: block; font-weight: 500; }
+
+        /* SUMMARY BREAKDOWN */
+        .summary { background: var(--bg); border-radius: 12px; padding: 16px; margin: 20px 0; }
+        .summary-row { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 8px; }
+        .summary-row.payout { border-top: 1px dashed var(--border); padding-top: 10px; margin-top: 10px; font-weight: 800; font-size: 1rem; color: var(--primary); }
+
+        /* CHECKBOX */
+        .confirm-wrap { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 20px; }
+        .confirm-wrap input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); }
+        .confirm-wrap label { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; font-weight: 500; }
+
+        .btn-withdraw { width: 100%; background: var(--primary); color: white; padding: 16px; border-radius: 12px; font-weight: 800; font-size: 1rem; border: none; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-withdraw:hover:not(:disabled) { background: var(--primary-light); transform: translateY(-2px); }
+        .btn-withdraw:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* HISTORY */
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); }
+        .history-item:last-child { border-bottom: none; }
+        .h-info h5 { font-size: 0.9rem; font-weight: 800; }
+        .h-info p { font-size: 0.7rem; color: var(--text-muted); }
+        .h-status { text-align: right; }
+        .status-badge { font-size: 0.6rem; font-weight: 800; padding: 3px 8px; border-radius: 5px; text-transform: uppercase; }
+        .st-pending { background: #fef3c7; color: #92400e; }
+        .st-completed { background: #dcfce7; color: #15803d; }
+        .st-rejected { background: #fee2e2; color: #991b1b; }
+
+        /* ALERTS */
+        .alert { padding: 12px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; margin-bottom: 20px; display: none; text-align: center; }
+        .alert-error { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+        .alert-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+
+        .spinner { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 0.8s linear infinite; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* BOTTOM NAV */
+        .bottom-nav {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: calc(100% - 40px); max-width: 500px; background: var(--primary);
+            height: 64px; border-radius: 20px; display: flex; align-items: center;
+            justify-content: space-around; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8; text-decoration: none; font-size: 0.65rem; font-weight: 600; }
+        .nav-icon { font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container header-content">
+            <a href="wallet.html" class="back-link">← Wallet</a>
+            <span style="font-size: 0.75rem; font-weight: 800; color: var(--accent);">PAYOUT PENDING REVIEW</span>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Balance Info -->
+        <div class="balance-card">
+            <div>
+                <span class="balance-label">Available to Withdraw</span>
+                <div class="balance-amount" id="available-bal">₦0.00</div>
+            </div>
+            <button class="refresh-btn" id="refresh-bal">↻</button>
+        </div>
+
+        <div id="alert-box" class="alert"></div>
+
+        <!-- Withdrawal Form -->
+        <div class="card">
+            <h2 class="form-title">Withdrawal Details</h2>
+            
+            <div class="form-group">
+                <label class="label">Withdrawal Amount</label>
+                <div class="input-group">
+                    <span class="input-symbol">₦</span>
+                    <input type="number" id="withdraw-amount" class="input input-with-symbol" placeholder="0.00">
+                </div>
+                <span class="hint" id="min-withdraw-hint">Minimum withdrawal: ₦1,000</span>
+            </div>
+
+            <div class="summary">
+                <div class="summary-row">
+                    <span>Requested Amount</span>
+                    <span id="sum-gross">₦0.00</span>
+                </div>
+                <div class="summary-row">
+                    <span id="sum-fee-label">Processing Fee (15%)</span>
+                    <span id="sum-fee" style="color: var(--error);">-₦0.00</span>
+                </div>
+                <div class="summary-row payout">
+                    <span>Net Payout</span>
+                    <span id="sum-net">₦0.00</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="label">Bank Name</label>
+                <input type="text" id="bank-name" class="input" placeholder="e.g. Fidelity Bank">
+            </div>
+
+            <div class="form-group">
+                <label class="label">Account Name</label>
+                <input type="text" id="account-name" class="input" placeholder="Full name on account">
+            </div>
+
+            <div class="form-group">
+                <label class="label">Account Number</label>
+                <input type="number" id="account-number" class="input" placeholder="10-digit account number">
+            </div>
+
+            <div class="confirm-wrap">
+                <input type="checkbox" id="confirm-check">
+                <label for="confirm-check">I confirm that my bank account details are correct. I understand payouts are reviewed before processing.</label>
+            </div>
+
+            <button class="btn-withdraw" id="submit-withdraw" disabled>
+                <span id="btn-text">Submit Request</span>
+                <div class="spinner" id="btn-spinner"></div>
+            </button>
+        </div>
+
+        <!-- History -->
+        <div class="card">
+            <h2 class="form-title">Withdrawal History</h2>
+            <div id="history-list">
+                <div style="text-align:center; padding: 20px; font-size: 0.8rem; color: var(--text-muted);">No requests yet.</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="dashboard.html" class="nav-item">
+            <span class="nav-icon">🏠</span> Home
+        </a>
+        <a href="marketplace.html" class="nav-item">
+            <span class="nav-icon">🛒</span> Market
+        </a>
+        <a href="wallet.html" class="nav-item">
+            <span class="nav-icon">💳</span> Wallet
+        </a>
+        <a href="profile.html" class="nav-item">
+            <span class="nav-icon">👤</span> Profile
+        </a>
+    </nav>
+
+    <script>
+        // --- CONFIG ---
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        // --- STATE ---
+        let user = null;
+        let wallet = null;
+        let settings = { min: 1000, fee: 15 };
+
+        // --- DOM ---
+        const amountInput = document.getElementById('withdraw-amount');
+        const bankInput = document.getElementById('bank-name');
+        const nameInput = document.getElementById('account-name');
+        const acctInput = document.getElementById('account-number');
+        const confirmCheck = document.getElementById('confirm-check');
+        const submitBtn = document.getElementById('submit-withdraw');
+        const btnText = document.getElementById('btn-text');
+        const btnSpinner = document.getElementById('btn-spinner');
+        const alertBox = document.getElementById('alert-box');
+        
+        const displayAvailable = document.getElementById('available-bal');
+        const sumGross = document.getElementById('sum-gross');
+        const sumFee = document.getElementById('sum-fee');
+        const sumNet = document.getElementById('sum-net');
+        const sumFeeLabel = document.getElementById('sum-fee-label');
+        const minHint = document.getElementById('min-withdraw-hint');
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+            user = session.user;
+            await loadData();
+            initListeners();
+        });
+
+        async function loadData() {
+            await Promise.all([
+                fetchSettings(),
+                fetchWallet(),
+                fetchHistory()
+            ]);
+        }
+
+        async function fetchSettings() {
+            const { data } = await supabase.from('settings').select('key, value');
+            if (data) {
+                settings.min = parseFloat(data.find(s => s.key === 'minimum_withdrawal')?.value || 1000);
+                settings.fee = parseFloat(data.find(s => s.key === 'withdrawal_charge_percent')?.value || 15);
+                minHint.textContent = `Minimum withdrawal: ₦${settings.min.toLocaleString()}`;
+                sumFeeLabel.textContent = `Processing Fee (${settings.fee}%)`;
+            }
+        }
+
+        async function fetchWallet() {
+            const { data } = await supabase.from('wallets').select('*').eq('user_id', user.id).single();
+            if (data) {
+                wallet = data;
+                displayAvailable.textContent = formatNaira(wallet.available_balance);
+            }
+        }
+
+        function initListeners() {
+            amountInput.addEventListener('input', updateSummary);
+            confirmCheck.addEventListener('change', validateForm);
+            bankInput.addEventListener('input', validateForm);
+            nameInput.addEventListener('input', validateForm);
+            acctInput.addEventListener('input', validateForm);
+            
+            document.getElementById('refresh-bal').addEventListener('click', fetchWallet);
+            submitBtn.addEventListener('click', handleWithdraw);
+        }
+
+        function updateSummary() {
+            const val = parseFloat(amountInput.value) || 0;
+            const fee = (val * settings.fee) / 100;
+            const net = val - fee;
+
+            sumGross.textContent = formatNaira(val);
+            sumFee.textContent = `- ${formatNaira(fee)}`;
+            sumNet.textContent = formatNaira(net > 0 ? net : 0);
+            
+            validateForm();
+        }
+
+        function validateForm() {
+            const val = parseFloat(amountInput.value) || 0;
+            const bank = bankInput.value.trim();
+            const name = nameInput.value.trim();
+            const acct = acctInput.value.trim();
+            const confirmed = confirmCheck.checked;
+
+            const isValid = (
+                val >= settings.min && 
+                val <= (wallet ? wallet.available_balance : 0) &&
+                bank.length > 2 &&
+                name.length > 2 &&
+                acct.length === 10 &&
+                confirmed
+            );
+
+            submitBtn.disabled = !isValid;
+        }
+
+        async function handleWithdraw() {
+            const val = parseFloat(amountInput.value);
+            const bank = bankInput.value.trim();
+            const name = nameInput.value.trim();
+            const acct = acctInput.value.trim();
+
+            setLoading(true);
+            hideAlert();
+
+            try {
+                const { data, error } = await supabase.rpc('create_withdrawal_request', {
+                    p_amount: val,
+                    p_bank_name: bank,
+                    p_account_name: name,
+                    p_account_number: acct
+                });
+
+                if (error) throw error;
+
+                showAlert('Withdrawal request submitted successfully!', 'success');
+                resetForm();
+                await loadData();
+
+            } catch (err) {
+                console.error(err);
+                showAlert(err.message || 'Submission failed. Please try again.', 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function fetchHistory() {
+            const { data } = await supabase
+                .from('withdrawals')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(10);
+
+            const container = document.getElementById('history-list');
+            if (!data || data.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding: 20px; font-size: 0.8rem; color: var(--text-muted);">No requests yet.</div>`;
+                return;
+            }
+
+            container.innerHTML = data.map(w => `
+                <div class="history-item">
+                    <div class="h-info">
+                        <h5>₦${Number(w.amount).toLocaleString()}</h5>
+                        <p>${w.bank_name} • ${maskAccount(w.account_number)}</p>
+                        <p style="font-size: 0.6rem;">${new Date(w.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <div class="h-status">
+                        <span class="status-badge st-${w.status.toLowerCase()}">${w.status}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- HELPERS ---
+        function formatNaira(amount) {
+            return '₦' + Number(amount).toLocaleString('en-NG', { minimumFractionDigits: 2 });
+        }
+
+        function maskAccount(num) {
+            return '****' + num.slice(-4);
+        }
+
+        function showAlert(msg, type) {
+            alertBox.textContent = msg;
+            alertBox.className = `alert alert-${type}`;
+            alertBox.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function hideAlert() { alertBox.style.display = 'none'; }
+
+        function setLoading(isLoading) {
+            submitBtn.disabled = isLoading;
+            btnText.style.display = isLoading ? 'none' : 'block';
+            btnSpinner.style.display = isLoading ? 'block' : 'none';
+        }
+
+        function resetForm() {
+            amountInput.value = '';
+            bankInput.value = '';
+            nameInput.value = '';
+            acctInput.value = '';
+            confirmCheck.checked = false;
+            updateSummary();
+        }
+    </script>
+</body>
+</html>
