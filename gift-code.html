@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gift Code | CAPITAL COVE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-light: #1e293b;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --success: #10b981;
+            --error: #ef4444;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 16px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg); color: var(--text-main); line-height: 1.6; padding-bottom: 100px; }
+        .container { width: 100%; max-width: 500px; margin: 0 auto; padding: 0 20px; }
+
+        /* HEADER */
+        header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px 0; position: sticky; top: 0; z-index: 100; }
+        .header-content { display: flex; justify-content: space-between; align-items: center; }
+        .back-link { color: var(--text-muted); font-size: 0.9rem; font-weight: 600; text-decoration: none; }
+        .page-title { font-size: 1.1rem; font-weight: 800; color: var(--primary); }
+
+        /* HERO CARD */
+        .gift-hero {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: white; padding: 40px 24px; border-radius: 24px; margin-top: 20px;
+            text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+            position: relative; overflow: hidden;
+        }
+        .gift-hero::before { content: '🎁'; position: absolute; top: -10px; right: -10px; font-size: 5rem; opacity: 0.1; transform: rotate(15deg); }
+        .gift-hero h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 10px; color: var(--accent); }
+        .gift-hero p { font-size: 0.85rem; color: #94a3b8; }
+
+        /* INPUT FORM */
+        .card { background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); padding: 24px; margin-top: -20px; position: relative; z-index: 2; box-shadow: var(--shadow); }
+        .form-group { margin-bottom: 20px; }
+        .label { display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); }
+        
+        .code-input {
+            width: 100%; padding: 16px; border-radius: 12px; border: 2px solid var(--border);
+            font-size: 1.2rem; font-weight: 800; font-family: monospace; text-align: center;
+            letter-spacing: 2px; text-transform: uppercase; transition: 0.2s; outline: none;
+            background: var(--bg);
+        }
+        .code-input:focus { border-color: var(--accent); background: white; }
+        .code-input::placeholder { font-weight: 400; letter-spacing: 0; color: #cbd5e1; }
+
+        .btn-redeem {
+            width: 100%; background: var(--primary); color: white; padding: 16px; border-radius: 12px;
+            font-weight: 800; font-size: 1rem; border: none; cursor: pointer; transition: 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-redeem:hover:not(:disabled) { background: var(--primary-light); transform: translateY(-2px); }
+        .btn-redeem:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* WALLET PREVIEW */
+        .wallet-preview {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #f1f5f9; padding: 12px 16px; border-radius: 12px; margin-top: 20px;
+        }
+        .wallet-lbl { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
+        .wallet-val { font-size: 0.9rem; font-weight: 800; color: var(--primary); }
+
+        /* HISTORY */
+        .history-section { margin-top: 30px; }
+        .section-title { font-size: 0.9rem; font-weight: 800; margin-bottom: 15px; color: var(--text-main); }
+        .history-item { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 14px 16px; background: var(--card-bg); border-radius: 12px; 
+            border: 1px solid var(--border); margin-bottom: 10px;
+        }
+        .h-info h4 { font-size: 0.85rem; font-weight: 700; }
+        .h-info p { font-size: 0.7rem; color: var(--text-muted); }
+        .h-amount { text-align: right; }
+        .h-amt-val { font-size: 0.9rem; font-weight: 800; color: var(--success); display: block; }
+        .h-ref { font-size: 0.65rem; color: var(--text-muted); font-family: monospace; }
+
+        /* ALERTS */
+        .alert { padding: 14px; border-radius: 12px; font-size: 0.85rem; font-weight: 600; margin-bottom: 20px; display: none; text-align: center; line-height: 1.4; }
+        .alert-error { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+        .alert-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+
+        .spinner { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 0.8s linear infinite; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* BOTTOM NAV */
+        .bottom-nav {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: calc(100% - 40px); max-width: 460px; background: var(--primary);
+            height: 64px; border-radius: 20px; display: flex; align-items: center;
+            justify-content: space-around; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8; text-decoration: none; font-size: 0.65rem; font-weight: 600; }
+        .nav-item.active { color: var(--accent); }
+        .nav-icon { font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container header-content">
+            <a href="dashboard.html" class="back-link">← Dashboard</a>
+            <h1 class="page-title">Gift Code</h1>
+            <div style="width: 40px;"></div>
+        </div>
+    </header>
+
+    <main class="container">
+        
+        <div class="gift-hero">
+            <h2>Redeem Reward</h2>
+            <p>Enter your CAPITAL COVE promotional code to receive your eligible reward.</p>
+        </div>
+
+        <div class="card">
+            <div id="alert-box" class="alert"></div>
+
+            <div class="form-group">
+                <label class="label">Enter Gift Code</label>
+                <input type="text" id="gift-code-input" class="code-input" placeholder="XXXX-XXXX" maxlength="20">
+            </div>
+
+            <button class="btn-redeem" id="redeem-btn">
+                <span id="btn-text">Redeem Code</span>
+                <div class="spinner" id="btn-spinner"></div>
+            </button>
+
+            <div class="wallet-preview">
+                <span class="wallet-lbl">Available Balance</span>
+                <span class="wallet-val" id="wallet-balance">₦0.00</span>
+            </div>
+        </div>
+
+        <section class="history-section">
+            <h3 class="section-title">Redemption History</h3>
+            <div id="history-container">
+                <!-- Loading state -->
+                <div style="text-align:center; padding: 20px; color: var(--text-muted); font-size: 0.8rem;">Loading history...</div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="dashboard.html" class="nav-item">
+            <span class="nav-icon">🏠</span> Home
+        </a>
+        <a href="marketplace.html" class="nav-item">
+            <span class="nav-icon">🛒</span> Market
+        </a>
+        <a href="wallet.html" class="nav-item">
+            <span class="nav-icon">💳</span> Wallet
+        </a>
+        <a href="gift-code.html" class="nav-item active">
+            <span class="nav-icon">🎁</span> Code
+        </a>
+        <a href="profile.html" class="nav-item">
+            <span class="nav-icon">👤</span> Profile
+        </a>
+    </nav>
+
+    <script>
+        // --- SUPABASE CONFIG ---
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        // --- STATE ---
+        let user = null;
+
+        // --- DOM ---
+        const codeInput = document.getElementById('gift-code-input');
+        const redeemBtn = document.getElementById('redeem-btn');
+        const btnText = document.getElementById('btn-text');
+        const btnSpinner = document.getElementById('btn-spinner');
+        const alertBox = document.getElementById('alert-box');
+        const walletBalance = document.getElementById('wallet-balance');
+        const historyContainer = document.getElementById('history-container');
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+            user = session.user;
+            await loadData();
+            initListeners();
+        });
+
+        async function loadData() {
+            await Promise.all([
+                fetchWallet(),
+                fetchHistory()
+            ]);
+        }
+
+        async function fetchWallet() {
+            const { data } = await supabase.from('wallets').select('available_balance').eq('user_id', user.id).single();
+            if (data) {
+                walletBalance.textContent = formatNaira(data.available_balance);
+            }
+        }
+
+        async function fetchHistory() {
+            try {
+                const { data, error } = await supabase
+                    .from('gift_code_redemptions')
+                    .select('*, gift_codes(code, reward_amount)')
+                    .eq('user_id', user.id)
+                    .order('redeemed_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    historyContainer.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--text-muted); font-size: 0.8rem;">You haven't redeemed any gift codes yet.</div>`;
+                    return;
+                }
+
+                historyContainer.innerHTML = data.map(r => `
+                    <div class="history-item">
+                        <div class="h-info">
+                            <h4>${r.gift_codes.code}</h4>
+                            <p>${new Date(r.redeemed_at).toLocaleDateString()}</p>
+                        </div>
+                        <div class="h-amount">
+                            <span class="h-amt-val">+₦${Number(r.gift_codes.reward_amount).toLocaleString()}</span>
+                            <span class="h-ref">REF: ${r.id.substring(0,8).toUpperCase()}</span>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                historyContainer.innerHTML = `<div style="color:var(--error); text-align:center; font-size:0.75rem;">Failed to load history.</div>`;
+            }
+        }
+
+        function initListeners() {
+            redeemBtn.addEventListener('click', handleRedeem);
+            codeInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleRedeem(); });
+        }
+
+        async function handleRedeem() {
+            const code = codeInput.value.trim();
+            if (!code) return;
+
+            setLoading(true);
+            hideAlert();
+
+            try {
+                // Call Supabase RPC
+                const { data, error } = await supabase.rpc('redeem_gift_code', {
+                    p_user_id: user.id,
+                    p_code: code
+                });
+
+                if (error) throw error;
+
+                // Success
+                showAlert(`Success! Your reward of ${formatNaira(data.reward_amount)} has been credited.`, 'success');
+                codeInput.value = '';
+                await loadData();
+
+            } catch (err) {
+                console.error(err);
+                showAlert(err.message || "An unexpected error occurred.", 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // --- HELPERS ---
+        function formatNaira(amount) {
+            return '₦' + Number(amount).toLocaleString('en-NG', { minimumFractionDigits: 2 });
+        }
+
+        function showAlert(msg, type) {
+            alertBox.textContent = msg;
+            alertBox.className = `alert alert-${type}`;
+            alertBox.style.display = 'block';
+        }
+
+        function hideAlert() { alertBox.style.display = 'none'; }
+
+        function setLoading(isLoading) {
+            redeemBtn.disabled = isLoading;
+            btnText.style.display = isLoading ? 'none' : 'block';
+            btnSpinner.style.display = isLoading ? 'block' : 'none';
+        }
+    </script>
+</body>
+</html>
