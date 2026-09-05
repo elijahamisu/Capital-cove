@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Products | CAPITAL COVE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-light: #1e293b;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --success: #10b981;
+            --info: #3b82f6;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 16px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg); color: var(--text-main); line-height: 1.6; padding-bottom: 100px; }
+        
+        .container { width: 100%; max-width: 900px; margin: 0 auto; padding: 0 20px; }
+
+        /* HEADER */
+        header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px 0; position: sticky; top: 0; z-index: 100; }
+        .header-content { display: flex; justify-content: space-between; align-items: center; }
+        .page-title { font-size: 1.1rem; font-weight: 800; color: var(--primary); }
+
+        /* SUMMARY BAR */
+        .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0; }
+        .summary-card { background: var(--primary); color: white; padding: 16px; border-radius: 12px; text-align: center; }
+        .summary-card.alt { background: var(--card-bg); color: var(--primary); border: 1px solid var(--border); }
+        .summary-val { display: block; font-size: 1.2rem; font-weight: 800; }
+        .summary-lbl { display: block; font-size: 0.65rem; text-transform: uppercase; font-weight: 700; opacity: 0.8; margin-top: 2px; }
+
+        /* FILTERS */
+        .filter-section { margin-bottom: 20px; }
+        .search-box { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border); background: var(--card-bg); font-size: 0.9rem; margin-bottom: 12px; outline: none; transition: 0.2s; }
+        .search-box:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1); }
+        
+        .tab-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+        .tab-bar::-webkit-scrollbar { display: none; }
+        .tab { padding: 8px 16px; border-radius: 30px; background: var(--card-bg); border: 1px solid var(--border); font-size: 0.8rem; font-weight: 700; color: var(--text-muted); cursor: pointer; white-space: nowrap; }
+        .tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* PRODUCT CARD */
+        .product-card { background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow); }
+        .product-header { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px; }
+        .product-img { width: 60px; height: 60px; border-radius: 10px; object-fit: cover; background: var(--bg); border: 1px solid var(--border); }
+        .product-info { flex: 1; }
+        .product-cat { font-size: 0.65rem; font-weight: 800; color: var(--accent-hover); text-transform: uppercase; }
+        .product-name { font-size: 1rem; font-weight: 700; line-height: 1.2; margin: 2px 0 4px; }
+        
+        .unit-stats { display: flex; gap: 15px; background: var(--bg); padding: 12px; border-radius: 10px; margin-bottom: 16px; }
+        .unit-stat { flex: 1; }
+        .unit-stat-val { display: block; font-size: 0.95rem; font-weight: 800; }
+        .unit-stat-lbl { display: block; font-size: 0.6rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; }
+
+        .suggested-price { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 16px; font-weight: 500; }
+        .suggested-price strong { color: var(--primary); }
+
+        .card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn { padding: 10px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; text-align: center; text-decoration: none; border: none; }
+        .btn-outline { background: white; border: 1px solid var(--border); color: var(--primary); }
+        .btn-primary { background: var(--primary); color: white; }
+
+        /* UNIT DRAWER (Conditional) */
+        .unit-list { margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 15px; display: none; }
+        .unit-list.active { display: block; }
+        .unit-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 0.75rem; }
+        .unit-code { font-family: monospace; font-weight: 700; color: var(--primary); }
+        .status-pill { padding: 2px 8px; border-radius: 4px; font-weight: 800; font-size: 0.6rem; text-transform: uppercase; }
+        .status-available { background: #dcfce7; color: #15803d; }
+        .status-sold { background: #f1f5f9; color: #64748b; }
+
+        /* SKELETON */
+        .sk { background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* EMPTY STATE */
+        .empty-state { text-align: center; padding: 60px 20px; }
+        .empty-icon { font-size: 3rem; margin-bottom: 16px; display: block; }
+        
+        /* BOTTOM NAV */
+        .bottom-nav {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: calc(100% - 40px); max-width: 500px; background: var(--primary);
+            height: 64px; border-radius: 20px; display: flex; align-items: center;
+            justify-content: space-around; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8; text-decoration: none; font-size: 0.65rem; font-weight: 600; }
+        .nav-item.active { color: var(--accent); }
+        .nav-icon { font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container header-content">
+            <h1 class="page-title">My Product Inventory</h1>
+            <a href="dashboard.html" style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">Done</a>
+        </div>
+    </header>
+
+    <main class="container">
+        
+        <!-- Summary Stats -->
+        <div class="summary-grid">
+            <div class="summary-card">
+                <span class="summary-val" id="stat-total">0</span>
+                <span class="summary-lbl">Total Units</span>
+            </div>
+            <div class="summary-card alt">
+                <span class="summary-val" id="stat-available">0</span>
+                <span class="summary-lbl">Available</span>
+            </div>
+            <div class="summary-card alt">
+                <span class="summary-val" id="stat-sold">0</span>
+                <span class="summary-lbl">Sold</span>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filter-section">
+            <input type="text" id="search-input" class="search-box" placeholder="Search product name or code...">
+            <div class="tab-bar">
+                <div class="tab active" data-filter="all">All Units</div>
+                <div class="tab" data-filter="AVAILABLE">Available</div>
+                <div class="tab" data-filter="SOLD">Sold History</div>
+            </div>
+        </div>
+
+        <!-- Product List -->
+        <div id="product-list">
+            <!-- Skeleton Loading -->
+            <div class="product-card">
+                <div class="product-header">
+                    <div class="sk" style="width: 60px; height: 60px;"></div>
+                    <div class="product-info">
+                        <div class="sk" style="height: 10px; width: 30%; margin-bottom: 8px;"></div>
+                        <div class="sk" style="height: 15px; width: 60%;"></div>
+                    </div>
+                </div>
+                <div class="sk" style="height: 50px; width: 100%;"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="dashboard.html" class="nav-item">
+            <span class="nav-icon">🏠</span> Home
+        </a>
+        <a href="marketplace.html" class="nav-item">
+            <span class="nav-icon">🛒</span> Market
+        </a>
+        <a href="my-products.html" class="nav-item active">
+            <span class="nav-icon">📦</span> Products
+        </a>
+        <a href="wallet.html" class="nav-item">
+            <span class="nav-icon">💳</span> Wallet
+        </a>
+        <a href="profile.html" class="nav-item">
+            <span class="nav-icon">👤</span> Profile
+        </a>
+    </nav>
+
+    <script>
+        // --- SUPABASE CONFIG ---
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        // --- STATE ---
+        let user = null;
+        let unitData = []; // Raw units from DB
+        let currentFilter = 'all';
+        let searchQuery = '';
+
+        // --- DOM ---
+        const productList = document.getElementById('product-list');
+        const searchInput = document.getElementById('search-input');
+        const tabItems = document.querySelectorAll('.tab');
+        
+        const statTotal = document.getElementById('stat-total');
+        const statAvailable = document.getElementById('stat-available');
+        const statSold = document.getElementById('stat-sold');
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+            user = session.user;
+            await fetchInventory();
+            initListeners();
+        });
+
+        async function fetchInventory() {
+            try {
+                // Fetch units with joined product details
+                const { data, error } = await supabase
+                    .from('product_units')
+                    .select('*, products(*)')
+                    .eq('owner_id', user.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                unitData = data || [];
+                updateStats();
+                renderInventory();
+            } catch (err) {
+                console.error(err);
+                productList.innerHTML = `<div class="empty-state">Unable to load inventory. Please try again.</div>`;
+            }
+        }
+
+        function updateStats() {
+            statTotal.textContent = unitData.length;
+            statAvailable.textContent = unitData.filter(u => u.status === 'AVAILABLE' || u.status === 'OWNED').length;
+            statSold.textContent = unitData.filter(u => u.status === 'SOLD').length;
+        }
+
+        function initListeners() {
+            searchInput.addEventListener('input', (e) => {
+                searchQuery = e.target.value.toLowerCase().trim();
+                renderInventory();
+            });
+
+            tabItems.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabItems.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    currentFilter = tab.dataset.filter;
+                    renderInventory();
+                });
+            });
+        }
+
+        function renderInventory() {
+            if (unitData.length === 0) {
+                renderEmpty();
+                return;
+            }
+
+            // Apply Filters
+            let filtered = unitData.filter(u => {
+                const matchesSearch = u.products.name.toLowerCase().includes(searchQuery) || u.unit_code.toLowerCase().includes(searchQuery);
+                const matchesTab = currentFilter === 'all' || u.status === currentFilter || (currentFilter === 'AVAILABLE' && u.status === 'OWNED');
+                return matchesSearch && matchesTab;
+            });
+
+            if (filtered.length === 0) {
+                productList.innerHTML = `<div class="empty-state"><p>No products match your filters.</p></div>`;
+                return;
+            }
+
+            // Group units by product_id
+            const groups = filtered.reduce((acc, unit) => {
+                const pid = unit.product_id;
+                if (!acc[pid]) acc[pid] = { details: unit.products, units: [] };
+                acc[pid].units.push(unit);
+                return acc;
+            }, {});
+
+            productList.innerHTML = Object.values(groups).map(group => {
+                const p = group.details;
+                const units = group.units;
+                const total = units.length;
+                const sold = units.filter(u => u.status === 'SOLD').length;
+                const available = total - sold;
+
+                return `
+                <div class="product-card">
+                    <div class="product-header">
+                        <img src="${p.image_url || 'https://via.placeholder.com/100'}" class="product-img" alt="${p.name}">
+                        <div class="product-info">
+                            <span class="product-cat">${p.category || 'Bulk Product'}</span>
+                            <h3 class="product-name">${p.name}</h3>
+                        </div>
+                    </div>
+                    
+                    <div class="unit-stats">
+                        <div class="unit-stat">
+                            <span class="unit-stat-val">${total}</span>
+                            <span class="unit-stat-lbl">Owned</span>
+                        </div>
+                        <div class="unit-stat">
+                            <span class="unit-stat-val" style="color:var(--success)">${available}</span>
+                            <span class="unit-stat-lbl">Available</span>
+                        </div>
+                        <div class="unit-stat">
+                            <span class="unit-stat-val" style="color:var(--info)">${sold}</span>
+                            <span class="unit-stat-lbl">Sold</span>
+                        </div>
+                    </div>
+
+                    <p class="suggested-price">
+                        Suggested selling price: <strong>₦${Number(p.unit_selling_price).toLocaleString()}</strong> per unit
+                    </p>
+
+                    <div class="card-actions">
+                        <button class="btn btn-outline" onclick="toggleUnits('${p.id}')">View Unit Codes</button>
+                        ${available > 0 ? `<a href="product-sales.html?product=${p.id}" class="btn btn-primary">Record Sale</a>` : `<button class="btn" style="background:#e2e8f0; color:#94a3b8; cursor:default">Sold Out</button>`}
+                    </div>
+
+                    <div class="unit-list" id="unit-list-${p.id}">
+                        ${group.units.map(u => `
+                            <div class="unit-row">
+                                <span class="unit-code">${u.unit_code}</span>
+                                <span class="status-pill status-${u.status.toLowerCase()}">${u.status === 'OWNED' ? 'Available' : u.status}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        window.toggleUnits = (id) => {
+            const list = document.getElementById(`unit-list-${id}`);
+            list.classList.toggle('active');
+        };
+
+        function renderEmpty() {
+            productList.innerHTML = `
+                <div class="empty-state">
+                    <span class="empty-icon">📦</span>
+                    <h3>Your inventory is empty</h3>
+                    <p style="color:var(--text-muted); margin: 10px 0 20px;">Purchase a bulk package from the marketplace to get started.</p>
+                    <a href="marketplace.html" class="btn btn-primary" style="display:inline-block; padding: 12px 24px;">Browse Marketplace</a>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
