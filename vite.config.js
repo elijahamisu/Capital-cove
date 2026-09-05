@@ -20,7 +20,7 @@ export default defineConfig({
         transactions: resolve(__dirname, 'transactions.html'),
         referrals: resolve(__dirname, 'referrals.html'),
         giftCode: resolve(__dirname, 'gift-code.html'),
-        //notifications: resolve(__dirname, 'notifications.html'),
+        notifications: resolve(__dirname, 'notifications.html'),
         //profile: resolve(__dirname, 'profile.html'),
        // support: resolve(__dirname, 'support.html'),
         //terms: resolve(__dirname, 'terms.html'),
