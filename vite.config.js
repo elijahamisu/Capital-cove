@@ -17,7 +17,7 @@ export default defineConfig({
         wallet: resolve(__dirname, 'wallet.html'),
         deposit: resolve(__dirname, 'deposit.html'),
         withdraw: resolve(__dirname, 'withdraw.html'),
-        //transactions: resolve(__dirname, 'transactions.html'),
+        transactions: resolve(__dirname, 'transactions.html'),
       //  referrals: resolve(__dirname, 'referrals.html'),
         //giftCode: resolve(__dirname, 'gift-code.html'),
         //notifications: resolve(__dirname, 'notifications.html'),
