@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Notifications | CAPITAL COVE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-light: #1e293b;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --success: #10b981;
+            --error: #ef4444;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 16px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg); color: var(--text-main); line-height: 1.6; padding-bottom: 100px; }
+        .container { width: 100%; max-width: 600px; margin: 0 auto; padding: 0 20px; }
+
+        /* HEADER */
+        header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px 0; position: sticky; top: 0; z-index: 100; }
+        .header-content { display: flex; justify-content: space-between; align-items: center; }
+        .back-link { color: var(--text-muted); font-size: 0.9rem; font-weight: 600; text-decoration: none; }
+        .page-title { font-size: 1.1rem; font-weight: 800; color: var(--primary); }
+        .mark-all { font-size: 0.75rem; font-weight: 700; color: var(--accent-hover); cursor: pointer; border: none; background: none; }
+        .mark-all:disabled { color: #cbd5e1; cursor: default; }
+
+        /* CONTROLS */
+        .controls { margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .filters { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+        .filters::-webkit-scrollbar { display: none; }
+        .filter-chip { white-space: nowrap; padding: 8px 16px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 30px; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); cursor: pointer; transition: 0.2s; }
+        .filter-chip.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        .search-bar { position: relative; }
+        .search-input { width: 100%; padding: 10px 16px; border-radius: 12px; border: 1px solid var(--border); background: var(--card-bg); font-size: 0.85rem; outline: none; transition: 0.2s; }
+        .search-input:focus { border-color: var(--accent); }
+
+        /* UNREAD COUNT */
+        .unread-banner { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+        .unread-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; }
+
+        /* NOTIFICATION LIST */
+        .notif-list { display: flex; flex-direction: column; gap: 12px; }
+        .notif-card { 
+            background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); 
+            padding: 16px; transition: 0.2s; position: relative; cursor: pointer;
+            box-shadow: var(--shadow);
+        }
+        .notif-card.unread { border-left: 4px solid var(--accent); background: #fffcf0; }
+        .notif-card:active { transform: scale(0.98); }
+
+        .notif-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+        .notif-title { font-size: 0.9rem; font-weight: 700; color: var(--primary); padding-right: 20px; }
+        .notif-type { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
+        .notif-time { font-size: 0.7rem; color: var(--text-muted); font-weight: 500; }
+        
+        .notif-msg { font-size: 0.85rem; color: var(--text-main); line-height: 1.4; margin-top: 6px; }
+        
+        .mark-btn { 
+            position: absolute; top: 12px; right: 12px; width: 24px; height: 24px; 
+            display: flex; align-items: center; justify-content: center; 
+            border-radius: 50%; background: var(--bg); color: var(--text-muted);
+            font-size: 0.8rem; border: none; cursor: pointer;
+        }
+
+        /* DETAIL MODAL */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { width: 100%; max-width: 450px; background: var(--card-bg); border-radius: 20px; padding: 24px; position: relative; animation: pop 0.2s ease-out; }
+        @keyframes pop { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        .modal-close { position: absolute; top: 16px; right: 16px; cursor: pointer; font-size: 1.2rem; font-weight: 700; }
+
+        /* LOADING/EMPTY STATES */
+        .sk-card { height: 80px; border-radius: 16px; background: #e2e8f0; animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+        .empty-icon { font-size: 3rem; margin-bottom: 16px; display: block; }
+
+        /* BOTTOM NAV */
+        .bottom-nav {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: calc(100% - 40px); max-width: 460px; background: var(--primary);
+            height: 64px; border-radius: 20px; display: flex; align-items: center;
+            justify-content: space-around; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8; text-decoration: none; font-size: 0.65rem; font-weight: 600; }
+        .nav-item.active { color: var(--accent); }
+        .nav-icon { font-size: 1.2rem; }
+        
+        .load-more { width: 100%; padding: 15px; text-align: center; font-size: 0.8rem; font-weight: 700; color: var(--accent-hover); cursor: pointer; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container header-content">
+            <a href="dashboard.html" class="back-link">← Home</a>
+            <h1 class="page-title">Notifications</h1>
+            <button class="mark-all" id="mark-all-btn">Mark all as read</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Controls -->
+        <section class="controls">
+            <div class="search-bar">
+                <input type="text" id="search-input" class="search-input" placeholder="Search notifications...">
+            </div>
+            <div class="filters" id="type-filters">
+                <div class="filter-chip active" data-filter="all">All</div>
+                <div class="filter-chip" data-filter="unread">Unread</div>
+                <div class="filter-chip" data-filter="PURCHASE">Purchases</div>
+                <div class="filter-chip" data-filter="SALE">Sales</div>
+                <div class="filter-chip" data-filter="DEPOSIT">Deposits</div>
+                <div class="filter-chip" data-filter="WITHDRAWAL">Withdrawals</div>
+                <div class="filter-chip" data-filter="SYSTEM">System</div>
+            </div>
+        </section>
+
+        <!-- Summary -->
+        <div class="unread-banner" style="margin-top: 20px;">
+            <div class="unread-dot"></div>
+            <span>Unread: <span id="unread-count">0</span></span>
+        </div>
+
+        <!-- List -->
+        <div class="notif-list" id="notif-container">
+            <!-- Skeletons -->
+            <div class="sk-card"></div>
+            <div class="sk-card"></div>
+        </div>
+
+        <div id="load-more-btn" class="load-more" style="display:none">View Older Notifications</div>
+    </main>
+
+    <!-- Detail Modal -->
+    <div class="modal-overlay" id="detail-modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal()">&times;</span>
+            <div id="modal-type" class="notif-type" style="margin-bottom: 8px;">TYPE</div>
+            <h2 id="modal-title" style="font-size: 1.1rem; font-weight: 800; margin-bottom: 12px;">Notification Title</h2>
+            <p id="modal-msg" style="font-size: 0.9rem; color: var(--text-main); margin-bottom: 24px;">Full message goes here...</p>
+            <div id="modal-time" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Date & Time</div>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="dashboard.html" class="nav-item">
+            <span class="nav-icon">🏠</span> Home
+        </a>
+        <a href="marketplace.html" class="nav-item">
+            <span class="nav-icon">🛒</span> Market
+        </a>
+        <a href="wallet.html" class="nav-item">
+            <span class="nav-icon">💳</span> Wallet
+        </a>
+        <a href="notifications.html" class="nav-item active">
+            <span class="nav-icon">🔔</span> Alerts
+        </a>
+        <a href="profile.html" class="nav-item">
+            <span class="nav-icon">👤</span> Profile
+        </a>
+    </nav>
+
+    <script>
+        // --- SUPABASE CONFIG ---
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        // --- STATE ---
+        let user = null;
+        let notifs = [];
+        let page = 0;
+        let limit = 20;
+        let hasMore = true;
+        let activeFilter = 'all';
+        let searchQuery = '';
+
+        // --- DOM ---
+        const container = document.getElementById('notif-container');
+        const unreadDisplay = document.getElementById('unread-count');
+        const markAllBtn = document.getElementById('mark-all-btn');
+        const loadMoreBtn = document.getElementById('load-more-btn');
+        const searchInput = document.getElementById('search-input');
+        const detailModal = document.getElementById('detail-modal');
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+            user = session.user;
+            await loadInitial();
+            initListeners();
+            setupRealtime();
+        });
+
+        async function loadInitial() {
+            page = 0;
+            notifs = [];
+            hasMore = true;
+            await Promise.all([
+                fetchNotifications(),
+                updateUnreadCount()
+            ]);
+        }
+
+        async function fetchNotifications() {
+            const start = page * limit;
+            const end = start + limit - 1;
+
+            let query = supabase
+                .from('notifications')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .range(start, end);
+
+            if (activeFilter === 'unread') {
+                query = query.eq('is_read', false);
+            } else if (activeFilter !== 'all') {
+                query = query.eq('type', activeFilter);
+            }
+
+            if (searchQuery) {
+                query = query.or(`title.ilike.%${searchQuery}%,message.ilike.%${searchQuery}%`);
+            }
+
+            const { data, error } = await query;
+
+            if (error) {
+                container.innerHTML = `<div class="empty-state">Error loading notifications.</div>`;
+                return;
+            }
+
+            if (data.length < limit) hasMore = false;
+            notifs = [...notifs, ...data];
+            renderNotifs();
+        }
+
+        async function updateUnreadCount() {
+            const { count } = await supabase
+                .from('notifications')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', user.id)
+                .eq('is_read', false);
+            
+            unreadDisplay.textContent = count || 0;
+            markAllBtn.disabled = (count === 0);
+        }
+
+        function renderNotifs() {
+            if (notifs.length === 0) {
+                container.innerHTML = `<div class="empty-state"><span class="empty-icon">🔔</span><h3>You're all caught up</h3><p>Updates about your account will appear here.</p></div>`;
+                loadMoreBtn.style.display = 'none';
+                return;
+            }
+
+            container.innerHTML = notifs.map(n => `
+                <div class="notif-card ${n.is_read ? '' : 'unread'}" onclick="openDetail('${n.id}')">
+                    <div class="notif-header">
+                        <span class="notif-type">${n.type}</span>
+                        <span class="notif-time">${formatTime(n.created_at)}</span>
+                    </div>
+                    <div class="notif-title">${escapeHTML(n.title)}</div>
+                    <div class="notif-msg">${escapeHTML(n.message)}</div>
+                    ${!n.is_read ? `<button class="mark-btn" onclick="event.stopPropagation(); markRead('${n.id}')">✓</button>` : ''}
+                </div>
+            `).join('');
+
+            loadMoreBtn.style.display = hasMore ? 'block' : 'none';
+        }
+
+        async function markRead(id) {
+            const { error } = await supabase
+                .from('notifications')
+                .update({ is_read: true })
+                .eq('id', id)
+                .eq('user_id', user.id);
+
+            if (!error) {
+                const n = notifs.find(x => x.id === id);
+                if (n) n.is_read = true;
+                renderNotifs();
+                updateUnreadCount();
+            }
+        }
+
+        markAllBtn.onclick = async () => {
+            const { error } = await supabase
+                .from('notifications')
+                .update({ is_read: true })
+                .eq('user_id', user.id)
+                .eq('is_read', false);
+
+            if (!error) {
+                notifs.forEach(n => n.is_read = true);
+                renderNotifs();
+                updateUnreadCount();
+            }
+        };
+
+        function initListeners() {
+            document.querySelectorAll('.filter-chip').forEach(chip => {
+                chip.onclick = () => {
+                    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                    activeFilter = chip.dataset.filter;
+                    loadInitial();
+                };
+            });
+
+            let searchTimeout;
+            searchInput.oninput = (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    searchQuery = e.target.value.trim();
+                    loadInitial();
+                }, 500);
+            };
+
+            loadMoreBtn.onclick = () => {
+                page++;
+                fetchNotifications();
+            };
+        }
+
+        function setupRealtime() {
+            supabase
+                .channel('public:notifications')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, payload => {
+                    notifs.unshift(payload.new);
+                    renderNotifs();
+                    updateUnreadCount();
+                })
+                .subscribe();
+        }
+
+        window.openDetail = (id) => {
+            const n = notifs.find(x => x.id === id);
+            if (!n) return;
+
+            document.getElementById('modal-title').textContent = n.title;
+            document.getElementById('modal-msg').textContent = n.message;
+            document.getElementById('modal-type').textContent = n.type;
+            document.getElementById('modal-time').textContent = new Date(n.created_at).toLocaleString();
+            
+            detailModal.classList.add('active');
+            if (!n.is_read) markRead(id);
+        };
+
+        window.closeModal = () => {
+            detailModal.classList.remove('active');
+        };
+
+        // --- HELPERS ---
+        function formatTime(dateStr) {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diff = (now - date) / 1000;
+            if (diff < 60) return 'Just now';
+            if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+            if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+            return date.toLocaleDateString();
+        }
+
+        function escapeHTML(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
