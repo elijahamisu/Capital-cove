@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Transactions | CAPITAL COVE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-light: #1e293b;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --success: #10b981;
+            --error: #ef4444;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 16px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg); color: var(--text-main); line-height: 1.6; padding-bottom: 100px; }
+        .container { width: 100%; max-width: 800px; margin: 0 auto; padding: 0 20px; }
+
+        /* HEADER */
+        header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px 0; position: sticky; top: 0; z-index: 100; }
+        .header-content { display: flex; justify-content: space-between; align-items: center; }
+        .page-title { font-size: 1.1rem; font-weight: 800; color: var(--primary); }
+        .refresh-btn { font-size: 0.8rem; font-weight: 700; color: var(--accent-hover); cursor: pointer; }
+
+        /* WALLET MINI SUMMARY */
+        .wallet-summary {
+            background: var(--primary); color: white; padding: 20px; border-radius: var(--radius);
+            margin: 20px 0; display: flex; justify-content: space-between; align-items: center;
+        }
+        .summary-item .lbl { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; font-weight: 700; }
+        .summary-item .val { font-size: 1.2rem; font-weight: 800; margin-top: 4px; }
+
+        /* CONTROLS */
+        .controls { margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .search-bar { position: relative; }
+        .search-input { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border); background: var(--card-bg); font-size: 0.9rem; outline: none; transition: 0.2s; }
+        .search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1); }
+        
+        .filters { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+        .filters::-webkit-scrollbar { display: none; }
+        .filter-chip { white-space: nowrap; padding: 8px 16px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 30px; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); cursor: pointer; }
+        .filter-chip.active { background: var(--accent); color: var(--primary); border-color: var(--accent); }
+
+        /* TRANSACTION LIST */
+        .tx-card { background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; box-shadow: var(--shadow); }
+        .tx-item { display: flex; align-items: center; gap: 14px; padding: 16px; border-bottom: 1px solid var(--border); transition: 0.2s; cursor: pointer; }
+        .tx-item:last-child { border-bottom: none; }
+        .tx-item:active { background: var(--bg); }
+
+        .tx-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+        .tx-main { flex: 1; }
+        .tx-title { font-size: 0.9rem; font-weight: 700; color: var(--primary); }
+        .tx-date { font-size: 0.7rem; color: var(--text-muted); font-weight: 500; }
+        
+        .tx-amount-area { text-align: right; }
+        .tx-amount { font-size: 0.95rem; font-weight: 800; display: block; }
+        .tx-bal-after { font-size: 0.65rem; color: var(--text-muted); font-weight: 600; }
+        
+        .credit { color: var(--success); }
+        .debit { color: var(--error); }
+
+        /* DETAIL MODAL */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 1000; display: none; align-items: flex-end; justify-content: center; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { 
+            width: 100%; max-width: 500px; background: var(--card-bg); 
+            border-radius: 24px 24px 0 0; padding: 30px 24px; 
+            animation: slideUp 0.3s ease-out; position: relative;
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .close-modal { position: absolute; top: 20px; right: 24px; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; }
+
+        .detail-header { text-align: center; margin-bottom: 30px; }
+        .detail-amount { font-size: 2rem; font-weight: 800; margin-bottom: 8px; }
+        .detail-type { font-size: 0.75rem; text-transform: uppercase; font-weight: 800; color: var(--text-muted); letter-spacing: 1px; }
+
+        .detail-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 30px; }
+        .detail-row { display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+        .detail-lbl { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+        .detail-val { font-size: 0.85rem; font-weight: 700; color: var(--primary); text-align: right; }
+
+        .copy-ref { color: var(--accent-hover); cursor: pointer; text-decoration: underline; margin-left: 8px; font-size: 0.7rem; }
+
+        /* SKELETON */
+        .sk-item { padding: 16px; display: flex; gap: 14px; align-items: center; border-bottom: 1px solid var(--border); }
+        .sk-circle { width: 44px; height: 44px; border-radius: 12px; background: #e2e8f0; animation: shimmer 1.5s infinite; }
+        .sk-line { height: 12px; background: #e2e8f0; border-radius: 4px; animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+
+        /* BOTTOM NAV */
+        .bottom-nav {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: calc(100% - 40px); max-width: 500px; background: var(--primary);
+            height: 64px; border-radius: 20px; display: flex; align-items: center;
+            justify-content: space-around; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8; text-decoration: none; font-size: 0.65rem; font-weight: 600; }
+        .nav-item.active { color: var(--accent); }
+        .nav-icon { font-size: 1.2rem; }
+
+        .load-more { width: 100%; padding: 15px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--accent-hover); cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container header-content">
+            <h1 class="page-title">Transactions</h1>
+            <span class="refresh-btn" id="refresh-btn">Refresh</span>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Summary -->
+        <section class="wallet-summary">
+            <div class="summary-item">
+                <span class="lbl">Available Balance</span>
+                <div class="val" id="summary-available">₦0.00</div>
+            </div>
+            <div class="summary-item" style="text-align: right;">
+                <span class="lbl">Pending</span>
+                <div class="val" id="summary-pending">₦0.00</div>
+            </div>
+        </section>
+
+        <!-- Controls -->
+        <section class="controls">
+            <div class="search-bar">
+                <input type="text" id="search-input" class="search-input" placeholder="Search by description or reference...">
+            </div>
+            <div class="filters" id="type-filters">
+                <div class="filter-chip active" data-type="all">All History</div>
+                <div class="filter-chip" data-type="DEPOSIT">Deposits</div>
+                <div class="filter-chip" data-type="BULK_PURCHASE">Purchases</div>
+                <div class="filter-chip" data-type="SALE_PROCEEDS">Sales</div>
+                <div class="filter-chip" data-type="WITHDRAWAL">Withdrawals</div>
+                <div class="filter-chip" data-type="REFERRAL_BONUS">Bonuses</div>
+            </div>
+        </section>
+
+        <!-- List -->
+        <div class="tx-card" id="tx-container">
+            <!-- Loading Skeletons -->
+            <div class="sk-item"><div class="sk-circle"></div><div style="flex:1"><div class="sk-line" style="width:40%"></div><div class="sk-line" style="width:20%; margin-top:8px;"></div></div></div>
+            <div class="sk-item"><div class="sk-circle"></div><div style="flex:1"><div class="sk-line" style="width:40%"></div><div class="sk-line" style="width:20%; margin-top:8px;"></div></div></div>
+        </div>
+
+        <div id="load-more-btn" class="load-more" style="display:none">Load Older Transactions</div>
+    </main>
+
+    <!-- Detail Modal -->
+    <div class="modal-overlay" id="detail-modal">
+        <div class="modal-content">
+            <span class="close-modal" id="close-modal">&times;</span>
+            <div class="detail-header">
+                <div class="detail-amount" id="m-amount">₦0.00</div>
+                <div class="detail-type" id="m-type">Transaction Type</div>
+            </div>
+            <div class="detail-grid">
+                <div class="detail-row"><span class="detail-lbl">Status</span><span class="detail-val" id="m-status">--</span></div>
+                <div class="detail-row"><span class="detail-lbl">Reference</span><span class="detail-val"><span id="m-ref">--</span> <span class="copy-ref" id="copy-ref">Copy</span></span></div>
+                <div class="detail-row"><span class="detail-lbl">Description</span><span class="detail-val" id="m-desc">--</span></div>
+                <div class="detail-row"><span class="detail-lbl">Balance Before</span><span class="detail-val" id="m-before">--</span></div>
+                <div class="detail-row"><span class="detail-lbl">Balance After</span><span class="detail-val" id="m-after">--</span></div>
+                <div class="detail-row"><span class="detail-lbl">Date & Time</span><span class="detail-val" id="m-date">--</span></div>
+            </div>
+            <button class="btn-withdraw" style="width:100%; padding:14px; border-radius:12px; background:var(--primary); color:white; border:none; font-weight:700;" onclick="closeModal()">Close Details</button>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="dashboard.html" class="nav-item">
+            <span class="nav-icon">🏠</span> Home
+        </a>
+        <a href="marketplace.html" class="nav-item">
+            <span class="nav-icon">🛒</span> Market
+        </a>
+        <a href="wallet.html" class="nav-item">
+            <span class="nav-icon">💳</span> Wallet
+        </a>
+        <a href="transactions.html" class="nav-item active">
+            <span class="nav-icon">🧾</span> History
+        </a>
+        <a href="profile.html" class="nav-item">
+            <span class="nav-icon">👤</span> Profile
+        </a>
+    </nav>
+
+    <script>
+        // --- SUPABASE CONFIG ---
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        // --- STATE ---
+        let user = null;
+        let transactions = [];
+        let page = 0;
+        let limit = 20;
+        let currentFilter = 'all';
+        let searchQuery = '';
+        let hasMore = true;
+
+        // --- DOM ---
+        const txContainer = document.getElementById('tx-container');
+        const loadMoreBtn = document.getElementById('load-more-btn');
+        const searchInput = document.getElementById('search-input');
+        const refreshBtn = document.getElementById('refresh-btn');
+        const detailModal = document.getElementById('detail-modal');
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+            user = session.user;
+            await loadInitialData();
+            initListeners();
+        });
+
+        async function loadInitialData() {
+            page = 0;
+            transactions = [];
+            hasMore = true;
+            await Promise.all([
+                fetchWallet(),
+                fetchTransactions()
+            ]);
+        }
+
+        async function fetchWallet() {
+            const { data } = await supabase.from('wallets').select('*').eq('user_id', user.id).single();
+            if (data) {
+                document.getElementById('summary-available').textContent = formatNaira(data.available_balance);
+                document.getElementById('summary-pending').textContent = formatNaira(data.pending_balance);
+            }
+        }
+
+        async function fetchTransactions() {
+            const start = page * limit;
+            const end = start + limit - 1;
+
+            let query = supabase
+                .from('wallet_transactions')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .range(start, end);
+
+            if (currentFilter !== 'all') {
+                query = query.eq('type', currentFilter);
+            }
+
+            if (searchQuery) {
+                query = query.or(`description.ilike.%${searchQuery}%,type.ilike.%${searchQuery}%`);
+            }
+
+            const { data, error } = await query;
+
+            if (error) {
+                txContainer.innerHTML = `<div style="padding:40px; text-align:center; color:var(--error); font-weight:700;">Failed to load transactions.</div>`;
+                return;
+            }
+
+            if (data.length < limit) hasMore = false;
+            
+            transactions = [...transactions, ...data];
+            renderTransactions();
+        }
+
+        function renderTransactions() {
+            if (transactions.length === 0) {
+                txContainer.innerHTML = `<div style="padding:60px 20px; text-align:center; color:var(--text-muted); font-size:0.9rem;">No transactions found.</div>`;
+                loadMoreBtn.style.display = 'none';
+                return;
+            }
+
+            const html = transactions.map(tx => {
+                const isCredit = ['DEPOSIT', 'SALE_PROCEEDS', 'REFERRAL_BONUS', 'GIFT_CODE', 'REFUND'].includes(tx.type);
+                const icon = getIcon(tx.type);
+                const date = new Date(tx.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' });
+                
+                return `
+                    <div class="tx-item" onclick="openDetails('${tx.id}')">
+                        <div class="tx-icon">${icon}</div>
+                        <div class="tx-main">
+                            <div class="tx-title">${tx.description || tx.type.replace('_', ' ')}</div>
+                            <div class="tx-date">${date}</div>
+                        </div>
+                        <div class="tx-amount-area">
+                            <span class="tx-amount ${isCredit ? 'credit' : 'debit'}">
+                                ${isCredit ? '+' : '-'}${formatNaira(Math.abs(tx.amount), false)}
+                            </span>
+                            <span class="tx-bal-after">₦${Number(tx.balance_after).toLocaleString()}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            txContainer.innerHTML = html;
+            loadMoreBtn.style.display = hasMore ? 'block' : 'none';
+        }
+
+        function initListeners() {
+            // Type Filters
+            document.querySelectorAll('.filter-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                    currentFilter = chip.dataset.type;
+                    loadInitialData();
+                });
+            });
+
+            // Search
+            let searchTimeout;
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    searchQuery = e.target.value.trim();
+                    loadInitialData();
+                }, 500);
+            });
+
+            // Load More
+            loadMoreBtn.addEventListener('click', () => {
+                page++;
+                fetchTransactions();
+            });
+
+            // Refresh
+            refreshBtn.addEventListener('click', loadInitialData);
+
+            // Modal Close
+            document.getElementById('close-modal').onclick = closeModal;
+            window.onclick = (e) => { if (e.target == detailModal) closeModal(); };
+            
+            // Copy Ref
+            document.getElementById('copy-ref').onclick = () => {
+                const ref = document.getElementById('m-ref').textContent;
+                navigator.clipboard.writeText(ref).then(() => {
+                    const btn = document.getElementById('copy-ref');
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => btn.textContent = 'Copy', 2000);
+                });
+            };
+        }
+
+        window.openDetails = (id) => {
+            const tx = transactions.find(t => t.id === id);
+            if (!tx) return;
+
+            const isCredit = ['DEPOSIT', 'SALE_PROCEEDS', 'REFERRAL_BONUS', 'GIFT_CODE', 'REFUND'].includes(tx.type);
+            const amtDisplay = document.getElementById('m-amount');
+            amtDisplay.textContent = (isCredit ? '+' : '-') + formatNaira(Math.abs(tx.amount));
+            amtDisplay.className = `detail-amount ${isCredit ? 'credit' : 'debit'}`;
+
+            document.getElementById('m-type').textContent = tx.type.replace('_', ' ');
+            document.getElementById('m-status').textContent = tx.status || 'COMPLETED';
+            document.getElementById('m-ref').textContent = tx.reference || tx.id.substring(0, 8).toUpperCase();
+            document.getElementById('m-desc').textContent = tx.description || '--';
+            document.getElementById('m-before').textContent = formatNaira(tx.balance_before);
+            document.getElementById('m-after').textContent = formatNaira(tx.balance_after);
+            document.getElementById('m-date').textContent = new Date(tx.created_at).toLocaleString();
+
+            detailModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        };
+
+        window.closeModal = () => {
+            detailModal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        };
+
+        // --- HELPERS ---
+        function formatNaira(amount, includeSymbol = true) {
+            const sym = includeSymbol ? '₦' : '';
+            return sym + Number(amount).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function getIcon(type) {
+            switch(type) {
+                case 'DEPOSIT': return '📥';
+                case 'BULK_PURCHASE': return '📦';
+                case 'SALE_PROCEEDS': return '💰';
+                case 'WITHDRAWAL': return '📤';
+                case 'WITHDRAWAL_FEE': return '🏷️';
+                case 'REFERRAL_BONUS': return '👥';
+                case 'GIFT_CODE': return '🎁';
+                case 'REFUND': return '⏪';
+                default: return '📄';
+            }
+        }
+    </script>
+</body>
+</html>
