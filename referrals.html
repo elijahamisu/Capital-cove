@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Referrals | CAPITAL COVE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-light: #1e293b;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --success: #10b981;
+            --info: #3b82f6;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 16px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg); color: var(--text-main); line-height: 1.6; padding-bottom: 100px; }
+        .container { width: 100%; max-width: 600px; margin: 0 auto; padding: 0 20px; }
+
+        /* HEADER */
+        header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px 0; position: sticky; top: 0; z-index: 100; }
+        .header-content { display: flex; justify-content: space-between; align-items: center; }
+        .back-link { color: var(--text-muted); font-size: 0.9rem; font-weight: 600; text-decoration: none; }
+
+        .page-title { font-size: 1.2rem; font-weight: 800; color: var(--primary); }
+
+        /* HERO SHARE CARD */
+        .share-card {
+            background: linear-gradient(135deg, var(--primary) 0%, #1e293b 100%);
+            color: white; padding: 30px 24px; border-radius: 24px; margin-top: 20px;
+            text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+        }
+        .share-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 8px; color: var(--accent); }
+        .share-desc { font-size: 0.85rem; color: #94a3b8; margin-bottom: 24px; }
+        
+        .code-display {
+            background: rgba(255,255,255,0.05); border: 1px dashed rgba(245, 158, 11, 0.3);
+            padding: 16px; border-radius: 12px; display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 20px;
+        }
+        .code-val { font-family: monospace; font-size: 1.5rem; font-weight: 800; letter-spacing: 2px; }
+        .copy-btn { background: var(--accent); color: var(--primary); border: none; padding: 8px 16px; border-radius: 8px; font-weight: 800; font-size: 0.75rem; cursor: pointer; }
+
+        .share-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .btn-share { 
+            background: white; color: var(--primary); padding: 12px; border-radius: 12px;
+            font-weight: 700; font-size: 0.85rem; border: none; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; gap: 8px;
+        }
+
+        /* STATS GRID */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+        .stat-card { background: var(--card-bg); padding: 16px; border-radius: 16px; border: 1px solid var(--border); text-align: center; box-shadow: var(--shadow); }
+        .stat-val { display: block; font-size: 1.2rem; font-weight: 800; color: var(--primary); }
+        .stat-lbl { display: block; font-size: 0.65rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-top: 2px; }
+
+        /* HOW IT WORKS */
+        .card { background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); padding: 20px; margin-top: 20px; }
+        .card-title { font-size: 1rem; font-weight: 800; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .bonus-badge { background: #fef3c7; color: #92400e; font-size: 0.65rem; padding: 4px 8px; border-radius: 6px; }
+
+        .step-item { display: flex; gap: 12px; margin-bottom: 16px; }
+        .step-num { width: 22px; height: 22px; background: var(--bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; flex-shrink: 0; }
+        .step-txt { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
+
+        /* REFERRAL LIST */
+        .ref-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .ref-item:last-child { border-bottom: none; }
+        .ref-user h4 { font-size: 0.85rem; font-weight: 700; }
+        .ref-user p { font-size: 0.7rem; color: var(--text-muted); }
+        
+        .ref-status { text-align: right; }
+        .status-pill { font-size: 0.6rem; font-weight: 800; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
+        .pill-pending { background: #f1f5f9; color: #64748b; }
+        .pill-qualified { background: #dcfce7; color: #15803d; }
+
+        /* ALERTS */
+        .toast {
+            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+            background: var(--primary); color: white; padding: 12px 24px; border-radius: 30px;
+            font-size: 0.85rem; font-weight: 600; z-index: 2000; display: none; box-shadow: 0 10px 15px rgba(0,0,0,0.2);
+        }
+
+        /* EMPTY STATE */
+        .empty-state { text-align: center; padding: 30px 10px; color: var(--text-muted); font-size: 0.85rem; }
+
+        /* BOTTOM NAV */
+        .bottom-nav {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: calc(100% - 40px); max-width: 500px; background: var(--primary);
+            height: 64px; border-radius: 20px; display: flex; align-items: center;
+            justify-content: space-around; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8; text-decoration: none; font-size: 0.65rem; font-weight: 600; }
+        .nav-item.active { color: var(--accent); }
+        .nav-icon { font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container header-content">
+            <a href="dashboard.html" class="back-link">← Back</a>
+            <h1 class="page-title">Referral Program</h1>
+            <div style="width: 40px;"></div>
+        </div>
+    </header>
+
+    <main class="container">
+        
+        <!-- Share Section -->
+        <div class="share-card">
+            <h2 class="share-title">Invite Your Network</h2>
+            <p class="share-desc">Share your link and earn a commission when your referrals participate in bulk acquisitions.</p>
+            
+            <div class="code-display">
+                <span class="code-val" id="referral-code">--------</span>
+                <button class="copy-btn" id="copy-code-btn">Copy</button>
+            </div>
+
+            <div class="share-actions">
+                <button class="btn-share" id="copy-link-btn">🔗 Copy Link</button>
+                <button class="btn-share" id="native-share-btn">📤 Share Now</button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-val" id="stat-total">0</span>
+                <span class="stat-lbl">Total Referred</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-val" id="stat-earned">₦0.00</span>
+                <span class="stat-lbl">Bonus Earned</span>
+            </div>
+        </div>
+
+        <!-- How it Works -->
+        <div class="card">
+            <div class="card-title">
+                How it works
+                <span class="bonus-badge" id="bonus-pct-badge">--% Bonus</span>
+            </div>
+            <div class="step-item">
+                <div class="step-num">1</div>
+                <div class="step-txt">Invite friends using your unique referral code or link.</div>
+            </div>
+            <div class="step-item">
+                <div class="step-num">2</div>
+                <div class="step-txt">Referrals register and join the CAPITAL COVE marketplace.</div>
+            </div>
+            <div class="step-item" style="margin-bottom:0">
+                <div class="step-num">3</div>
+                <div class="step-txt">Receive an eligible commission when they complete a qualifying transaction.</div>
+            </div>
+        </div>
+
+        <!-- Referral List -->
+        <div class="card">
+            <h2 class="card-title">My Referrals</h2>
+            <div id="referral-list-container">
+                <!-- Loading State -->
+                <div class="empty-state">Loading your network...</div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="dashboard.html" class="nav-item">
+            <span class="nav-icon">🏠</span> Home
+        </a>
+        <a href="marketplace.html" class="nav-item">
+            <span class="nav-icon">🛒</span> Market
+        </a>
+        <a href="wallet.html" class="nav-item">
+            <span class="nav-icon">💳</span> Wallet
+        </a>
+        <a href="referrals.html" class="nav-item active">
+            <span class="nav-icon">👥</span> Refer
+        </a>
+        <a href="profile.html" class="nav-item">
+            <span class="nav-icon">👤</span> Profile
+        </a>
+    </nav>
+
+    <div id="toast" class="toast">Copied to clipboard</div>
+
+    <script>
+        // --- SUPABASE CONFIG ---
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        // --- STATE ---
+        let userProfile = null;
+        let referralLink = "";
+
+        // --- DOM ---
+        const codeDisplay = document.getElementById('referral-code');
+        const listContainer = document.getElementById('referral-list-container');
+        const statTotal = document.getElementById('stat-total');
+        const statEarned = document.getElementById('stat-earned');
+        const bonusBadge = document.getElementById('bonus-pct-badge');
+        const toast = document.getElementById('toast');
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            await Promise.all([
+                fetchProfile(session.user.id),
+                fetchSettings(),
+                fetchReferralData(session.user.id)
+            ]);
+
+            initActions();
+        });
+
+        async function fetchProfile(uid) {
+            const { data } = await supabase.from('profiles').select('*').eq('id', uid).single();
+            if (data) {
+                userProfile = data;
+                codeDisplay.textContent = data.referral_code;
+                referralLink = `${window.location.origin}/register.html?ref=${data.referral_code}`;
+            }
+        }
+
+        async function fetchSettings() {
+            const { data } = await supabase.from('settings').select('value').eq('key', 'referral_bonus_percent').single();
+            if (data) {
+                bonusBadge.textContent = `${data.value}% Commission`;
+            }
+        }
+
+        async function fetchReferralData(uid) {
+            try {
+                // Fetch referrals and join the profiles of the referred users
+                const { data, error } = await supabase
+                    .from('referrals')
+                    .select('*, profiles!referred_id(full_name, email)')
+                    .eq('referrer_id', uid)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    listContainer.innerHTML = `<div class="empty-state">You haven't referred anyone yet.</div>`;
+                    return;
+                }
+
+                statTotal.textContent = data.length;
+                
+                // Calculate earned commission from records
+                const earned = data.reduce((acc, curr) => acc + (parseFloat(curr.commission_amount) || 0), 0);
+                statEarned.textContent = '₦' + earned.toLocaleString(undefined, { minimumFractionDigits: 2 });
+
+                // Render List
+                listContainer.innerHTML = data.map(ref => {
+                    const profile = ref.profiles;
+                    const maskedName = profile.full_name ? profile.full_name.split(' ')[0] + ' ' + (profile.full_name.split(' ')[1] ? profile.full_name.split(' ')[1][0] + '.' : '') : 'User';
+                    const date = new Date(ref.created_at).toLocaleDateString();
+                    
+                    return `
+                        <div class="ref-item">
+                            <div class="ref-user">
+                                <h4>${maskedName}</h4>
+                                <p>Joined ${date}</p>
+                            </div>
+                            <div class="ref-status">
+                                <span class="status-pill ${ref.status === 'QUALIFIED' ? 'pill-qualified' : 'pill-pending'}">
+                                    ${ref.status}
+                                </span>
+                                ${ref.commission_amount > 0 ? `<p style="font-size:0.7rem; font-weight:800; color:var(--success); margin-top:4px;">+₦${parseFloat(ref.commission_amount).toLocaleString()}</p>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error(err);
+                listContainer.innerHTML = `<div class="empty-state">Error loading referral data.</div>`;
+            }
+        }
+
+        function initActions() {
+            document.getElementById('copy-code-btn').onclick = () => copyToClipboard(userProfile.referral_code, "Referral code copied!");
+            document.getElementById('copy-link-btn').onclick = () => copyToClipboard(referralLink, "Referral link copied!");
+            
+            document.getElementById('native-share-btn').onclick = async () => {
+                if (navigator.share) {
+                    try {
+                        await navigator.share({
+                            title: 'Join CAPITAL COVE',
+                            text: 'Buy products in bulk and participate in their resale on CAPITAL COVE. Join using my link:',
+                            url: referralLink
+                        });
+                    } catch (err) { console.log('Share cancelled'); }
+                } else {
+                    copyToClipboard(referralLink, "Share link copied!");
+                }
+            };
+        }
+
+        function copyToClipboard(text, msg) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(msg);
+            });
+        }
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 2500);
+        }
+    </script>
+</body>
+</html>
