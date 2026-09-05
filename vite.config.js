@@ -24,7 +24,7 @@ export default defineConfig({
         profile: resolve(__dirname, 'profile.html'),
         support: resolve(__dirname, 'support.html'),
         terms: resolve(__dirname, 'terms.html'),
-        //privacy: resolve(__dirname, 'privacy.html'),
+        privacy: resolve(__dirname, 'privacy.html'),
         // Admin Routes
         //adminLogin: resolve(__dirname, 'admin/login.html'),
         //adminDashboard: resolve(__dirname, 'admin/index.html'),
