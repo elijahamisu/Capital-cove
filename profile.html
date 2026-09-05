@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Profile | CAPITAL COVE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-light: #1e293b;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --success: #10b981;
+            --error: #ef4444;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 16px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg); color: var(--text-main); line-height: 1.6; padding-bottom: 100px; }
+        .container { width: 100%; max-width: 600px; margin: 0 auto; padding: 0 20px; }
+
+        /* HEADER */
+        header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px 0; position: sticky; top: 0; z-index: 100; }
+        .header-content { display: flex; justify-content: space-between; align-items: center; }
+        .back-link { color: var(--text-muted); font-size: 0.9rem; font-weight: 600; text-decoration: none; }
+        .page-title { font-size: 1.1rem; font-weight: 800; color: var(--primary); }
+
+        /* PROFILE HEADER CARD */
+        .profile-card {
+            background: var(--card-bg); border-radius: 24px; padding: 30px; margin-top: 20px;
+            text-align: center; border: 1px solid var(--border); box-shadow: var(--shadow);
+        }
+        .avatar-wrap {
+            width: 80px; height: 80px; background: var(--primary); color: var(--accent);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem; font-weight: 800; margin: 0 auto 15px; border: 4px solid var(--bg);
+        }
+        .user-name { font-size: 1.25rem; font-weight: 800; color: var(--primary); }
+        .user-email { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; }
+        .status-badge { 
+            display: inline-block; font-size: 0.65rem; font-weight: 800; padding: 4px 12px; 
+            border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .st-active { background: #dcfce7; color: #15803d; }
+
+        /* SECTIONS */
+        .section-header { font-size: 0.85rem; font-weight: 800; color: var(--primary); margin: 30px 0 15px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; }
+        .section-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+        .card { background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); }
+        
+        /* FORM GROUPS */
+        .form-group { margin-bottom: 16px; }
+        .form-group:last-child { margin-bottom: 0; }
+        .label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
+        .input { 
+            width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border); 
+            font-size: 0.95rem; font-weight: 600; color: var(--primary); outline: none; transition: 0.2s; background: var(--bg);
+        }
+        .input:focus { border-color: var(--accent); background: white; }
+        .input:read-only { opacity: 0.7; cursor: not-allowed; background: #f1f5f9; }
+
+        /* BUTTONS */
+        .btn { width: 100%; padding: 14px; border-radius: 12px; font-weight: 800; font-size: 0.95rem; border: none; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover:not(:disabled) { background: var(--primary-light); transform: translateY(-1px); }
+        .btn-outline-danger { background: white; border: 1px solid #fee2e2; color: var(--error); }
+        .btn-outline-danger:hover { background: #fef2f2; }
+
+        /* MODAL */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { width: 100%; max-width: 400px; background: white; border-radius: 20px; padding: 24px; text-align: center; }
+        .modal-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 10px; }
+        .modal-desc { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 24px; }
+        .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        /* ALERTS */
+        .alert { padding: 14px; border-radius: 12px; font-size: 0.85rem; font-weight: 600; margin-bottom: 20px; display: none; text-align: center; }
+        .alert-error { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+        .alert-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+
+        .spinner { width: 18px; height: 18px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 0.8s linear infinite; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* SKELETONS */
+        .sk { background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* BOTTOM NAV */
+        .bottom-nav {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: calc(100% - 40px); max-width: 460px; background: var(--primary);
+            height: 64px; border-radius: 20px; display: flex; align-items: center;
+            justify-content: space-around; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8; text-decoration: none; font-size: 0.65rem; font-weight: 600; }
+        .nav-item.active { color: var(--accent); }
+        .nav-icon { font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container header-content">
+            <a href="dashboard.html" class="back-link">← Dashboard</a>
+            <h1 class="page-title">Profile Settings</h1>
+            <div style="width: 40px;"></div>
+        </div>
+    </header>
+
+    <main class="container">
+        
+        <div id="alert-box" class="alert"></div>
+
+        <!-- Profile Header -->
+        <div class="profile-card">
+            <div class="avatar-wrap" id="avatar-initials">--</div>
+            <h2 class="user-name" id="display-name">Loading...</h2>
+            <p class="user-email" id="display-email">...</p>
+            <span class="status-badge st-active" id="display-status">Active</span>
+        </div>
+
+        <div class="section-header">Personal Information</div>
+        <div class="card">
+            <div class="form-group">
+                <label class="label">Full Name</label>
+                <input type="text" id="input-name" class="input" placeholder="Your full name">
+            </div>
+            <div class="form-group">
+                <label class="label">Phone Number</label>
+                <input type="tel" id="input-phone" class="input" placeholder="08012345678">
+            </div>
+            <button class="btn btn-primary" id="save-btn" style="margin-top: 10px;">
+                <span id="btn-text">Save Changes</span>
+                <div class="spinner" id="btn-spinner"></div>
+            </button>
+        </div>
+
+        <div class="section-header">Account Details</div>
+        <div class="card">
+            <div class="form-group">
+                <label class="label">Referral Code</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="info-ref-code" class="input" readonly>
+                    <button class="btn btn-primary" id="copy-ref-btn" style="width: auto; padding: 0 15px; font-size: 0.75rem;">Copy</button>
+                </div>
+                <p style="font-size: 0.65rem; color: var(--text-muted); margin-top: 8px;">Your unique identifier for the referral program.</p>
+            </div>
+            <div class="form-group">
+                <label class="label">Member Since</label>
+                <input type="text" id="info-joined" class="input" readonly>
+            </div>
+        </div>
+
+        <div class="section-header">Security & Session</div>
+        <div class="card">
+            <button class="btn btn-outline-danger" onclick="openLogoutModal()">Log Out of Account</button>
+        </div>
+
+    </main>
+
+    <!-- Logout Modal -->
+    <div class="modal-overlay" id="logout-modal">
+        <div class="modal-content">
+            <h2 class="modal-title">Confirm Logout</h2>
+            <p class="modal-desc">Are you sure you want to sign out? You will need to enter your credentials to access CAPITAL COVE again.</p>
+            <div class="modal-actions">
+                <button class="btn" style="background: var(--bg); color: var(--text-main);" onclick="closeLogoutModal()">Cancel</button>
+                <button class="btn btn-primary" id="confirm-logout-btn">Log Out</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="dashboard.html" class="nav-item">
+            <span class="nav-icon">🏠</span> Home
+        </a>
+        <a href="marketplace.html" class="nav-item">
+            <span class="nav-icon">🛒</span> Market
+        </a>
+        <a href="wallet.html" class="nav-item">
+            <span class="nav-icon">💳</span> Wallet
+        </a>
+        <a href="notifications.html" class="nav-item">
+            <span class="nav-icon">🔔</span> Alerts
+        </a>
+        <a href="profile.html" class="nav-item active">
+            <span class="nav-icon">👤</span> Profile
+        </a>
+    </nav>
+
+    <script>
+        // --- SUPABASE CONFIG ---
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        // --- STATE ---
+        let user = null;
+        let profile = null;
+
+        // --- DOM ---
+        const alertBox = document.getElementById('alert-box');
+        const saveBtn = document.getElementById('save-btn');
+        const btnText = document.getElementById('btn-text');
+        const btnSpinner = document.getElementById('btn-spinner');
+        const logoutModal = document.getElementById('logout-modal');
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+            user = session.user;
+            await fetchProfile();
+            initListeners();
+        });
+
+        async function fetchProfile() {
+            try {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+
+                if (error) throw error;
+                profile = data;
+                renderProfile();
+            } catch (err) {
+                console.error(err);
+                showAlert("Unable to load profile information.", "error");
+            }
+        }
+
+        function renderProfile() {
+            // Header
+            const initials = profile.full_name ? profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'CC';
+            document.getElementById('avatar-initials').textContent = initials;
+            document.getElementById('display-name').textContent = profile.full_name || "User";
+            document.getElementById('display-email').textContent = user.email;
+            document.getElementById('display-status').textContent = profile.status || "Active";
+
+            // Inputs
+            document.getElementById('input-name').value = profile.full_name || "";
+            document.getElementById('input-phone').value = profile.phone || "";
+
+            // Read-only info
+            document.getElementById('info-ref-code').value = profile.referral_code || "--------";
+            document.getElementById('info-joined').value = new Date(profile.created_at).toLocaleDateString('en-NG', { month: 'long', year: 'numeric', day: 'numeric' });
+        }
+
+        function initListeners() {
+            saveBtn.addEventListener('click', handleSave);
+            document.getElementById('confirm-logout-btn').addEventListener('click', handleLogout);
+            document.getElementById('copy-ref-btn').addEventListener('click', () => {
+                navigator.clipboard.writeText(profile.referral_code).then(() => {
+                    const originalText = document.getElementById('copy-ref-btn').textContent;
+                    document.getElementById('copy-ref-btn').textContent = "Copied!";
+                    setTimeout(() => { document.getElementById('copy-ref-btn').textContent = originalText; }, 2000);
+                });
+            });
+        }
+
+        async function handleSave() {
+            const newName = document.getElementById('input-name').value.trim();
+            const newPhone = document.getElementById('input-phone').value.trim();
+
+            if (!newName) return showAlert("Full name is required.", "error");
+
+            setLoading(true);
+            hideAlert();
+
+            try {
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ 
+                        full_name: newName,
+                        phone: newPhone,
+                        updated_at: new Date()
+                    })
+                    .eq('id', user.id);
+
+                if (error) throw error;
+
+                showAlert("Your profile has been updated successfully.", "success");
+                await fetchProfile(); // Refresh UI
+            } catch (err) {
+                console.error(err);
+                showAlert(err.message || "Failed to update profile.", "error");
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function handleLogout() {
+            await supabase.auth.signOut();
+            window.location.href = 'login.html';
+        }
+
+        window.openLogoutModal = () => logoutModal.classList.add('active');
+        window.closeLogoutModal = () => logoutModal.classList.remove('active');
+
+        // --- HELPERS ---
+        function showAlert(msg, type) {
+            alertBox.textContent = msg;
+            alertBox.className = `alert alert-${type}`;
+            alertBox.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function hideAlert() { alertBox.style.display = 'none'; }
+
+        function setLoading(isLoading) {
+            saveBtn.disabled = isLoading;
+            btnText.style.display = isLoading ? 'none' : 'block';
+            btnSpinner.style.display = isLoading ? 'block' : 'none';
+        }
+    </script>
+</body>
+</html>
