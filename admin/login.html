@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Admin Login | CAPITAL COVE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --admin-primary: #020617;
+            --admin-surface: #1e293b;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --error: #ef4444;
+            --border: #334155;
+            --radius: 12px;
+            --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        
+        body { 
+            background-color: var(--admin-primary); 
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background-image: radial-gradient(circle at 50% 50%, #0f172a 0%, #020617 100%);
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .brand-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo-box {
+            width: 48px;
+            height: 48px;
+            background: var(--accent);
+            color: var(--admin-primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 1.5rem;
+            margin: 0 auto 16px;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+        }
+
+        .brand-header h1 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .brand-header p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .login-card {
+            background: var(--admin-surface);
+            padding: 32px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        /* FORM */
+        .form-group { margin-bottom: 20px; }
+        .label { 
+            display: block; 
+            font-size: 0.75rem; 
+            font-weight: 700; 
+            color: var(--text-muted); 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+            margin-bottom: 8px; 
+        }
+        
+        .input-wrapper { position: relative; }
+        .input {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            color: white;
+            font-size: 0.95rem;
+            outline: none;
+            transition: 0.2s;
+        }
+        .input:focus { border-color: var(--accent); background: rgba(15, 23, 42, 0.8); }
+
+        .toggle-btn {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .btn-submit {
+            width: 100%;
+            background: var(--accent);
+            color: var(--admin-primary);
+            padding: 14px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 800;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-submit:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* ALERTS */
+        .alert {
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: none;
+            text-align: center;
+            line-height: 1.4;
+        }
+        .alert-error { background: rgba(239, 68, 68, 0.1); color: var(--error); border: 1px solid rgba(239, 68, 68, 0.2); }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 24px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        .back-link:hover { color: var(--accent); }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 3px solid rgba(0,0,0,0.1);
+            border-radius: 50%;
+            border-top-color: var(--admin-primary);
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 480px) {
+            .login-card { padding: 24px; border: none; background: transparent; box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <header class="brand-header">
+            <div class="logo-box">C</div>
+            <h1>Capital Cove</h1>
+            <p>ADMIN PANEL ACCESS</p>
+        </header>
+
+        <div class="login-card">
+            <div id="alert-box" class="alert alert-error"></div>
+
+            <form id="admin-login-form">
+                <div class="form-group">
+                    <label class="label">Email Address</label>
+                    <input type="email" id="email" class="input" placeholder="admin@capitalcove.com" required autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label class="label">Password</label>
+                    <div class="input-wrapper">
+                        <input type="password" id="password" class="input" placeholder="••••••••" required autocomplete="current-password">
+                        <button type="button" class="toggle-btn" id="toggle-password">Show</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit" id="submit-btn">
+                    <span id="btn-text">Sign In</span>
+                    <div class="spinner" id="btn-spinner"></div>
+                </button>
+            </form>
+        </div>
+
+        <a href="../index.html" class="back-link">← Back to CAPITAL COVE</a>
+    </div>
+
+    <script>
+        // --- SUPABASE CONFIG ---
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        // --- DOM ---
+        const loginForm = document.getElementById('admin-login-form');
+        const alertBox = document.getElementById('alert-box');
+        const submitBtn = document.getElementById('submit-btn');
+        const btnText = document.getElementById('btn-text');
+        const btnSpinner = document.getElementById('btn-spinner');
+        const togglePass = document.getElementById('toggle-password');
+        const passwordInput = document.getElementById('password');
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            checkExistingSession();
+        });
+
+        async function checkExistingSession() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                const isAdmin = await verifyAdminStatus(session.user.id);
+                if (isAdmin) {
+                    window.location.href = 'index.html';
+                } else {
+                    // If logged in but not admin, we stay on login page but alert
+                    // or logout to prevent accidental customer dashboard confusion
+                    await supabase.auth.signOut();
+                }
+            }
+        }
+
+        togglePass.onclick = () => {
+            const isPass = passwordInput.type === 'password';
+            passwordInput.type = isPass ? 'text' : 'password';
+            togglePass.textContent = isPass ? 'Hide' : 'Show';
+        };
+
+        // --- AUTH LOGIC ---
+        loginForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value.trim();
+            const password = passwordInput.value;
+
+            setLoading(true);
+            hideAlert();
+
+            try {
+                // 1. Authenticate with Supabase Auth
+                const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                    email, password
+                });
+
+                if (authError) {
+                    throw new Error("The email or password is incorrect.");
+                }
+
+                // 2. Verify Authorization in admin_users table
+                const isAdmin = await verifyAdminStatus(authData.user.id);
+
+                if (!isAdmin) {
+                    await supabase.auth.signOut();
+                    throw new Error("You do not have permission to access the administrator panel.");
+                }
+
+                // 3. Log Login Event (Optional Audit)
+                await supabase.from('admin_logs').insert({
+                    admin_id: authData.user.id,
+                    action: 'ADMIN_LOGIN',
+                    details: { ip: 'client-side-auth' }
+                });
+
+                // 4. Redirect
+                window.location.href = 'index.html';
+
+            } catch (err) {
+                showAlert(err.message);
+                setLoading(false);
+            }
+        };
+
+        async function verifyAdminStatus(userId) {
+            const { data, error } = await supabase
+                .from('admin_users')
+                .select('role')
+                .eq('id', userId)
+                .single();
+            
+            return !!data && !error;
+        }
+
+        // --- UI HELPERS ---
+        function setLoading(isLoading) {
+            submitBtn.disabled = isLoading;
+            btnText.style.display = isLoading ? 'none' : 'block';
+            btnSpinner.style.display = isLoading ? 'block' : 'none';
+        }
+
+        function showAlert(msg) {
+            alertBox.textContent = msg;
+            alertBox.style.display = 'block';
+        }
+
+        function hideAlert() {
+            alertBox.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
