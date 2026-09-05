@@ -22,7 +22,7 @@ export default defineConfig({
         giftCode: resolve(__dirname, 'gift-code.html'),
         notifications: resolve(__dirname, 'notifications.html'),
         profile: resolve(__dirname, 'profile.html'),
-       // support: resolve(__dirname, 'support.html'),
+        support: resolve(__dirname, 'support.html'),
         //terms: resolve(__dirname, 'terms.html'),
         //privacy: resolve(__dirname, 'privacy.html'),
         // Admin Routes
