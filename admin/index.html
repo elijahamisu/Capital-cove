@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Admin Dashboard | CAPITAL COVE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --admin-bg: #020617;
+            --admin-surface: #0f172a;
+            --admin-card: #1e293b;
+            --admin-border: #334155;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --error: #ef4444;
+            --radius: 12px;
+            --sidebar-width: 260px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--admin-bg); color: var(--text-main); min-height: 100vh; overflow-x: hidden; }
+
+        /* AUTH OVERLAY */
+        #auth-guard { position: fixed; inset: 0; background: var(--admin-bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+
+        /* SIDEBAR */
+        .sidebar {
+            position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-width);
+            background: var(--admin-surface); border-right: 1px solid var(--admin-border);
+            z-index: 1000; transition: transform 0.3s ease;
+        }
+        .sidebar-header { padding: 24px; border-bottom: 1px solid var(--admin-border); display: flex; align-items: center; gap: 12px; }
+        .logo-box { width: 32px; height: 32px; background: var(--accent); color: var(--admin-bg); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+        
+        .nav-list { padding: 20px 12px; list-style: none; height: calc(100vh - 80px); overflow-y: auto; }
+        .nav-item { margin-bottom: 4px; }
+        .nav-link { 
+            display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px;
+            color: var(--text-muted); text-decoration: none; font-size: 0.85rem; font-weight: 600;
+            transition: 0.2s;
+        }
+        .nav-link:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-link.active { background: var(--accent); color: var(--admin-bg); }
+
+        /* MAIN CONTENT */
+        .main-wrapper { margin-left: var(--sidebar-width); transition: margin 0.3s ease; }
+        .top-bar { 
+            height: 70px; background: var(--admin-surface); border-bottom: 1px solid var(--admin-border);
+            display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+            position: sticky; top: 0; z-index: 900;
+        }
+        .page-info h1 { font-size: 1.1rem; font-weight: 800; }
+        .page-info p { font-size: 0.75rem; color: var(--text-muted); }
+
+        .container { padding: 24px; max-width: 1200px; margin: 0 auto; }
+
+        /* DASHBOARD GRID */
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .metric-card { 
+            background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius);
+            padding: 20px; position: relative; overflow: hidden;
+        }
+        .metric-lbl { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; }
+        .metric-val { font-size: 1.5rem; font-weight: 800; margin-top: 8px; display: block; }
+        .metric-trend { font-size: 0.65rem; margin-top: 8px; display: flex; align-items: center; gap: 4px; font-weight: 700; }
+
+        /* SECTIONS */
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .section-title { font-size: 0.9rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); }
+        .refresh-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.75rem; font-weight: 700; }
+
+        .dashboard-row { display: grid; grid-template-columns: 1fr; gap: 24px; margin-bottom: 40px; }
+        @media (min-width: 1024px) { .dashboard-row { grid-template-columns: 1.5fr 1fr; } }
+
+        .card { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 20px; }
+
+        /* ATTENTION ITEMS */
+        .attention-list { display: flex; flex-direction: column; gap: 12px; }
+        .att-item { 
+            display: flex; justify-content: space-between; align-items: center; padding: 12px;
+            background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 8px;
+        }
+        .att-info h4 { font-size: 0.85rem; font-weight: 700; }
+        .att-info p { font-size: 0.7rem; color: var(--text-muted); }
+        .att-action { font-size: 0.75rem; font-weight: 800; color: var(--accent); text-decoration: none; }
+
+        /* TABLE UI */
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th { text-align: left; padding: 12px; color: var(--text-muted); font-weight: 700; border-bottom: 1px solid var(--admin-border); }
+        td { padding: 12px; border-bottom: 1px solid var(--admin-border); }
+        .badge { font-size: 0.65rem; font-weight: 800; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; }
+        .st-active { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .st-pending { background: rgba(245, 158, 11, 0.1); color: var(--accent); }
+
+        /* MOBILE OVERRIDES */
+        .menu-toggle { display: none; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+        .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; display: none; }
+
+        @media (max-width: 1023px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .sidebar-overlay.active { display: block; }
+            .main-wrapper { margin-left: 0; }
+            .menu-toggle { display: block; }
+        }
+
+        /* LOADING */
+        .sk { background: linear-gradient(90deg, var(--admin-card) 25%, #2d3748 50%, var(--admin-card) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    </style>
+</head>
+<body>
+
+    <div id="auth-guard">
+        <div style="text-align: center;">
+            <div class="logo-box" style="margin: 0 auto 15px; width: 48px; height: 48px; font-size: 1.5rem;">C</div>
+            <p style="font-weight: 700; letter-spacing: 1px;">AUTHENTICATING ADMIN...</p>
+        </div>
+    </div>
+
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-box">C</div>
+            <span style="font-weight: 800; letter-spacing: 1px;">ADMIN PANEL</span>
+        </div>
+        <nav class="nav-list">
+            <div class="nav-item"><a href="index.html" class="nav-link active">📊 Dashboard</a></div>
+            <div class="nav-item"><a href="users.html" class="nav-link">👥 Users</a></div>
+            <div class="nav-item"><a href="products.html" class="nav-link">📦 Products</a></div>
+            <div class="nav-item"><a href="inventory.html" class="nav-link">🏠 Inventory</a></div>
+            <div class="nav-item"><a href="deposits.html" class="nav-link">📥 Deposits</a></div>
+            <div class="nav-item"><a href="withdrawals.html" class="nav-link">📤 Withdrawals</a></div>
+            <div class="nav-item"><a href="sales.html" class="nav-link">💰 Sales</a></div>
+            <div class="nav-item"><a href="settlements.html" class="nav-link">🧾 Settlements</a></div>
+            <div class="nav-item"><a href="settings.html" class="nav-link">⚙️ Settings</a></div>
+            <div class="nav-item" style="margin-top: 40px; border-top: 1px solid var(--admin-border); padding-top: 20px;">
+                <button onclick="handleLogout()" class="nav-link" style="width: 100%; text-align: left; background: none; border: none; cursor: pointer;">🚪 Logout</button>
+            </div>
+        </nav>
+    </aside>
+
+    <div class="main-wrapper">
+        <header class="top-bar">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button class="menu-toggle" id="menu-toggle">☰</button>
+                <div class="page-info">
+                    <h1>Dashboard</h1>
+                    <p id="admin-email">admin@capitalcove.com</p>
+                </div>
+            </div>
+            <div id="last-updated" style="font-size: 0.65rem; color: var(--text-muted); font-weight: 700;">--</div>
+        </header>
+
+        <main class="container">
+            
+            <!-- Summary Metrics -->
+            <section class="metrics-grid" id="metrics-container">
+                <div class="metric-card"><div class="metric-lbl">Users</div><div class="sk" style="height: 30px; margin-top: 10px;"></div></div>
+                <div class="metric-card"><div class="metric-lbl">Inventory</div><div class="sk" style="height: 30px; margin-top: 10px;"></div></div>
+                <div class="metric-card"><div class="metric-lbl">Pending Deposits</div><div class="sk" style="height: 30px; margin-top: 10px;"></div></div>
+                <div class="metric-card"><div class="metric-lbl">Pending Payouts</div><div class="sk" style="height: 30px; margin-top: 10px;"></div></div>
+            </section>
+
+            <div class="dashboard-row">
+                
+                <!-- Requires Attention -->
+                <section>
+                    <div class="section-header">
+                        <h2 class="section-title">Requires Attention</h2>
+                        <button class="refresh-btn" onclick="loadDashboardData()">Refresh Data</button>
+                    </div>
+                    <div class="card attention-list" id="attention-container">
+                        <p style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 20px;">Checking for pending tasks...</p>
+                    </div>
+                </section>
+
+                <!-- System Stats -->
+                <section>
+                    <div class="section-header">
+                        <h2 class="section-title">System Status</h2>
+                    </div>
+                    <div class="card" id="status-card">
+                        <div style="margin-bottom: 15px;">
+                            <div class="metric-lbl">Active Bulk Packages</div>
+                            <div id="stat-active-products" style="font-size: 1.2rem; font-weight: 800; color: var(--accent);">--</div>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <div class="metric-lbl">Total Units Assigned</div>
+                            <div id="stat-total-units" style="font-size: 1.2rem; font-weight: 800;">--</div>
+                        </div>
+                        <div>
+                            <div class="metric-lbl">Platform Sales Value</div>
+                            <div id="stat-sales-value" style="font-size: 1.2rem; font-weight: 800; color: var(--success);">₦0.00</div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- Recent Activity Table -->
+            <section>
+                <div class="section-header">
+                    <h2 class="section-title">Recent User Registrations</h2>
+                    <a href="users.html" class="att-action">View All Users</a>
+                </div>
+                <div class="card table-wrap">
+                    <table id="users-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Joined</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-users-body">
+                            <tr><td colspan="4" style="text-align: center; padding: 30px; color: var(--text-muted);">Loading users...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        // --- SUPABASE CONFIG ---
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        // --- DOM ELEMENTS ---
+        const authGuard = document.getElementById('auth-guard');
+        const sidebar = document.getElementById('sidebar');
+        const menuToggle = document.getElementById('menu-toggle');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        const metricsContainer = document.getElementById('metrics-container');
+        const attentionContainer = document.getElementById('attention-container');
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAdminAuth();
+            loadDashboardData();
+            initMobileNav();
+        });
+
+        async function checkAdminAuth() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const { data: admin, error } = await supabase
+                .from('admin_users')
+                .select('role')
+                .eq('id', session.user.id)
+                .single();
+
+            if (error || !admin) {
+                await supabase.auth.signOut();
+                window.location.href = 'login.html';
+                return;
+            }
+
+            document.getElementById('admin-email').textContent = session.user.email;
+            authGuard.style.display = 'none';
+        }
+
+        async function loadDashboardData() {
+            document.getElementById('last-updated').textContent = "Updating...";
+            
+            try {
+                // Fetch Counts Parallelly
+                const [users, products, inventory, depPending, withPending, sales] = await Promise.all([
+                    supabase.from('profiles').select('*', { count: 'exact', head: true }),
+                    supabase.from('products').select('*', { count: 'exact', head: true }).eq('status', 'ACTIVE'),
+                    supabase.from('product_units').select('*', { count: 'exact', head: true }).eq('status', 'AVAILABLE'),
+                    supabase.from('deposits').select('*', { count: 'exact', head: true }).eq('status', 'PENDING'),
+                    supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'PENDING'),
+                    supabase.from('sales').select('sale_amount')
+                ]);
+
+                // Render Metrics
+                metricsContainer.innerHTML = `
+                    <div class="metric-card"><div class="metric-lbl">Total Users</div><span class="metric-val">${users.count || 0}</span></div>
+                    <div class="metric-card"><div class="metric-lbl">Available Units</div><span class="metric-val">${inventory.count || 0}</span></div>
+                    <div class="metric-card"><div class="metric-lbl">Pending Deposits</div><span class="metric-val" style="color:var(--accent)">${depPending.count || 0}</span></div>
+                    <div class="metric-card"><div class="metric-lbl">Pending Payouts</div><span class="metric-val" style="color:var(--error)">${withPending.count || 0}</span></div>
+                `;
+
+                // System Stats
+                document.getElementById('stat-active-products').textContent = products.count || 0;
+                document.getElementById('stat-total-units').textContent = inventory.count || 0;
+                const totalSalesVal = sales.data?.reduce((acc, s) => acc + parseFloat(s.sale_amount), 0) || 0;
+                document.getElementById('stat-sales-value').textContent = formatNaira(totalSalesVal);
+
+                // Render Attention Items
+                let attentionHTML = '';
+                if (depPending.count > 0) {
+                    attentionHTML += `<div class="att-item"><div class="att-info"><h4>${depPending.count} Pending Deposits</h4><p>Verification required</p></div><a href="deposits.html" class="att-action">Review &rarr;</a></div>`;
+                }
+                if (withPending.count > 0) {
+                    attentionHTML += `<div class="att-item"><div class="att-info"><h4>${withPending.count} Pending Payouts</h4><p>Processing required</p></div><a href="withdrawals.html" class="att-action">Process &rarr;</a></div>`;
+                }
+                attentionContainer.innerHTML = attentionHTML || '<p style="text-align:center; color:var(--text-muted); font-size:0.8rem;">All caught up. No pending actions.</p>';
+
+                // Recent Users
+                const { data: recentUsers } = await supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(5);
+                document.getElementById('recent-users-body').innerHTML = recentUsers.map(u => `
+                    <tr>
+                        <td style="font-weight:700;">${u.full_name || '---'}</td>
+                        <td>${u.email}</td>
+                        <td>${new Date(u.created_at).toLocaleDateString()}</td>
+                        <td><span class="badge st-active">${u.status || 'ACTIVE'}</span></td>
+                    </tr>
+                `).join('');
+
+                document.getElementById('last-updated').textContent = "UPDATED: " + new Date().toLocaleTimeString();
+
+            } catch (err) {
+                console.error("Dashboard Load Error:", err);
+            }
+        }
+
+        // --- ACTIONS ---
+        async function handleLogout() {
+            await supabase.auth.signOut();
+            window.location.href = 'login.html';
+        }
+
+        function initMobileNav() {
+            menuToggle.onclick = () => {
+                sidebar.classList.add('open');
+                sidebarOverlay.classList.add('active');
+            };
+            sidebarOverlay.onclick = () => {
+                sidebar.classList.remove('open');
+                sidebarOverlay.classList.remove('active');
+            };
+        }
+
+        function formatNaira(amount) {
+            return '₦' + Number(amount).toLocaleString('en-NG', { minimumFractionDigits: 2 });
+        }
+    </script>
+</body>
+</html>
