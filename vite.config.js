@@ -11,7 +11,7 @@ export default defineConfig({
         dashboard: resolve(__dirname, 'dashboard.html'),
         marketplace: resolve(__dirname, 'marketplace.html'),
        productDetails: resolve(__dirname, 'product-details.html'),
-      //  buyBulk: resolve(__dirname, 'buy-bulk.html'),
+       buyBulk: resolve(__dirname, 'buy-bulk.html'),
        // myProducts: resolve(__dirname, 'my-products.html'),
       //  productSales: resolve(__dirname, 'product-sales.html'),
        // wallet: resolve(__dirname, 'wallet.html'),
