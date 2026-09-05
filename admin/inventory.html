@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Inventory Management | CAPITAL COVE Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --admin-bg: #020617;
+            --admin-surface: #0f172a;
+            --admin-card: #1e293b;
+            --admin-border: #334155;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --error: #ef4444;
+            --info: #3b82f6;
+            --radius: 12px;
+            --sidebar-width: 260px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--admin-bg); color: var(--text-main); min-height: 100vh; overflow-x: hidden; }
+
+        /* AUTH GUARD */
+        #auth-guard { position: fixed; inset: 0; background: var(--admin-bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+
+        /* SIDEBAR */
+        .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-width); background: var(--admin-surface); border-right: 1px solid var(--admin-border); z-index: 1000; transition: transform 0.3s ease; }
+        .sidebar-header { padding: 24px; border-bottom: 1px solid var(--admin-border); display: flex; align-items: center; gap: 12px; }
+        .logo-box { width: 32px; height: 32px; background: var(--accent); color: var(--admin-bg); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+        .nav-list { padding: 20px 12px; list-style: none; }
+        .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; color: var(--text-muted); text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: 0.2s; }
+        .nav-link:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-link.active { background: var(--accent); color: var(--admin-bg); }
+
+        /* MAIN CONTENT */
+        .main-wrapper { margin-left: var(--sidebar-width); transition: margin 0.3s ease; }
+        .top-bar { height: 70px; background: var(--admin-surface); border-bottom: 1px solid var(--admin-border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 900; }
+        .container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+        /* STATS */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 20px; }
+        .stat-lbl { font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .stat-val { font-size: 1.4rem; font-weight: 800; margin-top: 8px; display: block; }
+
+        /* ACTION BAR */
+        .action-bar { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 16px; margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+        .search-box { flex: 1; min-width: 250px; }
+        .input { width: 100%; background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 8px; padding: 10px 14px; color: white; font-size: 0.85rem; outline: none; }
+        .select { background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 8px; padding: 10px; color: white; font-size: 0.85rem; cursor: pointer; outline: none; }
+
+        /* DATA TABLE */
+        .table-wrap { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); overflow: hidden; margin-bottom: 24px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        th { text-align: left; padding: 14px 16px; color: var(--text-muted); font-weight: 700; border-bottom: 1px solid var(--admin-border); background: rgba(0,0,0,0.1); }
+        td { padding: 14px 16px; border-bottom: 1px solid var(--admin-border); vertical-align: middle; }
+        
+        .unit-code { font-family: monospace; font-weight: 700; color: var(--accent); }
+        .badge { font-size: 0.6rem; font-weight: 800; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; }
+        .st-available { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .st-owned { background: rgba(59, 130, 246, 0.1); color: var(--info); }
+        .st-sold { background: rgba(148, 163, 184, 0.1); color: var(--text-muted); }
+
+        .btn-detail { padding: 6px 12px; border-radius: 6px; background: var(--admin-border); color: white; border: none; font-size: 0.7rem; font-weight: 700; cursor: pointer; }
+        .btn-detail:hover { background: var(--accent); color: var(--admin-bg); }
+
+        /* RECONCILIATION CARD */
+        .recon-card { background: rgba(245, 158, 11, 0.05); border: 1px dashed var(--accent); padding: 16px; border-radius: var(--radius); margin-bottom: 24px; display: flex; align-items: center; gap: 15px; }
+        .recon-icon { font-size: 1.5rem; }
+
+        /* MODAL */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+        .modal-overlay.active { display: flex; }
+        .modal-card { background: var(--admin-surface); border: 1px solid var(--admin-border); width: 100%; max-width: 500px; padding: 32px; border-radius: var(--radius); position: relative; }
+        .modal-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 20px; color: var(--accent); border-bottom: 1px solid var(--admin-border); padding-bottom: 10px; }
+        .detail-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; }
+        .detail-lbl { color: var(--text-muted); font-weight: 600; }
+        .detail-val { font-weight: 700; text-align: right; }
+
+        /* MOBILE VIEW */
+        .mobile-list { display: none; flex-direction: column; gap: 12px; }
+        .mobile-card { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 16px; }
+
+        @media (max-width: 1023px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-wrapper { margin-left: 0; }
+            .menu-toggle { display: block; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+            .table-wrap table { display: none; }
+            .mobile-list { display: flex; }
+            .action-bar { flex-direction: column; align-items: stretch; }
+        }
+
+        .menu-toggle { display: none; }
+        .pagination { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: rgba(0,0,0,0.1); }
+        .page-btn { padding: 8px 16px; border-radius: 6px; background: var(--admin-surface); border: 1px solid var(--admin-border); color: white; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+        .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .sk { background: linear-gradient(90deg, var(--admin-card) 25%, #2d3748 50%, var(--admin-card) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    </style>
+</head>
+<body>
+
+    <div id="auth-guard">
+        <div style="text-align: center;"><p style="font-weight: 800; letter-spacing: 2px;">AUTHORIZING ACCESS...</p></div>
+    </div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header"><div class="logo-box">C</div><span style="font-weight: 800; letter-spacing: 1px;">ADMIN</span></div>
+        <nav class="nav-list">
+            <a href="index.html" class="nav-link">📊 Dashboard</a>
+            <a href="users.html" class="nav-link">👥 Users</a>
+            <a href="products.html" class="nav-link">📦 Products</a>
+            <a href="inventory.html" class="nav-link active">🏠 Inventory</a>
+            <a href="deposits.html" class="nav-link">📥 Deposits</a>
+            <a href="withdrawals.html" class="nav-link">📤 Withdrawals</a>
+            <button onclick="signOut()" class="nav-link" style="width:100%; background:none; border:none; margin-top:40px; border-top:1px solid var(--admin-border); padding-top:20px;">🚪 Logout</button>
+        </nav>
+    </aside>
+
+    <div class="main-wrapper">
+        <header class="top-bar">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button class="menu-toggle" id="menu-toggle">☰</button>
+                <h1 style="font-size: 1.1rem; font-weight: 800;">Inventory Management</h1>
+            </div>
+            <button class="page-btn" onclick="loadAll()">↻ Refresh</button>
+        </header>
+
+        <main class="container">
+            
+            <!-- Reconciliation Warning -->
+            <div class="recon-card" id="recon-banner" style="display:none;">
+                <span class="recon-icon">⚖️</span>
+                <div style="font-size: 0.8rem; font-weight: 600;">
+                    Inventory Inconsistency Detected: Total assigned units does not match bulk purchase logs. Review required.
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <section class="stats-grid">
+                <div class="stat-card"><span class="stat-lbl">Total Units</span><span class="stat-val" id="stat-total">0</span></div>
+                <div class="stat-card"><span class="stat-lbl">Marketplace (Avail)</span><span class="stat-val" id="stat-avail" style="color:var(--success)">0</span></div>
+                <div class="stat-card"><span class="stat-lbl">User Owned</span><span class="stat-val" id="stat-owned" style="color:var(--info)">0</span></div>
+                <div class="stat-card"><span class="stat-lbl">Completed Sales</span><span class="stat-val" id="stat-sold">0</span></div>
+            </section>
+
+            <!-- Filters -->
+            <section class="action-bar">
+                <div class="search-box">
+                    <input type="text" id="search-input" class="input" placeholder="Search Unit Code, Product, or Owner...">
+                </div>
+                <select id="status-filter" class="select">
+                    <option value="all">All Statuses</option>
+                    <option value="AVAILABLE">Available</option>
+                    <option value="OWNED">Owned</option>
+                    <option value="SOLD">Sold</option>
+                    <option value="CANCELLED">Cancelled</option>
+                </select>
+                <select id="product-filter" class="select">
+                    <option value="all">All Products</option>
+                </select>
+            </section>
+
+            <!-- Table -->
+            <div class="table-wrap">
+                <table id="inventory-table">
+                    <thead>
+                        <tr>
+                            <th>Unit Code</th>
+                            <th>Product</th>
+                            <th>Owner</th>
+                            <th>Acquisition</th>
+                            <th>Sug. Sale</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventory-tbody"></tbody>
+                </table>
+
+                <div class="mobile-list" id="mobile-list"></div>
+                <div id="empty-state" class="empty-state" style="display:none;">No inventory records found.</div>
+
+                <div class="pagination">
+                    <button class="page-btn" id="prev-btn" disabled>Previous</button>
+                    <span id="page-info" style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted);">Page 1</span>
+                    <button class="page-btn" id="next-btn">Next</button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Details Modal -->
+    <div class="modal-overlay" id="detail-modal">
+        <div class="modal-card">
+            <h3 class="modal-title">Individual Unit Details</h3>
+            <div id="modal-content"></div>
+            <button class="btn-detail" style="width:100%; margin-top:20px; padding:14px;" onclick="closeModal()">Close Details</button>
+        </div>
+    </div>
+
+    <script>
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        let page = 0;
+        const limit = 20;
+        let inventoryData = [];
+        let allProducts = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAdmin();
+            await loadProductsFilter();
+            loadAll();
+            initListeners();
+            initMobileMenu();
+        });
+
+        async function checkAdmin() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return window.location.href = 'login.html';
+            const { data: admin } = await supabase.from('admin_users').select('id').eq('id', session.user.id).single();
+            if (!admin) { await supabase.auth.signOut(); return window.location.href = 'login.html'; }
+            document.getElementById('auth-guard').style.display = 'none';
+        }
+
+        async function loadProductsFilter() {
+            const { data } = await supabase.from('products').select('id, name');
+            if (data) {
+                allProducts = data;
+                const select = document.getElementById('product-filter');
+                data.forEach(p => select.innerHTML += `<option value="${p.id}">${p.name}</option>`);
+            }
+        }
+
+        async function loadAll() {
+            loadStats();
+            fetchInventory();
+        }
+
+        async function loadStats() {
+            const [total, avail, owned, sold] = await Promise.all([
+                supabase.from('product_units').select('*', { count: 'exact', head: true }),
+                supabase.from('product_units').select('*', { count: 'exact', head: true }).eq('status', 'AVAILABLE'),
+                supabase.from('product_units').select('*', { count: 'exact', head: true }).eq('status', 'OWNED'),
+                supabase.from('product_units').select('*', { count: 'exact', head: true }).eq('status', 'SOLD')
+            ]);
+            document.getElementById('stat-total').textContent = total.count || 0;
+            document.getElementById('stat-avail').textContent = avail.count || 0;
+            document.getElementById('stat-owned').textContent = owned.count || 0;
+            document.getElementById('stat-sold').textContent = sold.count || 0;
+        }
+
+        async function fetchInventory() {
+            const tbody = document.getElementById('inventory-tbody');
+            tbody.innerHTML = `<tr><td colspan="7" style="padding:40px;"><div class="sk" style="height:20px; width:80%; margin:0 auto;"></div></td></tr>`;
+            
+            const start = page * limit;
+            const end = start + limit - 1;
+
+            let query = supabase
+                .from('product_units')
+                .select('*, products(name), profiles(full_name, email)', { count: 'exact' });
+
+            const status = document.getElementById('status-filter').value;
+            const prod = document.getElementById('product-filter').value;
+            const search = document.getElementById('search-input').value.trim();
+
+            if (status !== 'all') query = query.eq('status', status);
+            if (prod !== 'all') query = query.eq('product_id', prod);
+            if (search) query = query.or(`unit_code.ilike.%${search}%, products.name.ilike.%${search}%`);
+
+            const { data, count, error } = await query.order('created_at', { ascending: false }).range(start, end);
+
+            if (error || !data) {
+                tbody.innerHTML = '';
+                document.getElementById('empty-state').style.display = 'block';
+                return;
+            }
+
+            inventoryData = data;
+            renderInventory(data, count);
+        }
+
+        function renderInventory(units, count) {
+            const tbody = document.getElementById('inventory-tbody');
+            const mList = document.getElementById('mobile-list');
+            const empty = document.getElementById('empty-state');
+
+            if (!units.length) { tbody.innerHTML = ''; mList.innerHTML = ''; empty.style.display = 'block'; return; }
+            empty.style.display = 'none';
+
+            tbody.innerHTML = units.map(u => `
+                <tr>
+                    <td><span class="unit-code">${u.unit_code}</span></td>
+                    <td style="font-weight:600;">${escape(u.products?.name || 'Unknown')}</td>
+                    <td><div style="font-weight:700;">${escape(u.profiles?.full_name || 'N/A')}</div><div style="font-size:0.65rem; color:var(--text-muted);">${u.profiles?.email || 'System Inventory'}</div></td>
+                    <td>₦${u.acquisition_price.toLocaleString()}</td>
+                    <td>₦${u.selling_price.toLocaleString()}</td>
+                    <td><span class="badge st-${u.status.toLowerCase()}">${u.status}</span></td>
+                    <td><button class="btn-detail" onclick="openDetails('${u.id}')">View</button></td>
+                </tr>
+            `).join('');
+
+            mList.innerHTML = units.map(u => `
+                <div class="mobile-card">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span class="unit-code">${u.unit_code}</span>
+                        <span class="badge st-${u.status.toLowerCase()}">${u.status}</span>
+                    </div>
+                    <div style="font-size:0.8rem; font-weight:700; margin-bottom:4px;">${escape(u.products?.name)}</div>
+                    <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:12px;">Owner: ${escape(u.profiles?.full_name || 'System')}</div>
+                    <button class="btn-detail" style="width:100%" onclick="openDetails('${u.id}')">Inspect Unit</button>
+                </div>
+            `).join('');
+
+            document.getElementById('page-info').textContent = `Page ${page + 1} of ${Math.ceil(count / limit) || 1}`;
+            document.getElementById('prev-btn').disabled = (page === 0);
+            document.getElementById('next-btn').disabled = (start + limit >= count);
+        }
+
+        window.openDetails = (id) => {
+            const u = inventoryData.find(x => x.id === id);
+            if (!u) return;
+            const content = document.getElementById('modal-content');
+            content.innerHTML = `
+                <div class="detail-row"><span class="detail-lbl">Unit Code</span><span class="detail-val" style="color:var(--accent);">${u.unit_code}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Product</span><span class="detail-val">${escape(u.products.name)}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Current Status</span><span class="detail-val">${u.status}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Acquisition Price</span><span class="detail-val">₦${u.acquisition_price.toLocaleString()}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Sug. Selling Price</span><span class="detail-val">₦${u.selling_price.toLocaleString()}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Owner ID</span><span class="detail-val" style="font-size:0.6rem;">${u.owner_id || 'MARKETPLACE'}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Bulk Purchase ID</span><span class="detail-val" style="font-size:0.6rem;">${u.bulk_purchase_id || 'INITIAL SEED'}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Created At</span><span class="detail-val">${new Date(u.created_at).toLocaleString()}</span></div>
+                ${u.sold_at ? `<div class="detail-row"><span class="detail-lbl">Sold At</span><span class="detail-val" style="color:var(--success);">${new Date(u.sold_at).toLocaleString()}</span></div>` : ''}
+            `;
+            document.getElementById('detail-modal').classList.add('active');
+        };
+
+        function initListeners() {
+            let timer;
+            document.getElementById('search-input').oninput = () => {
+                clearTimeout(timer);
+                timer = setTimeout(() => { page = 0; fetchInventory(); }, 500);
+            };
+            document.getElementById('status-filter').onchange = () => { page = 0; fetchInventory(); };
+            document.getElementById('product-filter').onchange = () => { page = 0; fetchInventory(); };
+            document.getElementById('prev-btn').onclick = () => { if(page > 0) { page--; fetchInventory(); } };
+            document.getElementById('next-btn').onclick = () => { page++; fetchInventory(); };
+        }
+
+        window.closeModal = () => document.getElementById('detail-modal').classList.remove('active');
+        function initMobileMenu() { document.getElementById('menu-toggle').onclick = () => document.getElementById('sidebar').classList.toggle('open'); }
+        async function signOut() { await supabase.auth.signOut(); window.location.href = 'login.html'; }
+        function escape(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    </script>
+</body>
+</html>
