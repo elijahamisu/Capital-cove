@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Product Details | CAPITAL COVE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-light: #1e293b;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --success: #10b981;
+            --error: #ef4444;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 16px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg); color: var(--text-main); line-height: 1.6; padding-bottom: 100px; }
+        
+        .container { width: 100%; max-width: 800px; margin: 0 auto; padding: 0 20px; }
+
+        /* HEADER */
+        header {
+            background: var(--card-bg); border-bottom: 1px solid var(--border);
+            padding: 15px 0; position: sticky; top: 0; z-index: 100;
+        }
+        .header-content { display: flex; justify-content: space-between; align-items: center; }
+        .back-btn { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--primary); text-decoration: none; font-size: 0.9rem; }
+
+        /* PRODUCT IMAGE */
+        .product-hero { margin-top: 20px; background: var(--card-bg); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); box-shadow: var(--shadow); }
+        .image-container { width: 100%; aspect-ratio: 16/9; background: #e2e8f0; position: relative; }
+        .product-img { width: 100%; height: 100%; object-fit: cover; }
+        .status-badge { position: absolute; top: 15px; right: 15px; padding: 6px 12px; border-radius: 30px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
+        .status-active { background: var(--success); color: white; }
+        .status-soldout { background: var(--error); color: white; }
+
+        /* CONTENT SECTIONS */
+        .details-body { padding: 24px; }
+        .category-tag { font-size: 0.75rem; font-weight: 800; color: var(--accent-hover); text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px; }
+        .product-title { font-size: 1.6rem; font-weight: 800; color: var(--primary); margin-bottom: 16px; line-height: 1.2; }
+        
+        .price-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+        .price-card { background: var(--bg); padding: 16px; border-radius: 12px; border: 1px solid var(--border); }
+        .price-label { font-size: 0.7rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 4px; }
+        .price-value { font-size: 1.2rem; font-weight: 800; color: var(--primary); }
+
+        .description { font-size: 0.95rem; color: var(--text-main); margin-bottom: 30px; border-top: 1px solid var(--border); padding-top: 20px; }
+        .description h3 { font-size: 1rem; margin-bottom: 10px; font-weight: 700; }
+
+        /* HOW IT WORKS */
+        .how-it-works { background: var(--primary); color: white; border-radius: var(--radius); padding: 24px; margin-bottom: 30px; }
+        .how-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 20px; color: var(--accent); }
+        .step { display: flex; gap: 15px; margin-bottom: 15px; }
+        .step-num { width: 24px; height: 24px; background: var(--accent); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.8rem; flex-shrink: 0; }
+        .step-txt h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 2px; }
+        .step-txt p { font-size: 0.8rem; color: #94a3b8; line-height: 1.4; }
+
+        /* PURCHASE CALCULATOR */
+        .calculator { background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); padding: 24px; box-shadow: var(--shadow); position: sticky; bottom: 90px; z-index: 50; }
+        .calc-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .qty-controls { display: flex; align-items: center; gap: 15px; background: var(--bg); padding: 8px 16px; border-radius: 10px; border: 1px solid var(--border); }
+        .qty-btn { font-size: 1.5rem; font-weight: 400; color: var(--primary); width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
+        .qty-btn:disabled { color: var(--text-muted); cursor: not-allowed; }
+        .qty-val { font-weight: 800; font-size: 1.1rem; min-width: 20px; text-align: center; }
+
+        .total-box { border-top: 1px dashed var(--border); padding-top: 15px; margin-top: 15px; }
+        .total-row { display: flex; justify-content: space-between; align-items: baseline; }
+        .total-label { font-weight: 700; font-size: 0.9rem; }
+        .total-amount { font-size: 1.5rem; font-weight: 800; color: var(--primary); }
+
+        .buy-btn { width: 100%; background: var(--accent); color: var(--primary); padding: 16px; border-radius: 12px; font-weight: 800; font-size: 1rem; border: none; margin-top: 15px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .buy-btn:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-2px); }
+        .buy-btn:disabled { background: #e2e8f0; color: #94a3b8; cursor: not-allowed; }
+
+        .limit-hint { font-size: 0.7rem; color: var(--text-muted); text-align: center; margin-top: 8px; font-weight: 600; }
+
+        /* SKELETONS */
+        .sk { background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* BOTTOM NAV */
+        .bottom-nav {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: calc(100% - 40px); max-width: 500px; background: var(--primary);
+            height: 64px; border-radius: 20px; display: flex; align-items: center;
+            justify-content: space-around; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8; text-decoration: none; font-size: 0.65rem; font-weight: 600; }
+        .nav-icon { font-size: 1.2rem; }
+
+        /* ERROR STATE */
+        .error-card { text-align: center; padding: 60px 20px; }
+        .error-icon { font-size: 3rem; margin-bottom: 20px; display: block; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container header-content">
+            <a href="marketplace.html" class="back-btn">
+                <span>←</span> Back to Marketplace
+            </a>
+            <div id="auth-state"></div>
+        </div>
+    </header>
+
+    <main class="container" id="product-content">
+        <!-- Skeleton Loading -->
+        <div class="product-hero" style="margin-top:20px; border:none; box-shadow:none;">
+            <div class="image-container sk"></div>
+            <div style="padding: 24px;">
+                <div class="sk" style="height: 15px; width: 30%; margin-bottom: 10px;"></div>
+                <div class="sk" style="height: 30px; width: 60%; margin-bottom: 20px;"></div>
+                <div class="sk" style="height: 100px; width: 100%;"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="dashboard.html" class="nav-item">
+            <span class="nav-icon">🏠</span> Home
+        </a>
+        <a href="marketplace.html" class="nav-item" style="color:var(--accent)">
+            <span class="nav-icon">🛒</span> Market
+        </a>
+        <a href="my-products.html" class="nav-item">
+            <span class="nav-icon">📦</span> Products
+        </a>
+        <a href="wallet.html" class="nav-item">
+            <span class="nav-icon">💳</span> Wallet
+        </a>
+        <a href="profile.html" class="nav-item">
+            <span class="nav-icon">👤</span> Profile
+        </a>
+    </nav>
+
+    <script>
+        // --- SUPABASE & CONFIG ---
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        // --- STATE ---
+        let product = null;
+        let quantity = 1;
+        let session = null;
+
+        // --- DOM ELEMENTS ---
+        const content = document.getElementById('product-content');
+        const authState = document.getElementById('auth-state');
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            const params = new URLSearchParams(window.location.search);
+            const productId = params.get('id');
+
+            if (!productId) {
+                renderError("Invalid product reference.");
+                return;
+            }
+
+            await checkAuth();
+            await fetchProduct(productId);
+        });
+
+        async function checkAuth() {
+            const { data } = await supabase.auth.getSession();
+            session = data.session;
+            if (session) {
+                authState.innerHTML = `<span style="font-size:0.75rem; font-weight:700;">Active Session</span>`;
+            } else {
+                authState.innerHTML = `<a href="login.html" style="font-size:0.75rem; font-weight:800; color:var(--accent-hover); text-decoration:none;">Login to Buy</a>`;
+            }
+        }
+
+        async function fetchProduct(id) {
+            try {
+                const { data, error } = await supabase
+                    .from('products')
+                    .select('*')
+                    .eq('id', id)
+                    .eq('status', 'ACTIVE')
+                    .single();
+
+                if (error || !data) throw new Error("Product not found");
+
+                product = data;
+                renderProduct();
+            } catch (err) {
+                renderError("The requested product is unavailable or does not exist.");
+            }
+        }
+
+        function renderProduct() {
+            const isSoldOut = product.available_inventory <= 0;
+            const limit = product.purchase_limit || product.available_inventory;
+
+            content.innerHTML = `
+                <div class="product-hero">
+                    <div class="image-container">
+                        <img src="${product.image_url || 'https://via.placeholder.com/800x450?text=Capital+Cove+Product'}" 
+                             class="product-img" alt="${product.name}"
+                             onerror="this.src='https://via.placeholder.com/800x450?text=Product+Image'">
+                        <span class="status-badge ${isSoldOut ? 'status-soldout' : 'status-active'}">
+                            ${isSoldOut ? 'Sold Out' : 'Available'}
+                        </span>
+                    </div>
+                    
+                    <div class="details-body">
+                        <span class="category-tag">${product.category || 'Standard Bulk'}</span>
+                        <h1 class="product-title">${product.name}</h1>
+                        
+                        <div class="price-summary">
+                            <div class="price-card">
+                                <span class="price-label">Bulk Price</span>
+                                <span class="price-value">${formatNaira(product.bulk_price)}</span>
+                            </div>
+                            <div class="price-card">
+                                <span class="price-label">Units per Bulk</span>
+                                <span class="price-value">${product.units_per_bulk} Pcs</span>
+                            </div>
+                        </div>
+
+                        <div class="description">
+                            <h3>Product Description</h3>
+                            <p>${product.description || 'No detailed description provided for this bulk package.'}</p>
+                            <p style="margin-top:15px; font-size:0.8rem; color:var(--text-muted); font-weight:600;">
+                                Individual Suggested Selling Price: ${formatNaira(product.unit_selling_price)}
+                            </p>
+                        </div>
+
+                        <div class="how-it-works">
+                            <h3 class="how-title">How Capital Cove Works</h3>
+                            <div class="step">
+                                <div class="step-num">1</div>
+                                <div class="step-txt">
+                                    <h4>Buy in Bulk</h4>
+                                    <p>Acquire the bulk package using your wallet balance.</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-num">2</div>
+                                <div class="step-txt">
+                                    <h4>Assign Units</h4>
+                                    <p>Your bulk is split into ${product.units_per_bulk} trackable individual units assigned to you.</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-num">3</div>
+                                <div class="step-txt">
+                                    <h4>Resale Process</h4>
+                                    <p>Units are made available in the marketplace for individual resale.</p>
+                                </div>
+                            </div>
+                            <div class="step" style="margin-bottom:0;">
+                                <div class="step-num">4</div>
+                                <div class="step-txt">
+                                    <h4>Receive Proceeds</h4>
+                                    <p>Sales settlements are recorded in your wallet upon successful transaction.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p style="font-size:0.75rem; color:var(--text-muted); background:#f1f5f9; padding:12px; border-radius:8px; line-height:1.4;">
+                            <strong>Note:</strong> "Suggested selling price" is an estimate. Actual resale outcomes depend on recorded marketplace transactions and applicable service fees.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="calculator">
+                    <div class="calc-row">
+                        <div>
+                            <span style="font-weight:700; display:block; font-size:0.95rem;">Select Quantity</span>
+                            <span style="font-size:0.7rem; color:var(--text-muted);">Max: ${limit} bulks</span>
+                        </div>
+                        <div class="qty-controls">
+                            <button class="qty-btn" onclick="updateQty(-1)" id="minus-btn" ${isSoldOut ? 'disabled' : ''}>−</button>
+                            <span class="qty-val" id="qty-display">1</span>
+                            <button class="qty-btn" onclick="updateQty(1)" id="plus-btn" ${isSoldOut ? 'disabled' : ''}>+</button>
+                        </div>
+                    </div>
+
+                    <div class="total-box">
+                        <div class="total-row">
+                            <span class="total-label">Total Units</span>
+                            <span style="font-weight:800;" id="total-units">${product.units_per_bulk} Units</span>
+                        </div>
+                        <div class="total-row" style="margin-top:10px;">
+                            <span class="total-label">Total Amount</span>
+                            <span class="total-amount" id="total-price">${formatNaira(product.bulk_price)}</span>
+                        </div>
+                    </div>
+
+                    <button class="buy-btn" id="buy-btn" onclick="handleBuy()" ${isSoldOut ? 'disabled' : ''}>
+                        ${isSoldOut ? 'Sold Out' : 'Buy Bulk Now'}
+                    </button>
+                    <p class="limit-hint">Available Packages: ${product.available_inventory}</p>
+                </div>
+            `;
+        }
+
+        window.updateQty = (delta) => {
+            const limit = Math.min(product.purchase_limit || 999, product.available_inventory);
+            const newQty = quantity + delta;
+            
+            if (newQty >= 1 && newQty <= limit) {
+                quantity = newQty;
+                document.getElementById('qty-display').textContent = quantity;
+                document.getElementById('total-units').textContent = (quantity * product.units_per_bulk) + " Units";
+                document.getElementById('total-price').textContent = formatNaira(quantity * product.bulk_price);
+            }
+        };
+
+        window.handleBuy = () => {
+            if (!session) {
+                const currentUrl = encodeURIComponent(window.location.href + `&quantity=${quantity}`);
+                window.location.href = `login.html?redirect=${currentUrl}`;
+                return;
+            }
+            window.location.href = `buy-bulk.html?product=${product.id}&quantity=${quantity}`;
+        };
+
+        function formatNaira(amount) {
+            return '₦' + Number(amount).toLocaleString('en-NG', { minimumFractionDigits: 2 });
+        }
+
+        function renderError(msg) {
+            content.innerHTML = `
+                <div class="error-card">
+                    <span class="error-icon">🛒</span>
+                    <h2>Product Unavailable</h2>
+                    <p style="color:var(--text-muted); margin: 15px 0 30px;">${msg}</p>
+                    <a href="marketplace.html" class="buy-btn" style="text-decoration:none;">Back to Marketplace</a>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
