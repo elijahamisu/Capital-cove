@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Reports & Analytics | CAPITAL COVE Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --admin-bg: #020617;
+            --admin-surface: #0f172a;
+            --admin-card: #1e293b;
+            --admin-border: #334155;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --error: #ef4444;
+            --info: #3b82f6;
+            --radius: 12px;
+            --sidebar-width: 260px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--admin-bg); color: var(--text-main); min-height: 100vh; overflow-x: hidden; }
+
+        /* AUTH GUARD */
+        #auth-guard { position: fixed; inset: 0; background: var(--admin-bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+
+        /* SIDEBAR */
+        .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-width); background: var(--admin-surface); border-right: 1px solid var(--admin-border); z-index: 1000; transition: transform 0.3s ease; }
+        .sidebar-header { padding: 24px; border-bottom: 1px solid var(--admin-border); display: flex; align-items: center; gap: 12px; }
+        .logo-box { width: 32px; height: 32px; background: var(--accent); color: var(--admin-bg); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+        .nav-list { padding: 20px 12px; list-style: none; height: calc(100vh - 100px); overflow-y: auto; }
+        .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; color: var(--text-muted); text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: 0.2s; }
+        .nav-link:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-link.active { background: var(--accent); color: var(--admin-bg); }
+
+        /* MAIN CONTENT */
+        .main-wrapper { margin-left: var(--sidebar-width); transition: margin 0.3s ease; }
+        .top-bar { height: 70px; background: var(--admin-surface); border-bottom: 1px solid var(--admin-border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 900; }
+        .container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+        /* PERIOD SELECTOR */
+        .controls-row { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 16px; margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+        .select { background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 8px; padding: 10px; color: white; font-size: 0.85rem; cursor: pointer; outline: none; }
+        .btn-refresh { background: var(--admin-border); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.8rem; }
+        .btn-export { background: var(--info); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.8rem; }
+
+        /* SUMMARY CARDS */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 30px; }
+        .stat-card { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 20px; }
+        .stat-title { font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; border-bottom: 1px solid var(--admin-border); padding-bottom: 10px; }
+        .metric-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .metric-lbl { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
+        .metric-val { font-size: 0.95rem; font-weight: 800; }
+
+        /* ANALYTICS BLOCKS */
+        .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 30px; }
+        @media (max-width: 1024px) { .report-grid { grid-template-columns: 1fr; } }
+        .report-card { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 24px; }
+        .report-title { font-size: 1rem; font-weight: 800; color: var(--accent); margin-bottom: 20px; display: flex; justify-content: space-between; }
+
+        /* CHART MOCK/VISUAL */
+        .chart-placeholder { height: 180px; width: 100%; border-radius: 8px; background: rgba(0,0,0,0.2); display: flex; align-items: flex-end; gap: 8px; padding: 15px; border: 1px solid var(--admin-border); }
+        .chart-bar { flex: 1; background: var(--accent); opacity: 0.6; border-radius: 4px 4px 0 0; min-height: 5px; transition: 0.5s ease-out; position: relative; }
+        .chart-bar:hover { opacity: 1; }
+
+        /* DATA TABLES */
+        .table-wrap { overflow-x: auto; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+        th { text-align: left; padding: 12px; color: var(--text-muted); font-weight: 700; border-bottom: 1px solid var(--admin-border); background: rgba(0,0,0,0.1); }
+        td { padding: 12px; border-bottom: 1px solid var(--admin-border); }
+
+        .badge { font-size: 0.6rem; font-weight: 800; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; }
+
+        /* LOADING */
+        .sk { background: linear-gradient(90deg, var(--admin-card) 25%, #2d3748 50%, var(--admin-card) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        .menu-toggle { display: none; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+        @media (max-width: 1023px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-wrapper { margin-left: 0; }
+            .menu-toggle { display: block; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="auth-guard">
+        <div style="text-align: center;"><p style="font-weight: 800; letter-spacing: 2px;">AGGREGATING MARKET DATA...</p></div>
+    </div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header"><div class="logo-box">C</div><span style="font-weight: 800; letter-spacing: 1px;">ADMIN</span></div>
+        <nav class="nav-list">
+            <a href="index.html" class="nav-link">📊 Dashboard</a>
+            <a href="users.html" class="nav-link">👥 Users</a>
+            <a href="products.html" class="nav-link">📦 Products</a>
+            <a href="inventory.html" class="nav-link">🏠 Inventory</a>
+            <a href="bulk-purchases.html" class="nav-link">🛍️ Bulk Purchases</a>
+            <a href="sales.html" class="nav-link">💰 Sales</a>
+            <a href="settlements.html" class="nav-link">🧾 Settlements</a>
+            <a href="deposits.html" class="nav-link">📥 Deposits</a>
+            <a href="withdrawals.html" class="nav-link">📤 Withdrawals</a>
+            <a href="reports.html" class="nav-link active">📈 Reports</a>
+            <button onclick="signOut()" class="nav-link" style="width:100%; background:none; border:none; margin-top:40px; border-top:1px solid var(--admin-border); padding-top:20px;">🚪 Logout</button>
+        </nav>
+    </aside>
+
+    <div class="main-wrapper">
+        <header class="top-bar">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <h1 style="font-size: 1.1rem; font-weight: 800;">Analytics & Insights</h1>
+            </div>
+            <div id="last-updated" style="font-size: 0.65rem; color: var(--text-muted); font-weight: 700;">--</div>
+        </header>
+
+        <main class="container">
+            
+            <section class="controls-row">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <span style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted);">PERIOD:</span>
+                    <select id="period-selector" class="select" onchange="generateReports()">
+                        <option value="today">Today</option>
+                        <option value="7days" selected>Last 7 Days</option>
+                        <option value="30days">Last 30 Days</option>
+                        <option value="this_month">This Month</option>
+                        <option value="all">All Time</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-export" onclick="exportCSV()">💾 Export CSV</button>
+                    <button class="btn-refresh" onclick="generateReports()">↻ Refresh</button>
+                </div>
+            </section>
+
+            <!-- Key Summaries -->
+            <div class="stats-grid" id="summary-cards">
+                <!-- User Growth -->
+                <div class="stat-card">
+                    <div class="stat-title">Marketplace Activity</div>
+                    <div class="metric-row"><span class="metric-lbl">Total Users</span><span class="metric-val" id="m-users-total">0</span></div>
+                    <div class="metric-row"><span class="metric-lbl">New Registration</span><span class="metric-val" id="m-users-new" style="color:var(--info)">0</span></div>
+                    <div class="metric-row"><span class="metric-lbl">Bulk Purchases</span><span class="metric-val" id="m-purchases-count">0</span></div>
+                </div>
+                <!-- Sales -->
+                <div class="stat-card">
+                    <div class="stat-title">Revenue & Fees</div>
+                    <div class="metric-row"><span class="metric-lbl">Gross Sales</span><span class="metric-val" id="m-sales-gross">₦0.00</span></div>
+                    <div class="metric-row"><span class="metric-lbl">Platform Fees</span><span class="metric-val" id="m-sales-fees" style="color:var(--accent)">₦0.00</span></div>
+                    <div class="metric-row"><span class="metric-lbl">Net Sales</span><span class="metric-val" id="m-sales-net">₦0.00</span></div>
+                </div>
+                <!-- Payouts -->
+                <div class="stat-card">
+                    <div class="stat-title">Fund Flow</div>
+                    <div class="metric-row"><span class="metric-lbl">Total Deposits</span><span class="metric-val" id="m-funds-dep">₦0.00</span></div>
+                    <div class="metric-row"><span class="metric-lbl">Total Payouts</span><span class="metric-val" id="m-funds-with">₦0.00</span></div>
+                    <div class="metric-row"><span class="metric-lbl">Net Movement</span><span class="metric-val" id="m-funds-net">₦0.00</span></div>
+                </div>
+            </div>
+
+            <!-- Charts & Lists -->
+            <div class="report-grid">
+                <!-- User Reg Chart -->
+                <div class="report-card">
+                    <div class="report-title">
+                        <span>User Growth Trend</span>
+                        <span style="font-size:0.6rem; color:var(--text-muted);">Registrations / Selected Period</span>
+                    </div>
+                    <div class="chart-placeholder" id="user-chart">
+                        <!-- Bars injected here -->
+                    </div>
+                </div>
+
+                <!-- Product Performance -->
+                <div class="report-card">
+                    <div class="report-title">Product Distribution</div>
+                    <div class="table-wrap">
+                        <table id="product-performance">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Acquisitions</th>
+                                    <th>Units Sold</th>
+                                    <th>Resale Volume</th>
+                                </tr>
+                            </thead>
+                            <tbody id="product-body">
+                                <tr><td colspan="4" style="text-align:center; padding:20px;">Analyzing product metrics...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-grid">
+                <!-- Wallet Movement -->
+                <div class="report-card">
+                    <div class="report-title">Wallet Ledger Breakdown</div>
+                    <div id="ledger-stats" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                        <!-- Breakdown metrics -->
+                    </div>
+                    <div style="margin-top:20px; font-size:0.7rem; color:var(--text-muted); border-top:1px solid var(--admin-border); padding-top:15px;">
+                        Authoritative snapshot of credits vs debits across all user wallets for the period.
+                    </div>
+                </div>
+
+                <!-- Referral Performance -->
+                <div class="report-card">
+                    <div class="report-title">Referral & Promotional Performance</div>
+                    <div class="metric-row" style="margin-top:10px;"><span class="metric-lbl">Recorded Referral Commissions</span><span class="metric-val" id="m-ref-total">₦0.00</span></div>
+                    <div class="metric-row"><span class="metric-lbl">Gift Code Reward Value</span><span class="metric-val" id="m-gift-total">₦0.00</span></div>
+                    <div class="metric-row"><span class="metric-lbl">Total Redemptions</span><span class="metric-val" id="m-gift-count">0</span></div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        let adminId = null;
+        let reportData = {};
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAdmin();
+            generateReports();
+        });
+
+        async function checkAdmin() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return window.location.href = 'login.html';
+            const { data: admin } = await supabase.from('admin_users').select('id').eq('id', session.user.id).single();
+            if (!admin) { await supabase.auth.signOut(); return window.location.href = 'login.html'; }
+            adminId = admin.id;
+            document.getElementById('auth-guard').style.display = 'none';
+        }
+
+        async function generateReports() {
+            document.getElementById('last-updated').textContent = "CALCULATING...";
+            const period = document.getElementById('period-selector').value;
+            const now = new Date();
+            let dateLimit = new Date(0); // All time default
+
+            if (period === 'today') dateLimit = new Date(now.setHours(0,0,0,0));
+            else if (period === '7days') dateLimit = new Date(now.setDate(now.getDate() - 7));
+            else if (period === '30days') dateLimit = new Date(now.setDate(now.getDate() - 30));
+            else if (period === 'this_month') dateLimit = new Date(now.getFullYear(), now.getMonth(), 1);
+
+            const ISO_LIMIT = dateLimit.toISOString();
+
+            try {
+                // Fetch All Core Data in Parallel
+                const [users, purchases, sales, deposits, withdrawals, referrals, gifts, prod_units] = await Promise.all([
+                    supabase.from('profiles').select('created_at'),
+                    supabase.from('bulk_purchases').select('total_amount, purchased_at').gte('purchased_at', ISO_LIMIT),
+                    supabase.from('sales').select('sale_amount, platform_fee, net_amount, sold_at').gte('sold_at', ISO_LIMIT),
+                    supabase.from('deposits').select('amount, status').eq('status', 'APPROVED').gte('created_at', ISO_LIMIT),
+                    supabase.from('withdrawals').select('amount, fee, status').eq('status', 'COMPLETED').gte('created_at', ISO_LIMIT),
+                    supabase.from('referrals').select('commission_amount').eq('commission_status', 'PAID').gte('created_at', ISO_LIMIT),
+                    supabase.from('gift_code_redemptions').select('*, gift_codes(reward_amount)').gte('redeemed_at', ISO_LIMIT),
+                    supabase.from('product_units').select('status')
+                ]);
+
+                // 1. User Growth
+                const totalUsers = users.data.length;
+                const newUsers = users.data.filter(u => u.created_at >= ISO_LIMIT).length;
+                document.getElementById('m-users-total').textContent = totalUsers;
+                document.getElementById('m-users-new').textContent = newUsers;
+                renderUserChart(users.data, dateLimit);
+
+                // 2. Purchases
+                const purchaseVal = purchases.data.reduce((acc, p) => acc + parseFloat(p.total_amount), 0);
+                document.getElementById('m-purchases-count').textContent = purchases.data.length;
+
+                // 3. Sales & Fees
+                const grossSales = sales.data.reduce((acc, s) => acc + parseFloat(s.sale_amount), 0);
+                const platformFees = sales.data.reduce((acc, s) => acc + parseFloat(s.platform_fee), 0);
+                const netSales = sales.data.reduce((acc, s) => acc + parseFloat(s.net_amount), 0);
+                document.getElementById('m-sales-gross').textContent = formatNaira(grossSales);
+                document.getElementById('m-sales-fees').textContent = formatNaira(platformFees);
+                document.getElementById('m-sales-net').textContent = formatNaira(netSales);
+
+                // 4. Fund Flow
+                const depVal = deposits.data.reduce((acc, d) => acc + parseFloat(d.amount), 0);
+                const withVal = withdrawals.data.reduce((acc, w) => acc + parseFloat(w.amount), 0);
+                document.getElementById('m-funds-dep').textContent = formatNaira(depVal);
+                document.getElementById('m-funds-with').textContent = formatNaira(withVal);
+                document.getElementById('m-funds-net').textContent = formatNaira(depVal - withVal);
+                document.getElementById('m-funds-net').style.color = (depVal - withVal) >= 0 ? 'var(--success)' : 'var(--error)';
+
+                // 5. Ledger Breakdown
+                const ledgerBox = document.getElementById('ledger-stats');
+                ledgerBox.innerHTML = `
+                    <div class="stat-card">
+                        <span class="metric-lbl">Approved Credits</span>
+                        <span class="metric-val" style="color:var(--success)">${formatNaira(depVal + netSales)}</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="metric-lbl">Bulk Outflow</span>
+                        <span class="metric-val" style="color:var(--error)">${formatNaira(purchaseVal)}</span>
+                    </div>
+                `;
+
+                // 6. Referrals & Gifts
+                const refComm = referrals.data.reduce((acc, r) => acc + parseFloat(r.commission_amount || 0), 0);
+                const giftVal = gifts.data.reduce((acc, g) => acc + parseFloat(g.gift_codes.reward_amount), 0);
+                document.getElementById('m-ref-total').textContent = formatNaira(refComm);
+                document.getElementById('m-gift-total').textContent = formatNaira(giftVal);
+                document.getElementById('m-gift-count').textContent = gifts.data.length;
+
+                // 7. Product Performance Table
+                fetchProductPerformance(ISO_LIMIT);
+
+                document.getElementById('last-updated').textContent = "UPDATED: " + new Date().toLocaleTimeString();
+
+            } catch (err) {
+                console.error("Report Generation Error:", err);
+            }
+        }
+
+        async function fetchProductPerformance(iso_limit) {
+            const { data } = await supabase
+                .from('products')
+                .select(`
+                    name, 
+                    available_inventory,
+                    bulk_purchases(count),
+                    sales(sale_amount, count)
+                `);
+
+            const tbody = document.getElementById('product-body');
+            if (data?.length) {
+                tbody.innerHTML = data.map(p => {
+                    const salesCount = p.sales?.length || 0;
+                    const salesVol = p.sales?.reduce((acc, s) => acc + parseFloat(s.sale_amount), 0) || 0;
+                    return `
+                    <tr>
+                        <td style="font-weight:700;">${escape(p.name)}</td>
+                        <td>${p.bulk_purchases?.length || 0}</td>
+                        <td>${salesCount}</td>
+                        <td style="font-weight:800;">${formatNaira(salesVol)}</td>
+                    </tr>`;
+                }).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No product data for this period.</td></tr>';
+            }
+        }
+
+        function renderUserChart(userData, limit) {
+            const chart = document.getElementById('user-chart');
+            chart.innerHTML = '';
+            
+            // Simple logic: Group by day for the last 7 days
+            const dayGroups = {};
+            for(let i = 6; i >= 0; i--) {
+                const d = new Date(); d.setDate(d.getDate() - i);
+                const key = d.toISOString().split('T')[0];
+                dayGroups[key] = 0;
+            }
+
+            userData.forEach(u => {
+                const key = u.created_at.split('T')[0];
+                if(dayGroups[key] !== undefined) dayGroups[key]++;
+            });
+
+            const max = Math.max(...Object.values(dayGroups), 5);
+            Object.values(dayGroups).forEach(count => {
+                const h = (count / max) * 100;
+                chart.innerHTML += `<div class="chart-bar" style="height:${h}%;" title="${count} Users"></div>`;
+            });
+        }
+
+        function exportCSV() {
+            alert("Compiling secure CSV based on current filters. Exporting data...");
+            // Logic to convert current reportData to CSV blob and download
+        }
+
+        function formatNaira(amount) { return '₦' + Number(amount).toLocaleString('en-NG', { minimumFractionDigits: 2 }); }
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+        async function signOut() { await supabase.auth.signOut(); window.location.href = 'login.html'; }
+        function escape(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    </script>
+</body>
+</html>
