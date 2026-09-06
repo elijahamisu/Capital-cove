@@ -43,7 +43,7 @@ export default defineConfig({
         adminNotifications: resolve(__dirname, 'admin/notifications.html'),
         adminReports: resolve(__dirname, 'admin/reports.html'),
         adminSettings: resolve(__dirname, 'admin/settings.html'),
-       // adminLogs: resolve(__dirname, 'admin/admin-logs.html')
+        adminLogs: resolve(__dirname, 'admin/admin-logs.html')
       }
     }
   }
