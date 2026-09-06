@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Manage Gift Codes | CAPITAL COVE Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --admin-bg: #020617;
+            --admin-surface: #0f172a;
+            --admin-card: #1e293b;
+            --admin-border: #334155;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --error: #ef4444;
+            --radius: 12px;
+            --sidebar-width: 260px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--admin-bg); color: var(--text-main); min-height: 100vh; overflow-x: hidden; }
+
+        /* AUTH GUARD */
+        #auth-guard { position: fixed; inset: 0; background: var(--admin-bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+
+        /* SIDEBAR */
+        .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-width); background: var(--admin-surface); border-right: 1px solid var(--admin-border); z-index: 1000; transition: transform 0.3s ease; }
+        .sidebar-header { padding: 24px; border-bottom: 1px solid var(--admin-border); display: flex; align-items: center; gap: 12px; }
+        .logo-box { width: 32px; height: 32px; background: var(--accent); color: var(--admin-bg); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+        .nav-list { padding: 20px 12px; list-style: none; }
+        .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; color: var(--text-muted); text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: 0.2s; }
+        .nav-link:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-link.active { background: var(--accent); color: var(--admin-bg); }
+
+        /* MAIN CONTENT */
+        .main-wrapper { margin-left: var(--sidebar-width); transition: margin 0.3s ease; }
+        .top-bar { height: 70px; background: var(--admin-surface); border-bottom: 1px solid var(--admin-border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 900; }
+        .container { padding: 24px; max-width: 1200px; margin: 0 auto; }
+
+        /* STATS */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 20px; }
+        .stat-lbl { font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .stat-val { font-size: 1.4rem; font-weight: 800; margin-top: 8px; display: block; }
+
+        /* ACTION BAR */
+        .action-bar { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 16px; margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+        .search-box { flex: 1; min-width: 250px; }
+        .input { width: 100%; background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 8px; padding: 10px 14px; color: white; font-size: 0.85rem; outline: none; }
+        .btn-primary { background: var(--accent); color: var(--admin-bg); padding: 10px 20px; border-radius: 8px; font-weight: 800; font-size: 0.85rem; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+
+        /* TABLE */
+        .table-wrap { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); overflow: hidden; margin-bottom: 24px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        th { text-align: left; padding: 14px 16px; color: var(--text-muted); font-weight: 700; border-bottom: 1px solid var(--admin-border); background: rgba(0,0,0,0.1); }
+        td { padding: 14px 16px; border-bottom: 1px solid var(--admin-border); vertical-align: middle; }
+        
+        .code-text { font-family: monospace; font-weight: 800; color: var(--accent); font-size: 1rem; }
+        .badge { font-size: 0.6rem; font-weight: 800; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; }
+        .st-active { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .st-inactive { background: rgba(239, 68, 68, 0.1); color: var(--error); }
+
+        .btn-view { padding: 6px 12px; border-radius: 6px; background: var(--admin-border); color: white; border: none; font-size: 0.7rem; font-weight: 700; cursor: pointer; }
+
+        /* MODALS */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+        .modal-overlay.active { display: flex; }
+        .modal-card { background: var(--admin-surface); border: 1px solid var(--admin-border); width: 100%; max-width: 500px; padding: 32px; border-radius: var(--radius); position: relative; }
+        .modal-title { font-size: 1.2rem; font-weight: 800; margin-bottom: 24px; color: var(--accent); }
+        
+        .form-group { margin-bottom: 16px; }
+        .label { display: block; font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+
+        .redemption-list { max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px; margin-top: 15px; }
+        .redemption-item { padding: 10px; border-bottom: 1px solid var(--admin-border); display: flex; justify-content: space-between; font-size: 0.75rem; }
+
+        /* MOBILE VIEW */
+        .mobile-list { display: none; flex-direction: column; gap: 12px; }
+        .mobile-card { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 16px; }
+
+        @media (max-width: 1023px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-wrapper { margin-left: 0; }
+            .menu-toggle { display: block; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+            .table-wrap table { display: none; }
+            .mobile-list { display: flex; }
+            .action-bar { flex-direction: column; align-items: stretch; }
+        }
+        
+        .menu-toggle { display: none; }
+        .spinner { width: 18px; height: 18px; border: 3px solid rgba(0,0,0,0.1); border-radius: 50%; border-top-color: var(--admin-bg); animation: spin 0.8s linear infinite; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="auth-guard">
+        <div style="text-align: center;"><p style="font-weight: 800; letter-spacing: 2px;">AUTHORIZING ADMIN...</p></div>
+    </div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header"><div class="logo-box">C</div><span style="font-weight: 800; letter-spacing: 1px;">ADMIN</span></div>
+        <nav class="nav-list">
+            <a href="index.html" class="nav-link">📊 Dashboard</a>
+            <a href="users.html" class="nav-link">👥 Users</a>
+            <a href="products.html" class="nav-link">📦 Products</a>
+            <a href="inventory.html" class="nav-link">🏠 Inventory</a>
+            <a href="deposits.html" class="nav-link">📥 Deposits</a>
+            <a href="withdrawals.html" class="nav-link">📤 Withdrawals</a>
+            <a href="gift-codes.html" class="nav-link active">🎁 Gift Codes</a>
+            <button onclick="signOut()" class="nav-link" style="width:100%; background:none; border:none; margin-top:40px; border-top:1px solid var(--admin-border); padding-top:20px;">🚪 Logout</button>
+        </nav>
+    </aside>
+
+    <div class="main-wrapper">
+        <header class="top-bar">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <h1 style="font-size: 1.1rem; font-weight: 800;">Gift Code Management</h1>
+            </div>
+            <button class="btn-primary" onclick="openCreateModal()">+ Create Code</button>
+        </header>
+
+        <main class="container">
+            <!-- Stats -->
+            <section class="stats-grid">
+                <div class="stat-card"><span class="stat-lbl">Total Created</span><span class="stat-val" id="stat-total">0</span></div>
+                <div class="stat-card"><span class="stat-lbl">Active Codes</span><span class="stat-val" id="stat-active" style="color:var(--success)">0</span></div>
+                <div class="stat-card"><span class="stat-lbl">Total Redemptions</span><span class="stat-val" id="stat-redeemed">0</span></div>
+                <div class="stat-card"><span class="stat-lbl">Value Distributed</span><span class="stat-val" id="stat-value" style="color:var(--accent)">₦0.00</span></div>
+            </section>
+
+            <!-- Action Bar -->
+            <section class="action-bar">
+                <div class="search-box">
+                    <input type="text" id="search-input" class="input" placeholder="Search by Code string...">
+                </div>
+                <button class="btn-view" onclick="loadAll()">↻ Refresh</button>
+            </section>
+
+            <!-- Table -->
+            <div class="table-wrap">
+                <table id="code-table">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Reward</th>
+                            <th>Usage</th>
+                            <th>Remaining</th>
+                            <th>Expiry</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="code-tbody"></tbody>
+                </table>
+                <div class="mobile-list" id="mobile-list"></div>
+                <div id="empty-state" class="empty-state" style="display:none; padding:40px; text-align:center;">No gift codes found.</div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create Modal -->
+    <div class="modal-overlay" id="create-modal">
+        <div class="modal-card">
+            <h3 class="modal-title">Create Promotional Code</h3>
+            <form id="create-form">
+                <div class="form-group">
+                    <label class="label">Gift Code String</label>
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" id="c-code" class="input" required style="font-family:monospace; text-transform:uppercase;">
+                        <button type="button" class="btn-view" onclick="generateRandomCode()">Random</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="label">Reward Amount (₦)</label>
+                    <input type="number" id="c-reward" class="input" required step="0.01" placeholder="1000">
+                </div>
+                <div class="form-group">
+                    <label class="label">Usage Limit (Total Users)</label>
+                    <input type="number" id="c-limit" class="input" required placeholder="50">
+                </div>
+                <div class="form-group">
+                    <label class="label">Expiry Date (Optional)</label>
+                    <input type="datetime-local" id="c-expiry" class="input">
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px;">
+                    <button type="button" class="btn-view" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" id="save-btn">
+                        <span id="save-text">Generate Code</span>
+                        <div class="spinner" id="save-spinner"></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Details Modal -->
+    <div class="modal-overlay" id="detail-modal">
+        <div class="modal-card">
+            <h3 class="modal-title" id="d-code">CODE-HERE</h3>
+            <div id="d-summary" style="margin-bottom:20px;"></div>
+            
+            <div class="label">Redemption History</div>
+            <div class="redemption-list" id="d-redemptions">
+                <div style="padding:20px; text-align:center; color:var(--text-muted);">No history.</div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:10px; margin-top:30px;">
+                <button class="btn-primary" style="background:var(--error); color:white;" id="disable-btn">Disable Gift Code</button>
+                <button class="btn-view" style="padding:14px;" onclick="closeModal()">Close Panel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        let currentAdminId = null;
+        let allCodes = [];
+        let selectedCodeId = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAdmin();
+            loadAll();
+            initListeners();
+            initMobileMenu();
+        });
+
+        async function checkAdmin() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return window.location.href = 'login.html';
+            const { data: admin } = await supabase.from('admin_users').select('id').eq('id', session.user.id).single();
+            if (!admin) { await supabase.auth.signOut(); return window.location.href = 'login.html'; }
+            currentAdminId = admin.id;
+            document.getElementById('auth-guard').style.display = 'none';
+        }
+
+        async function loadAll() {
+            const [codes, redemptions] = await Promise.all([
+                supabase.from('gift_codes').select('*').order('created_at', { ascending: false }),
+                supabase.from('gift_code_redemptions').select('gift_codes(reward_amount)')
+            ]);
+
+            if (codes.data) {
+                allCodes = codes.data;
+                document.getElementById('stat-total').textContent = allCodes.length;
+                document.getElementById('stat-active').textContent = allCodes.filter(c => c.status === 'ACTIVE').length;
+                
+                const redeemedCount = redemptions.data?.length || 0;
+                const redeemedValue = redemptions.data?.reduce((acc, r) => acc + parseFloat(r.gift_codes.reward_amount), 0) || 0;
+                
+                document.getElementById('stat-redeemed').textContent = redeemedCount;
+                document.getElementById('stat-value').textContent = '₦' + redeemedValue.toLocaleString();
+                
+                applyFilters();
+            }
+        }
+
+        function renderList(data) {
+            const tbody = document.getElementById('code-tbody');
+            const mList = document.getElementById('mobile-list');
+            const empty = document.getElementById('empty-state');
+
+            if (!data.length) { tbody.innerHTML = ''; mList.innerHTML = ''; empty.style.display = 'block'; return; }
+            empty.style.display = 'none';
+
+            tbody.innerHTML = data.map(c => {
+                const remaining = Math.max(0, c.usage_limit - c.used_count);
+                return `
+                <tr>
+                    <td><span class="code-text">${c.code}</span></td>
+                    <td style="font-weight:700;">₦${parseFloat(c.reward_amount).toLocaleString()}</td>
+                    <td>${c.used_count} / ${c.usage_limit}</td>
+                    <td>${remaining} left</td>
+                    <td>${c.expires_at ? new Date(c.expires_at).toLocaleDateString() : 'Never'}</td>
+                    <td><span class="badge st-${c.status.toLowerCase()}">${c.status}</span></td>
+                    <td>${new Date(c.created_at).toLocaleDateString()}</td>
+                    <td><button class="btn-view" onclick="openDetail('${c.id}')">Audit</button></td>
+                </tr>`;
+            }).join('');
+
+            mList.innerHTML = data.map(c => `
+                <div class="mobile-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <span class="code-text">${c.code}</span>
+                        <span class="badge st-${c.status.toLowerCase()}">${c.status}</span>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.75rem; color:var(--text-muted); margin-bottom:15px;">
+                        <div>Reward: ₦${parseFloat(c.reward_amount).toLocaleString()}</div>
+                        <div>Used: ${c.used_count}/${c.usage_limit}</div>
+                        <div>Expiry: ${c.expires_at ? new Date(c.expires_at).toLocaleDateString() : 'N/A'}</div>
+                        <div>Created: ${new Date(c.created_at).toLocaleDateString()}</div>
+                    </div>
+                    <button class="btn-view" style="width:100%" onclick="openDetail('${c.id}')">View Redemptions</button>
+                </div>
+            `).join('');
+        }
+
+        async function openDetail(id) {
+            const c = allCodes.find(x => x.id === id);
+            if (!c) return;
+            selectedCodeId = c.id;
+
+            document.getElementById('d-code').textContent = c.code;
+            document.getElementById('d-summary').innerHTML = `
+                <div style="font-size:0.85rem; color:var(--text-muted);">
+                    ID: ${c.id}<br>
+                    Reward: <strong>₦${parseFloat(c.reward_amount).toLocaleString()}</strong><br>
+                    Limit: ${c.usage_limit} total uses
+                </div>
+            `;
+
+            const { data: history } = await supabase
+                .from('gift_code_redemptions')
+                .select('*, profiles(full_name, email)')
+                .eq('gift_code_id', id)
+                .order('redeemed_at', { ascending: false });
+
+            const histWrap = document.getElementById('d-redemptions');
+            if (history?.length) {
+                histWrap.innerHTML = history.map(h => `
+                    <div class="redemption-item">
+                        <div>
+                            <div style="font-weight:700;">${h.profiles.full_name}</div>
+                            <div style="font-size:0.6rem; opacity:0.6;">${h.profiles.email}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div>${new Date(h.redeemed_at).toLocaleDateString()}</div>
+                            <div style="font-size:0.6rem; color:var(--accent);">REF: ${h.id.substring(0,8)}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                histWrap.innerHTML = `<div style="padding:20px; text-align:center; color:var(--text-muted);">No redemptions yet.</div>`;
+            }
+
+            document.getElementById('disable-btn').style.display = c.status === 'ACTIVE' ? 'block' : 'none';
+            document.getElementById('detail-modal').classList.add('active');
+        }
+
+        async function handleCreate(e) {
+            e.preventDefault();
+            setLoading(true);
+            const data = {
+                code: document.getElementById('c-code').value.trim().toUpperCase(),
+                reward_amount: parseFloat(document.getElementById('c-reward').value),
+                usage_limit: parseInt(document.getElementById('c-limit').value),
+                expires_at: document.getElementById('c-expiry').value || null,
+                status: 'ACTIVE',
+                created_by: currentAdminId
+            };
+
+            const { error } = await supabase.from('gift_codes').insert(data);
+            if (error) {
+                alert("Creation failed: " + error.message);
+                setLoading(false);
+            } else {
+                await supabase.from('admin_logs').insert({ admin_id: currentAdminId, action: 'GIFT_CODE_CREATED', target_id: data.code });
+                closeModal();
+                loadAll();
+            }
+        }
+
+        async function handleDisable() {
+            if (!confirm("Are you sure you want to disable this gift code? Existing redemptions will remain, but no new users can use it.")) return;
+            const { error } = await supabase.from('gift_codes').update({ status: 'INACTIVE' }).eq('id', selectedCodeId);
+            if (!error) {
+                await supabase.from('admin_logs').insert({ admin_id: currentAdminId, action: 'GIFT_CODE_DISABLED', target_id: selectedCodeId });
+                closeModal();
+                loadAll();
+            }
+        }
+
+        function initListeners() {
+            document.getElementById('create-form').onsubmit = handleCreate;
+            document.getElementById('disable-btn').onclick = handleDisable;
+            document.getElementById('search-input').oninput = applyFilters;
+        }
+
+        function applyFilters() {
+            const q = document.getElementById('search-input').value.trim().toUpperCase();
+            const filtered = allCodes.filter(c => c.code.includes(q));
+            renderList(filtered);
+        }
+
+        window.generateRandomCode = () => {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let res = 'CC-';
+            for (let i = 0; i < 8; i++) res += chars.charAt(Math.floor(Char = Math.random() * chars.length));
+            document.getElementById('c-code').value = res;
+        };
+
+        window.openCreateModal = () => { document.getElementById('create-form').reset(); document.getElementById('create-modal').classList.add('active'); };
+        window.closeModal = () => { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active')); setLoading(false); };
+        window.toggleSidebar = () => document.getElementById('sidebar').classList.toggle('open');
+        function setLoading(isLoading) {
+            const btn = document.getElementById('save-btn');
+            btn.disabled = isLoading;
+            document.getElementById('save-text').style.display = isLoading ? 'none' : 'block';
+            document.getElementById('save-spinner').style.display = isLoading ? 'block' : 'none';
+        }
+        async function signOut() { await supabase.auth.signOut(); window.location.href = 'login.html'; }
+    </script>
+</body>
+</html>
