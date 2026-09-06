@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Manage Withdrawals | CAPITAL COVE Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --admin-bg: #020617;
+            --admin-surface: #0f172a;
+            --admin-card: #1e293b;
+            --admin-border: #334155;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --error: #ef4444;
+            --radius: 12px;
+            --sidebar-width: 260px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--admin-bg); color: var(--text-main); min-height: 100vh; overflow-x: hidden; }
+
+        /* AUTH GUARD */
+        #auth-guard { position: fixed; inset: 0; background: var(--admin-bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+
+        /* SIDEBAR */
+        .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-width); background: var(--admin-surface); border-right: 1px solid var(--admin-border); z-index: 1000; transition: transform 0.3s ease; }
+        .sidebar-header { padding: 24px; border-bottom: 1px solid var(--admin-border); display: flex; align-items: center; gap: 12px; }
+        .logo-box { width: 32px; height: 32px; background: var(--accent); color: var(--admin-bg); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+        .nav-list { padding: 20px 12px; list-style: none; }
+        .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; color: var(--text-muted); text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: 0.2s; }
+        .nav-link:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-link.active { background: var(--accent); color: var(--admin-bg); }
+
+        /* MAIN CONTENT */
+        .main-wrapper { margin-left: var(--sidebar-width); transition: margin 0.3s ease; }
+        .top-bar { height: 70px; background: var(--admin-surface); border-bottom: 1px solid var(--admin-border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 900; }
+        .container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+        /* STATS */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 20px; }
+        .stat-lbl { font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .stat-val { font-size: 1.3rem; font-weight: 800; margin-top: 8px; display: block; }
+
+        /* ACTION BAR */
+        .action-bar { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 16px; margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+        .search-box { flex: 1; min-width: 250px; }
+        .input { width: 100%; background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 8px; padding: 10px 14px; color: white; font-size: 0.85rem; outline: none; }
+        .select { background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 8px; padding: 10px; color: white; font-size: 0.85rem; cursor: pointer; outline: none; }
+
+        /* TABLE */
+        .table-wrap { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); overflow: hidden; margin-bottom: 24px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        th { text-align: left; padding: 14px 16px; color: var(--text-muted); font-weight: 700; border-bottom: 1px solid var(--admin-border); background: rgba(0,0,0,0.1); }
+        td { padding: 14px 16px; border-bottom: 1px solid var(--admin-border); vertical-align: middle; }
+        
+        .badge { font-size: 0.6rem; font-weight: 800; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; }
+        .st-completed { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .st-pending { background: rgba(245, 158, 11, 0.1); color: var(--accent); }
+        .st-rejected { background: rgba(239, 68, 68, 0.1); color: var(--error); }
+
+        .btn-view { padding: 6px 12px; border-radius: 6px; background: var(--admin-border); color: white; border: none; font-size: 0.7rem; font-weight: 700; cursor: pointer; }
+        .btn-view:hover { background: var(--accent); color: var(--admin-bg); }
+
+        /* MODAL */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+        .modal-overlay.active { display: flex; }
+        .modal-card { background: var(--admin-surface); border: 1px solid var(--admin-border); width: 100%; max-width: 500px; padding: 32px; border-radius: var(--radius); }
+        .modal-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 20px; color: var(--accent); border-bottom: 1px solid var(--admin-border); padding-bottom: 10px; }
+        
+        .detail-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.85rem; }
+        .detail-lbl { color: var(--text-muted); font-weight: 600; }
+        .detail-val { font-weight: 700; text-align: right; }
+
+        .bank-info-box { background: rgba(255,255,255,0.05); padding: 16px; border-radius: 10px; border: 1px dashed var(--admin-border); margin: 20px 0; }
+
+        .action-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
+        .btn-modal { padding: 14px; border-radius: 10px; border: none; font-weight: 800; cursor: pointer; font-size: 0.85rem; }
+        .btn-complete { background: var(--success); color: white; }
+        .btn-reject { background: var(--error); color: white; }
+
+        /* MOBILE VIEW */
+        .mobile-list { display: none; flex-direction: column; gap: 12px; }
+        .mobile-card { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 16px; }
+
+        @media (max-width: 1023px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-wrapper { margin-left: 0; }
+            .menu-toggle { display: block; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+            .table-wrap table { display: none; }
+            .mobile-list { display: flex; }
+            .action-bar { flex-direction: column; align-items: stretch; }
+        }
+
+        .menu-toggle { display: none; }
+        .pagination { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: rgba(0,0,0,0.1); }
+        .page-btn { padding: 8px 16px; border-radius: 6px; background: var(--admin-surface); border: 1px solid var(--admin-border); color: white; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+        .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .spinner { width: 18px; height: 18px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 0.8s linear infinite; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="auth-guard">
+        <div style="text-align: center;"><p style="font-weight: 800; letter-spacing: 2px;">AUTHORIZING ACCESS...</p></div>
+    </div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header"><div class="logo-box">C</div><span style="font-weight: 800; letter-spacing: 1px;">ADMIN</span></div>
+        <nav class="nav-list">
+            <a href="index.html" class="nav-link">📊 Dashboard</a>
+            <a href="users.html" class="nav-link">👥 Users</a>
+            <a href="products.html" class="nav-link">📦 Products</a>
+            <a href="inventory.html" class="nav-link">🏠 Inventory</a>
+            <a href="bulk-purchases.html" class="nav-link">🛍️ Bulk Purchases</a>
+            <a href="sales.html" class="nav-link">💰 Sales</a>
+            <a href="settlements.html" class="nav-link">🧾 Settlements</a>
+            <a href="deposits.html" class="nav-link">📥 Deposits</a>
+            <a href="withdrawals.html" class="nav-link active">📤 Withdrawals</a>
+            <button onclick="signOut()" class="nav-link" style="width:100%; background:none; border:none; margin-top:40px; border-top:1px solid var(--admin-border); padding-top:20px;">🚪 Logout</button>
+        </nav>
+    </aside>
+
+    <div class="main-wrapper">
+        <header class="top-bar">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <h1 style="font-size: 1.1rem; font-weight: 800;">Withdrawal Payouts</h1>
+            </div>
+            <button class="page-btn" onclick="loadAll()">↻ Refresh</button>
+        </header>
+
+        <main class="container">
+            <!-- Stats -->
+            <section class="stats-grid">
+                <div class="stat-card"><span class="stat-lbl">Pending Requests</span><span class="stat-val" id="stat-pending" style="color:var(--accent)">0</span></div>
+                <div class="stat-card"><span class="stat-lbl">Total Net Payout</span><span class="stat-val" id="stat-net-total">₦0.00</span></div>
+                <div class="stat-card"><span class="stat-lbl">Service Fees Earned</span><span class="stat-val" id="stat-fees" style="color:var(--success)">₦0.00</span></div>
+            </section>
+
+            <!-- Filters -->
+            <section class="action-bar">
+                <div class="search-box">
+                    <input type="text" id="search-input" class="input" placeholder="Search ID, Bank, Name, or Email...">
+                </div>
+                <select id="status-filter" class="select">
+                    <option value="all">All Statuses</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="REJECTED">Rejected</option>
+                </select>
+                <select id="date-range" class="select">
+                    <option value="all">All Time</option>
+                    <option value="today">Today</option>
+                    <option value="7days">7 Days</option>
+                </select>
+            </section>
+
+            <!-- Table -->
+            <div class="table-wrap">
+                <table id="withdraw-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>User</th>
+                            <th>Amount</th>
+                            <th>Fee</th>
+                            <th>Net Payout</th>
+                            <th>Bank Info</th>
+                            <th>Status</th>
+                            <th>Requested</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="withdraw-tbody"></tbody>
+                </table>
+
+                <div class="mobile-list" id="mobile-list"></div>
+                <div id="empty-state" class="empty-state" style="display:none; padding:40px; text-align:center;">No withdrawal records found.</div>
+
+                <div class="pagination">
+                    <button class="page-btn" id="prev-btn" disabled>Previous</button>
+                    <span id="page-info" style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted);">Page 1</span>
+                    <button class="page-btn" id="next-btn">Next</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Review Modal -->
+    <div class="modal-overlay" id="review-modal">
+        <div class="modal-card">
+            <h3 class="modal-title">Payout Review</h3>
+            <div id="modal-details"></div>
+            
+            <div class="bank-info-box">
+                <div style="font-size: 0.65rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase; margin-bottom: 10px;">Bank Account Details</div>
+                <div class="detail-row"><span class="detail-lbl">Bank Name</span><span class="detail-val" id="m-bank">--</span></div>
+                <div class="detail-row"><span class="detail-lbl">Account Name</span><span class="detail-val" id="m-acc-name">--</span></div>
+                <div class="detail-row"><span class="detail-lbl">Account Number</span><span class="detail-val" style="font-size: 1.2rem; color: white;" id="m-acc-num">--</span></div>
+            </div>
+
+            <div id="admin-actions-area">
+                <div class="form-group" style="margin-top: 15px;">
+                    <label style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Admin Note (Internal/Reject Reason)</label>
+                    <textarea id="admin-note" class="input" style="height: 60px; resize: none; margin-top: 5px;" placeholder="Reason for rejection or internal comment..."></textarea>
+                </div>
+                <div class="action-btns">
+                    <button class="btn-modal btn-reject" id="reject-btn">
+                        <span id="reject-text">Reject Payout</span>
+                        <div class="spinner" id="reject-spinner"></div>
+                    </button>
+                    <button class="btn-modal btn-complete" id="complete-btn">
+                        <span id="complete-text">Mark as Paid</span>
+                        <div class="spinner" id="complete-spinner"></div>
+                    </button>
+                </div>
+            </div>
+            <button class="btn-modal" style="width:100%; margin-top: 12px; background:var(--admin-border); color:white;" onclick="closeModal()">Close Review</button>
+        </div>
+    </div>
+
+    <script>
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        let page = 0;
+        const limit = 15;
+        let withdrawals = [];
+        let currentAdminId = null;
+        let selectedId = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAdmin();
+            loadAll();
+            initListeners();
+            initMobileMenu();
+        });
+
+        async function checkAdmin() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return window.location.href = 'login.html';
+            const { data: admin } = await supabase.from('admin_users').select('id').eq('id', session.user.id).single();
+            if (!admin) { await supabase.auth.signOut(); return window.location.href = 'login.html'; }
+            currentAdminId = admin.id;
+            document.getElementById('auth-guard').style.display = 'none';
+        }
+
+        async function loadAll() {
+            loadStats();
+            fetchWithdrawals();
+        }
+
+        async function loadStats() {
+            let query = supabase.from('withdrawals').select('amount, fee, net_amount, status');
+            const { data } = await query;
+            if (data) {
+                const pending = data.filter(w => w.status === 'PENDING').length;
+                const netTotal = data.filter(w => w.status === 'COMPLETED').reduce((acc, w) => acc + parseFloat(w.net_amount), 0);
+                const fees = data.filter(w => w.status === 'COMPLETED').reduce((acc, w) => acc + parseFloat(w.fee), 0);
+                
+                document.getElementById('stat-pending').textContent = pending;
+                document.getElementById('stat-net-total').textContent = formatNaira(netTotal);
+                document.getElementById('stat-fees').textContent = formatNaira(fees);
+            }
+        }
+
+        async function fetchWithdrawals() {
+            const tbody = document.getElementById('withdraw-tbody');
+            tbody.innerHTML = `<tr><td colspan="9" style="padding:40px; text-align:center;">Analyzing payout logs...</td></tr>`;
+
+            const start = page * limit;
+            const end = start + limit - 1;
+
+            let query = supabase
+                .from('withdrawals')
+                .select('*, profiles(full_name, email)', { count: 'exact' });
+
+            const status = document.getElementById('status-filter').value;
+            const search = document.getElementById('search-input').value.trim();
+
+            if (status !== 'all') query = query.eq('status', status);
+            if (search) query = query.or(`bank_name.ilike.%${search}%, account_name.ilike.%${search}%, profiles.full_name.ilike.%${search}%`);
+
+            const { data, count, error } = await query.order('created_at', { ascending: false }).range(start, end);
+
+            if (error || !data) {
+                tbody.innerHTML = '';
+                document.getElementById('empty-state').style.display = 'block';
+                return;
+            }
+
+            withdrawals = data;
+            renderTable(data, count);
+        }
+
+        function renderTable(data, count) {
+            const tbody = document.getElementById('withdraw-tbody');
+            const mList = document.getElementById('mobile-list');
+            const empty = document.getElementById('empty-state');
+
+            if (!data.length) { tbody.innerHTML = ''; mList.innerHTML = ''; empty.style.display = 'block'; return; }
+            empty.style.display = 'none';
+
+            tbody.innerHTML = data.map(w => `
+                <tr>
+                    <td style="font-family:monospace; font-size:0.7rem;">${w.id.substring(0,8)}</td>
+                    <td><div style="font-weight:700;">${escape(w.profiles?.full_name)}</div><div style="font-size:0.65rem; color:var(--text-muted);">${w.profiles?.email}</div></td>
+                    <td style="font-weight:700;">₦${parseFloat(w.amount).toLocaleString()}</td>
+                    <td style="color:var(--accent);">₦${parseFloat(w.fee).toLocaleString()}</td>
+                    <td style="font-weight:800; color:var(--success);">₦${parseFloat(w.net_amount).toLocaleString()}</td>
+                    <td style="font-size:0.75rem;">${w.bank_name}<br><span style="color:var(--text-muted);">****${w.account_number.slice(-4)}</span></td>
+                    <td><span class="badge st-${w.status.toLowerCase()}">${w.status}</span></td>
+                    <td>${new Date(w.created_at).toLocaleDateString()}</td>
+                    <td><button class="btn-view" onclick="openReview('${w.id}')">Review</button></td>
+                </tr>
+            `).join('');
+
+            mList.innerHTML = data.map(w => `
+                <div class="mobile-card">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                        <span style="font-weight:800; font-family:monospace; color:var(--accent);">#${w.id.substring(0,8)}</span>
+                        <span class="badge st-${w.status.toLowerCase()}">${w.status}</span>
+                    </div>
+                    <div style="font-weight:800; margin-bottom:4px;">${escape(w.profiles?.full_name)}</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:800; color:white;">₦${parseFloat(w.net_amount).toLocaleString()} Net</span>
+                        <button class="btn-view" onclick="openReview('${w.id}')">Review</button>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('page-info').textContent = `Page ${page + 1} of ${Math.ceil(count / limit) || 1}`;
+            document.getElementById('prev-btn').disabled = (page === 0);
+            document.getElementById('next-btn').disabled = (start + limit >= count);
+        }
+
+        window.openReview = async (id) => {
+            const w = withdrawals.find(x => x.id === id);
+            if (!w) return;
+            selectedId = w.id;
+
+            document.getElementById('modal-details').innerHTML = `
+                <div class="detail-row"><span class="detail-lbl">User</span><span class="detail-val">${escape(w.profiles.full_name)}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Gross Amount</span><span class="detail-val">₦${parseFloat(w.amount).toLocaleString()}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Processing Fee</span><span class="detail-val" style="color:var(--error);">-₦${parseFloat(w.fee).toLocaleString()}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Net Payout</span><span class="detail-val" style="color:var(--success); font-size:1.1rem;">₦${parseFloat(w.net_amount).toLocaleString()}</span></div>
+            `;
+
+            document.getElementById('m-bank').textContent = w.bank_name;
+            document.getElementById('m-acc-name').textContent = w.account_name;
+            document.getElementById('m-acc-num').textContent = w.account_number;
+
+            document.getElementById('admin-actions-area').style.display = w.status === 'PENDING' ? 'block' : 'none';
+            document.getElementById('review-modal').classList.add('active');
+        };
+
+        async function handleReview(action) {
+            const note = document.getElementById('admin-note').value.trim();
+            if (action === 'complete') {
+                if (!confirm("Confirm you have paid the net amount to the user's bank account.")) return;
+                setBtnLoading('complete', true);
+                const { error } = await supabase.rpc('admin_complete_withdrawal', { p_withdrawal_id: selectedId, p_admin_id: currentAdminId });
+                if (error) alert(error.message); else closeModal();
+            } else {
+                if (!note) return alert("Please provide a reason for rejection.");
+                setBtnLoading('reject', true);
+                const { error } = await supabase.rpc('admin_reject_withdrawal', { p_withdrawal_id: selectedId, p_admin_id: currentAdminId, p_reason: note });
+                if (error) alert(error.message); else closeModal();
+            }
+            loadAll();
+            setBtnLoading('complete', false); setBtnLoading('reject', false);
+        }
+
+        function initListeners() {
+            let timer;
+            document.getElementById('search-input').oninput = () => {
+                clearTimeout(timer);
+                timer = setTimeout(() => { page = 0; fetchWithdrawals(); }, 500);
+            };
+            document.getElementById('status-filter').onchange = () => { page = 0; fetchWithdrawals(); };
+            document.getElementById('prev-btn').onclick = () => { if(page > 0) { page--; fetchWithdrawals(); } };
+            document.getElementById('next-btn').onclick = () => { page++; fetchWithdrawals(); };
+            document.getElementById('complete-btn').onclick = () => handleReview('complete');
+            document.getElementById('reject-btn').onclick = () => handleReview('reject');
+        }
+
+        window.closeModal = () => document.getElementById('review-modal').classList.remove('active');
+        window.toggleSidebar = () => document.getElementById('sidebar').classList.toggle('open');
+        function formatNaira(amount) { return '₦' + Number(amount).toLocaleString('en-NG', { minimumFractionDigits: 2 }); }
+        function setBtnLoading(type, isLoading) {
+            const btn = document.getElementById(`${type}-btn`); const text = document.getElementById(`${type}-text`); const spinner = document.getElementById(`${type}-spinner`);
+            btn.disabled = isLoading; text.style.display = isLoading ? 'none' : 'block'; spinner.style.display = isLoading ? 'block' : 'none';
+        }
+        async function signOut() { await supabase.auth.signOut(); window.location.href = 'login.html'; }
+        function escape(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+        function initMobileMenu() { document.getElementById('sidebar').onclick = (e) => { if(e.target.id === 'sidebar') toggleSidebar(); } }
+    </script>
+</body>
+</html>
