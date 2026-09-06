@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>System Settings | CAPITAL COVE Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --admin-bg: #020617;
+            --admin-surface: #0f172a;
+            --admin-card: #1e293b;
+            --admin-border: #334155;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --error: #ef4444;
+            --radius: 12px;
+            --sidebar-width: 260px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--admin-bg); color: var(--text-main); min-height: 100vh; overflow-x: hidden; }
+
+        /* AUTH GUARD */
+        #auth-guard { position: fixed; inset: 0; background: var(--admin-bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+
+        /* SIDEBAR */
+        .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-width); background: var(--admin-surface); border-right: 1px solid var(--admin-border); z-index: 1000; transition: transform 0.3s ease; }
+        .sidebar-header { padding: 24px; border-bottom: 1px solid var(--admin-border); display: flex; align-items: center; gap: 12px; }
+        .logo-box { width: 32px; height: 32px; background: var(--accent); color: var(--admin-bg); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+        .nav-list { padding: 20px 12px; list-style: none; height: calc(100vh - 100px); overflow-y: auto; }
+        .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; color: var(--text-muted); text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: 0.2s; }
+        .nav-link:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-link.active { background: var(--accent); color: var(--admin-bg); }
+
+        /* MAIN CONTENT */
+        .main-wrapper { margin-left: var(--sidebar-width); transition: margin 0.3s ease; }
+        .top-bar { height: 70px; background: var(--admin-surface); border-bottom: 1px solid var(--admin-border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 900; }
+        .container { padding: 24px; max-width: 1000px; margin: 0 auto; }
+
+        /* SETTINGS GRID */
+        .settings-grid { display: grid; grid-template-columns: 1fr; gap: 24px; margin-bottom: 40px; }
+        @media (min-width: 768px) { .settings-grid { grid-template-columns: 1fr 1fr; } }
+        
+        .card { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 24px; }
+        .card-title { font-size: 0.9rem; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        
+        .form-group { margin-bottom: 18px; }
+        .label-wrap { display: flex; justify-content: space-between; margin-bottom: 6px; }
+        .label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+        .hint { font-size: 0.65rem; color: #64748b; font-weight: 500; }
+
+        .input { width: 100%; background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 8px; padding: 12px 14px; color: white; font-size: 0.9rem; outline: none; transition: 0.2s; }
+        .input:focus { border-color: var(--accent); }
+        .input:read-only { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-save { background: var(--accent); color: var(--admin-bg); padding: 12px 24px; border-radius: 8px; font-weight: 800; font-size: 0.9rem; border: none; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 10px; }
+        .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* UNSAVED INDICATOR */
+        .dirty-banner { position: sticky; bottom: 20px; left: 0; right: 0; background: var(--accent); color: var(--admin-bg); padding: 16px 24px; border-radius: 12px; display: none; align-items: center; justify-content: space-between; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.4); z-index: 1000; animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { transform: translateY(100px); } to { transform: translateY(0); } }
+
+        /* MODAL */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+        .modal-overlay.active { display: flex; }
+        .modal-card { background: var(--admin-surface); border: 1px solid var(--admin-border); width: 100%; max-width: 400px; padding: 32px; border-radius: var(--radius); text-align: center; }
+
+        /* LOGS */
+        .log-list { margin-top: 30px; }
+        .log-item { display: flex; justify-content: space-between; font-size: 0.75rem; padding: 10px 0; border-bottom: 1px solid var(--admin-border); }
+
+        .menu-toggle { display: none; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+        @media (max-width: 1023px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-wrapper { margin-left: 0; }
+            .menu-toggle { display: block; }
+        }
+
+        .spinner { width: 18px; height: 18px; border: 3px solid rgba(0,0,0,0.1); border-radius: 50%; border-top-color: var(--admin-bg); animation: spin 0.8s linear infinite; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="auth-guard">
+        <div style="text-align: center;"><p style="font-weight: 800; letter-spacing: 2px;">SECURE SETTINGS ACCESS...</p></div>
+    </div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header"><div class="logo-box">C</div><span style="font-weight: 800; letter-spacing: 1px;">ADMIN</span></div>
+        <nav class="nav-list">
+            <a href="index.html" class="nav-link">📊 Dashboard</a>
+            <a href="users.html" class="nav-link">👥 Users</a>
+            <a href="products.html" class="nav-link">📦 Products</a>
+            <a href="inventory.html" class="nav-link">🏠 Inventory</a>
+            <a href="bulk-purchases.html" class="nav-link">🛍️ Bulk Purchases</a>
+            <a href="sales.html" class="nav-link">💰 Sales</a>
+            <a href="settlements.html" class="nav-link">🧾 Settlements</a>
+            <a href="deposits.html" class="nav-link">📥 Deposits</a>
+            <a href="withdrawals.html" class="nav-link">📤 Withdrawals</a>
+            <a href="settings.html" class="nav-link active">⚙️ Settings</a>
+            <button onclick="signOut()" class="nav-link" style="width:100%; background:none; border:none; margin-top:40px; border-top:1px solid var(--admin-border); padding-top:20px;">🚪 Logout</button>
+        </nav>
+    </aside>
+
+    <div class="main-wrapper">
+        <header class="top-bar">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <h1 style="font-size: 1.1rem; font-weight: 800;">System Configuration</h1>
+            </div>
+            <button class="btn-refresh" onclick="loadAll()" style="background:none; border:none; color:var(--text-muted); font-size:0.75rem; font-weight:700; cursor:pointer;">↻ Refresh Settings</button>
+        </header>
+
+        <main class="container">
+            
+            <form id="settings-form">
+                <div class="settings-grid">
+                    
+                    <!-- General -->
+                    <div class="card">
+                        <div class="card-title">🌐 General</div>
+                        <div class="form-group">
+                            <div class="label-wrap"><label class="label">Platform Name</label></div>
+                            <input type="text" id="s-platform_name" class="input" required>
+                        </div>
+                        <div class="form-group">
+                            <div class="label-wrap"><label class="label">Currency Code</label></div>
+                            <input type="text" id="s-currency" class="input" readonly>
+                        </div>
+                        <div class="form-group">
+                            <div class="label-wrap"><label class="label">Currency Symbol</label></div>
+                            <input type="text" id="s-currency_symbol" class="input" readonly>
+                        </div>
+                    </div>
+
+                    <!-- Withdrawal -->
+                    <div class="card">
+                        <div class="card-title">📤 Withdrawals</div>
+                        <div class="form-group">
+                            <div class="label-wrap"><label class="label">Min. Withdrawal (₦)</label><span class="hint">Integer only</span></div>
+                            <input type="number" id="s-minimum_withdrawal" class="input" required min="100">
+                        </div>
+                        <div class="form-group">
+                            <div class="label-wrap"><label class="label">Processing Fee (%)</label><span class="hint">0 to 100</span></div>
+                            <input type="number" id="s-withdrawal_charge_percent" class="input" required min="0" max="100">
+                        </div>
+                    </div>
+
+                    <!-- Deposits -->
+                    <div class="card">
+                        <div class="card-title">📥 Deposits</div>
+                        <div class="form-group">
+                            <div class="label-wrap"><label class="label">Min. Deposit (₦)</label></div>
+                            <input type="number" id="s-minimum_deposit" class="input" required min="100">
+                        </div>
+                        <div class="form-group">
+                            <div class="label-wrap"><label class="label">ZAP Bank Name</label></div>
+                            <input type="text" id="s-zap_bank" class="input" placeholder="Fidelity Bank">
+                        </div>
+                        <div class="form-group">
+                            <div class="label-wrap"><label class="label">ZAP Account No.</label></div>
+                            <input type="text" id="s-zap_number" class="input" placeholder="4580003805">
+                        </div>
+                    </div>
+
+                    <!-- Referrals -->
+                    <div class="card">
+                        <div class="card-title">👥 Referrals</div>
+                        <div class="form-group">
+                            <div class="label-wrap"><label class="label">Referral Bonus (%)</label></div>
+                            <input type="number" id="s-referral_bonus_percent" class="input" required min="0" max="100">
+                        </div>
+                    </div>
+
+                </div>
+            </form>
+
+            <div class="log-list">
+                <div class="card-title" style="color:var(--text-muted); font-size:0.75rem;">Recent Configuration Changes</div>
+                <div id="audit-logs"></div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Dirty Save Banner -->
+    <div class="dirty-banner" id="dirty-banner">
+        <span style="font-weight: 800;">You have unsaved changes!</span>
+        <button class="btn-save" id="save-btn" onclick="openConfirmModal()">
+            <span id="save-text">Apply New Config</span>
+            <div class="spinner" id="save-spinner"></div>
+        </button>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal-overlay" id="confirm-modal">
+        <div class="modal-card">
+            <h3 class="modal-title">Confirm Update</h3>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:24px;">Changing financial limits or percentages will affect all future transactions immediately. This action will be audited.</p>
+            <div style="display:flex; gap:12px;">
+                <button class="input" style="flex:1; cursor:pointer;" onclick="closeModal()">Cancel</button>
+                <button class="btn-save" style="flex:1" onclick="handleSave()">Confirm Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        let adminId = null;
+        let originalSettings = {};
+        let isDirty = false;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAdmin();
+            loadAll();
+            initListeners();
+        });
+
+        async function checkAdmin() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return window.location.href = 'login.html';
+            const { data: admin } = await supabase.from('admin_users').select('id').eq('id', session.user.id).single();
+            if (!admin) { await supabase.auth.signOut(); return window.location.href = 'login.html'; }
+            adminId = admin.id;
+            document.getElementById('auth-guard').style.display = 'none';
+        }
+
+        async function loadAll() {
+            const { data, error } = await supabase.from('settings').select('*');
+            if (data) {
+                originalSettings = {};
+                data.forEach(s => {
+                    const el = document.getElementById(`s-${s.key}`);
+                    if (el) {
+                        el.value = s.value;
+                        originalSettings[s.key] = s.value;
+                    }
+                });
+                fetchLogs();
+                checkDirty();
+            }
+        }
+
+        async function fetchLogs() {
+            const { data } = await supabase.from('admin_logs')
+                .select('*')
+                .eq('action', 'SETTINGS_UPDATED')
+                .order('created_at', { ascending: false })
+                .limit(5);
+            
+            const container = document.getElementById('audit-logs');
+            if (data?.length) {
+                container.innerHTML = data.map(l => `
+                    <div class="log-item">
+                        <span>Updated Config</span>
+                        <span style="color:var(--text-muted);">${new Date(l.created_at).toLocaleString()}</span>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<p style="font-size:0.7rem; color:#64748b; padding:10px 0;">No recent changes.</p>';
+            }
+        }
+
+        function initListeners() {
+            document.getElementById('settings-form').addEventListener('input', checkDirty);
+            window.addEventListener('beforeunload', (e) => {
+                if (isDirty) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+            });
+        }
+
+        function checkDirty() {
+            isDirty = false;
+            Object.keys(originalSettings).forEach(key => {
+                const el = document.getElementById(`s-${key}`);
+                if (el && el.value !== originalSettings[key]) isDirty = true;
+            });
+            document.getElementById('dirty-banner').style.display = isDirty ? 'flex' : 'none';
+        }
+
+        async function handleSave() {
+            setLoading(true);
+            const updates = [];
+            const changes = {};
+
+            Object.keys(originalSettings).forEach(key => {
+                const el = document.getElementById(`s-${key}`);
+                if (el && el.value !== originalSettings[key]) {
+                    updates.push({ key, value: el.value.trim() });
+                    changes[key] = { from: originalSettings[key], to: el.value.trim() };
+                }
+            });
+
+            if (updates.length === 0) return closeModal();
+
+            try {
+                // Upsert settings
+                const { error } = await supabase.from('settings').upsert(updates);
+                if (error) throw error;
+
+                // Log Audit
+                await supabase.from('admin_logs').insert({
+                    admin_id: adminId,
+                    action: 'SETTINGS_UPDATED',
+                    details: changes
+                });
+
+                closeModal();
+                loadAll();
+                alert("Settings updated successfully!");
+            } catch (err) {
+                alert("Error saving settings: " + err.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        window.openConfirmModal = () => document.getElementById('confirm-modal').classList.add('active');
+        window.closeModal = () => document.getElementById('confirm-modal').classList.remove('active');
+        window.toggleSidebar = () => document.getElementById('sidebar').classList.toggle('open');
+        function setLoading(isLoading) {
+            const btn = document.getElementById('save-btn');
+            btn.disabled = isLoading;
+            document.getElementById('save-text').style.display = isLoading ? 'none' : 'block';
+            document.getElementById('save-spinner').style.display = isLoading ? 'block' : 'none';
+        }
+        async function signOut() { await supabase.auth.signOut(); window.location.href = 'login.html'; }
+    </script>
+</body>
+</html>
