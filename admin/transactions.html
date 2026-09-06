@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Transaction Ledger | CAPITAL COVE Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --admin-bg: #020617;
+            --admin-surface: #0f172a;
+            --admin-card: #1e293b;
+            --admin-border: #334155;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --error: #ef4444;
+            --radius: 12px;
+            --sidebar-width: 260px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--admin-bg); color: var(--text-main); min-height: 100vh; overflow-x: hidden; }
+
+        /* AUTH GUARD */
+        #auth-guard { position: fixed; inset: 0; background: var(--admin-bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+
+        /* SIDEBAR */
+        .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-width); background: var(--admin-surface); border-right: 1px solid var(--admin-border); z-index: 1000; transition: transform 0.3s ease; }
+        .sidebar-header { padding: 24px; border-bottom: 1px solid var(--admin-border); display: flex; align-items: center; gap: 12px; }
+        .logo-box { width: 32px; height: 32px; background: var(--accent); color: var(--admin-bg); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+        .nav-list { padding: 20px 12px; list-style: none; }
+        .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; color: var(--text-muted); text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: 0.2s; }
+        .nav-link:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-link.active { background: var(--accent); color: var(--admin-bg); }
+
+        /* MAIN CONTENT */
+        .main-wrapper { margin-left: var(--sidebar-width); transition: margin 0.3s ease; }
+        .top-bar { height: 70px; background: var(--admin-surface); border-bottom: 1px solid var(--admin-border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 900; }
+        .container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+        /* STATS */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 20px; }
+        .stat-lbl { font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .stat-val { font-size: 1.3rem; font-weight: 800; margin-top: 8px; display: block; }
+
+        /* ACTION BAR */
+        .action-bar { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 16px; margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+        .search-box { flex: 1; min-width: 250px; }
+        .input { width: 100%; background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 8px; padding: 10px 14px; color: white; font-size: 0.85rem; outline: none; }
+        .select { background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 8px; padding: 10px; color: white; font-size: 0.85rem; cursor: pointer; outline: none; }
+
+        /* LEDGER TABLE */
+        .table-wrap { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); overflow: hidden; margin-bottom: 24px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        th { text-align: left; padding: 14px 16px; color: var(--text-muted); font-weight: 700; border-bottom: 1px solid var(--admin-border); background: rgba(0,0,0,0.1); }
+        td { padding: 14px 16px; border-bottom: 1px solid var(--admin-border); vertical-align: middle; }
+        
+        .tx-type { font-weight: 800; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .amt-credit { color: var(--success); font-weight: 800; }
+        .amt-debit { color: var(--error); font-weight: 800; }
+        .balance-text { font-family: monospace; font-size: 0.75rem; color: var(--text-muted); }
+
+        .btn-inspect { padding: 6px 12px; border-radius: 6px; background: var(--admin-border); color: white; border: none; font-size: 0.7rem; font-weight: 700; cursor: pointer; }
+
+        /* MODAL */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+        .modal-overlay.active { display: flex; }
+        .modal-card { background: var(--admin-surface); border: 1px solid var(--admin-border); width: 100%; max-width: 500px; padding: 32px; border-radius: var(--radius); }
+        .modal-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 20px; color: var(--accent); border-bottom: 1px solid var(--admin-border); padding-bottom: 10px; }
+        .detail-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; }
+        .detail-lbl { color: var(--text-muted); font-weight: 600; }
+        .detail-val { font-weight: 700; text-align: right; }
+
+        /* MOBILE CARDS */
+        .mobile-list { display: none; flex-direction: column; gap: 12px; }
+        .mobile-card { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 16px; }
+
+        @media (max-width: 1023px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-wrapper { margin-left: 0; }
+            .menu-toggle { display: block; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+            .table-wrap table { display: none; }
+            .mobile-list { display: flex; }
+            .action-bar { flex-direction: column; align-items: stretch; }
+        }
+
+        .menu-toggle { display: none; }
+        .pagination { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: rgba(0,0,0,0.1); }
+        .page-btn { padding: 8px 16px; border-radius: 6px; background: var(--admin-surface); border: 1px solid var(--admin-border); color: white; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+        .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .sk { background: linear-gradient(90deg, var(--admin-card) 25%, #2d3748 50%, var(--admin-card) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    </style>
+</head>
+<body>
+
+    <div id="auth-guard">
+        <div style="text-align: center;"><p style="font-weight: 800; letter-spacing: 2px;">SECURE LEDGER ACCESS...</p></div>
+    </div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header"><div class="logo-box">C</div><span style="font-weight: 800; letter-spacing: 1px;">ADMIN</span></div>
+        <nav class="nav-list">
+            <a href="index.html" class="nav-link">📊 Dashboard</a>
+            <a href="users.html" class="nav-link">👥 Users</a>
+            <a href="products.html" class="nav-link">📦 Products</a>
+            <a href="inventory.html" class="nav-link">🏠 Inventory</a>
+            <a href="bulk-purchases.html" class="nav-link">🛍️ Bulk Purchases</a>
+            <a href="sales.html" class="nav-link">💰 Sales</a>
+            <a href="settlements.html" class="nav-link">🧾 Settlements</a>
+            <a href="deposits.html" class="nav-link">📥 Deposits</a>
+            <a href="withdrawals.html" class="nav-link">📤 Withdrawals</a>
+            <a href="transactions.html" class="nav-link active">🧾 Transactions</a>
+            <button onclick="signOut()" class="nav-link" style="width:100%; background:none; border:none; margin-top:40px; border-top:1px solid var(--admin-border); padding-top:20px;">🚪 Logout</button>
+        </nav>
+    </aside>
+
+    <div class="main-wrapper">
+        <header class="top-bar">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <h1 style="font-size: 1.1rem; font-weight: 800;">Financial Ledger</h1>
+            </div>
+            <button class="page-btn" onclick="loadAll()">↻ Refresh</button>
+        </header>
+
+        <main class="container">
+            
+            <!-- Summary Stats -->
+            <section class="stats-grid">
+                <div class="stat-card"><span class="stat-lbl">Total Entries</span><span class="stat-val" id="stat-count">0</span></div>
+                <div class="stat-card"><span class="stat-lbl">Total Credits</span><span class="stat-val" id="stat-credits" style="color:var(--success)">₦0.00</span></div>
+                <div class="stat-card"><span class="stat-lbl">Total Debits</span><span class="stat-val" id="stat-debits" style="color:var(--error)">₦0.00</span></div>
+                <div class="stat-card"><span class="stat-lbl">Net Movement</span><span class="stat-val" id="stat-net">₦0.00</span></div>
+            </section>
+
+            <!-- Action Bar -->
+            <section class="action-bar">
+                <div class="search-box">
+                    <input type="text" id="search-input" class="input" placeholder="Search Transaction ID, Ref, or User...">
+                </div>
+                <select id="type-filter" class="select">
+                    <option value="all">All Types</option>
+                    <option value="DEPOSIT">Deposit</option>
+                    <option value="BULK_PURCHASE">Bulk Purchase</option>
+                    <option value="SALE_PROCEEDS">Sale Proceeds</option>
+                    <option value="WITHDRAWAL">Withdrawal</option>
+                    <option value="REFERRAL_BONUS">Referral Bonus</option>
+                    <option value="GIFT_CODE">Gift Code</option>
+                    <option value="REFUND">Refund</option>
+                    <option value="ADMIN_ADJUSTMENT">Adjustment</option>
+                </select>
+                <select id="date-range" class="select">
+                    <option value="all">All Time</option>
+                    <option value="today">Today</option>
+                    <option value="7days">Last 7 Days</option>
+                    <option value="30days">Last 30 Days</option>
+                </select>
+            </section>
+
+            <!-- Table -->
+            <div class="table-wrap">
+                <table id="tx-table">
+                    <thead>
+                        <tr>
+                            <th>TX ID</th>
+                            <th>User</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Before</th>
+                            <th>After</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tx-tbody"></tbody>
+                </table>
+
+                <div class="mobile-list" id="mobile-list"></div>
+                <div id="empty-state" class="empty-state" style="display:none; padding:40px; text-align:center;">No transaction records found.</div>
+
+                <div class="pagination">
+                    <button class="page-btn" id="prev-btn" disabled>Previous</button>
+                    <span id="page-info" style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted);">Page 1</span>
+                    <button class="page-btn" id="next-btn">Next</button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal-overlay" id="detail-modal">
+        <div class="modal-card">
+            <h3 class="modal-title">Transaction Investigation</h3>
+            <div id="modal-content"></div>
+            <button class="btn-inspect" style="width:100%; margin-top:20px; padding:14px;" onclick="closeModal()">Close Panel</button>
+        </div>
+    </div>
+
+    <script>
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        let page = 0;
+        const limit = 20;
+        let ledgerData = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAdmin();
+            loadAll();
+            initListeners();
+            initMobileMenu();
+        });
+
+        async function checkAdmin() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return window.location.href = 'login.html';
+            const { data: admin } = await supabase.from('admin_users').select('id').eq('id', session.user.id).single();
+            if (!admin) { await supabase.auth.signOut(); return window.location.href = 'login.html'; }
+            document.getElementById('auth-guard').style.display = 'none';
+        }
+
+        async function loadAll() {
+            loadStats();
+            fetchLedger();
+        }
+
+        async function loadStats() {
+            let query = supabase.from('wallet_transactions').select('amount, type, created_at');
+            const range = document.getElementById('date-range').value;
+            
+            if (range !== 'all') {
+                const now = new Date();
+                let dateLimit = new Date();
+                if (range === 'today') dateLimit.setHours(0,0,0,0);
+                if (range === '7days') dateLimit.setDate(now.getDate() - 7);
+                if (range === '30days') dateLimit.setDate(now.getDate() - 30);
+                query = query.gte('created_at', dateLimit.toISOString());
+            }
+
+            const { data } = await query;
+            if (data) {
+                const total = data.length;
+                const credits = data.filter(t => parseFloat(t.amount) > 0).reduce((acc, t) => acc + parseFloat(t.amount), 0);
+                const debits = data.filter(t => parseFloat(t.amount) < 0).reduce((acc, t) => acc + Math.abs(parseFloat(t.amount)), 0);
+                
+                document.getElementById('stat-count').textContent = total;
+                document.getElementById('stat-credits').textContent = formatNaira(credits);
+                document.getElementById('stat-debits').textContent = formatNaira(debits);
+                document.getElementById('stat-net').textContent = formatNaira(credits - debits);
+                document.getElementById('stat-net').style.color = (credits - debits) >= 0 ? 'var(--success)' : 'var(--error)';
+            }
+        }
+
+        async function fetchLedger() {
+            const tbody = document.getElementById('tx-tbody');
+            tbody.innerHTML = `<tr><td colspan="9" style="padding:40px; text-align:center;">Fetching immutable logs...</td></tr>`;
+            
+            const start = page * limit;
+            const end = start + limit - 1;
+
+            let query = supabase
+                .from('wallet_transactions')
+                .select('*, profiles(full_name, email)', { count: 'exact' });
+
+            const type = document.getElementById('type-filter').value;
+            const search = document.getElementById('search-input').value.trim();
+            const range = document.getElementById('date-range').value;
+
+            if (type !== 'all') query = query.eq('type', type);
+            if (search) query = query.or(`id.ilike.%${search}%, reference.ilike.%${search}%, profiles.full_name.ilike.%${search}%, profiles.email.ilike.%${search}%`);
+            
+            if (range !== 'all') {
+                const now = new Date();
+                let dateLimit = new Date();
+                if (range === 'today') dateLimit.setHours(0,0,0,0);
+                if (range === '7days') dateLimit.setDate(now.getDate() - 7);
+                if (range === '30days') dateLimit.setDate(now.getDate() - 30);
+                query = query.gte('created_at', dateLimit.toISOString());
+            }
+
+            const { data, count, error } = await query.order('created_at', { ascending: false }).range(start, end);
+
+            if (error || !data) {
+                tbody.innerHTML = '';
+                document.getElementById('empty-state').style.display = 'block';
+                return;
+            }
+
+            ledgerData = data;
+            renderLedger(data, count);
+        }
+
+        function renderLedger(data, count) {
+            const tbody = document.getElementById('tx-tbody');
+            const mList = document.getElementById('mobile-list');
+            const empty = document.getElementById('empty-state');
+
+            if (!data.length) { tbody.innerHTML = ''; mList.innerHTML = ''; empty.style.display = 'block'; return; }
+            empty.style.display = 'none';
+
+            tbody.innerHTML = data.map(t => `
+                <tr>
+                    <td style="font-family:monospace; font-size:0.75rem;">${t.id.substring(0,8)}</td>
+                    <td><div style="font-weight:700;">${escape(t.profiles?.full_name || 'System')}</div><div style="font-size:0.65rem; color:var(--text-muted);">${t.profiles?.email || ''}</div></td>
+                    <td><span class="tx-type">${t.type.replace('_', ' ')}</span></td>
+                    <td class="${t.amount >= 0 ? 'amt-credit' : 'amt-debit'}">${t.amount >= 0 ? '+' : '−'} ${formatNaira(Math.abs(t.amount), false)}</td>
+                    <td class="balance-text">${formatNaira(t.balance_before, false)}</td>
+                    <td class="balance-text" style="color:white; font-weight:800;">${formatNaira(t.balance_after, false)}</td>
+                    <td><span class="badge" style="background:rgba(255,255,255,0.05); color:#94a3b8;">${t.status || 'DONE'}</span></td>
+                    <td>${new Date(t.created_at).toLocaleDateString()}</td>
+                    <td><button class="btn-inspect" onclick="openDetails('${t.id}')">Details</button></td>
+                </tr>
+            `).join('');
+
+            mList.innerHTML = data.map(t => `
+                <div class="mobile-card">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span class="tx-type" style="color:var(--accent);">${t.type.replace('_', ' ')}</span>
+                        <span class="balance-text" style="font-size:0.65rem;">${new Date(t.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <div style="font-weight:800; font-size:1.1rem; margin-bottom:8px;" class="${t.amount >= 0 ? 'amt-credit' : 'amt-debit'}">
+                        ${t.amount >= 0 ? '+' : '−'} ${formatNaira(Math.abs(t.amount))}
+                    </div>
+                    <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:12px;">User: ${escape(t.profiles?.full_name || 'System')}</div>
+                    <button class="btn-inspect" style="width:100%" onclick="openDetails('${t.id}')">Inspect Entry</button>
+                </div>
+            `).join('');
+
+            document.getElementById('page-info').textContent = `Page ${page + 1} of ${Math.ceil(count / limit) || 1}`;
+            document.getElementById('prev-btn').disabled = (page === 0);
+            document.getElementById('next-btn').disabled = (start + limit >= count);
+        }
+
+        window.openDetails = (id) => {
+            const t = ledgerData.find(x => x.id === id);
+            if (!t) return;
+            const content = document.getElementById('modal-content');
+            content.innerHTML = `
+                <div class="detail-row"><span class="detail-lbl">Ledger ID</span><span class="detail-val" style="font-size:0.7rem;">${t.id}</span></div>
+                <div class="detail-row"><span class="detail-lbl">User Name</span><span class="detail-val">${escape(t.profiles?.full_name || 'N/A')}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Transaction Type</span><span class="detail-val" style="color:var(--accent);">${t.type}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Amount</span><span class="detail-val ${t.amount >= 0 ? 'amt-credit' : 'amt-debit'}">${t.amount >= 0 ? '+' : '−'}${formatNaira(Math.abs(t.amount))}</span></div>
+                <div class="detail-row" style="margin-top:15px;"><span class="detail-lbl">Balance Before</span><span class="detail-val">${formatNaira(t.balance_before)}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Balance After</span><span class="detail-val" style="color:white; font-size:1rem;">${formatNaira(t.balance_after)}</span></div>
+                <div class="detail-row" style="margin-top:15px;"><span class="detail-lbl">Reference ID</span><span class="detail-val" style="font-family:monospace; font-size:0.7rem;">${t.reference || 'SYSTEM_AUTO'}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Description</span><span class="detail-val">${escape(t.description || 'No description')}</span></div>
+                <div class="detail-row" style="border:none;"><span class="detail-lbl">Recorded At</span><span class="detail-val">${new Date(t.created_at).toLocaleString()}</span></div>
+            `;
+            document.getElementById('detail-modal').classList.add('active');
+        };
+
+        function initListeners() {
+            let timer;
+            document.getElementById('search-input').oninput = () => {
+                clearTimeout(timer);
+                timer = setTimeout(() => { page = 0; fetchLedger(); }, 500);
+            };
+            document.getElementById('type-filter').onchange = () => { page = 0; fetchLedger(); };
+            document.getElementById('date-range').onchange = () => { page = 0; loadAll(); };
+            document.getElementById('prev-btn').onclick = () => { if(page > 0) { page--; fetchLedger(); } };
+            document.getElementById('next-btn').onclick = () => { page++; fetchLedger(); };
+        }
+
+        window.closeModal = () => document.getElementById('detail-modal').classList.remove('active');
+        window.toggleSidebar = () => document.getElementById('sidebar').classList.toggle('open');
+        function formatNaira(amount, includeSymbol = true) { return (includeSymbol ? '₦' : '') + Number(amount).toLocaleString('en-NG', { minimumFractionDigits: 2 }); }
+        async function signOut() { await supabase.auth.signOut(); window.location.href = 'login.html'; }
+        function escape(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+        function initMobileMenu() { document.getElementById('sidebar').onclick = (e) => { if(e.target.id === 'sidebar') toggleSidebar(); } }
+    </script>
+</body>
+</html>
