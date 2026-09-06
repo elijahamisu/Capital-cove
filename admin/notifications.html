@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Notification Management | CAPITAL COVE Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --admin-bg: #020617;
+            --admin-surface: #0f172a;
+            --admin-card: #1e293b;
+            --admin-border: #334155;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --error: #ef4444;
+            --radius: 12px;
+            --sidebar-width: 260px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--admin-bg); color: var(--text-main); min-height: 100vh; overflow-x: hidden; }
+
+        /* AUTH GUARD */
+        #auth-guard { position: fixed; inset: 0; background: var(--admin-bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+
+        /* SIDEBAR */
+        .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-width); background: var(--admin-surface); border-right: 1px solid var(--admin-border); z-index: 1000; transition: transform 0.3s ease; }
+        .sidebar-header { padding: 24px; border-bottom: 1px solid var(--admin-border); display: flex; align-items: center; gap: 12px; }
+        .logo-box { width: 32px; height: 32px; background: var(--accent); color: var(--admin-bg); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+        .nav-list { padding: 20px 12px; list-style: none; height: calc(100vh - 100px); overflow-y: auto; }
+        .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; color: var(--text-muted); text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: 0.2s; }
+        .nav-link:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-link.active { background: var(--accent); color: var(--admin-bg); }
+
+        /* MAIN CONTENT */
+        .main-wrapper { margin-left: var(--sidebar-width); transition: margin 0.3s ease; }
+        .top-bar { height: 70px; background: var(--admin-surface); border-bottom: 1px solid var(--admin-border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 900; }
+        .container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+        /* STATS */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 20px; }
+        .stat-lbl { font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .stat-val { font-size: 1.4rem; font-weight: 800; margin-top: 8px; display: block; }
+
+        /* ACTION BAR */
+        .action-bar { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 16px; margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+        .search-box { flex: 1; min-width: 250px; }
+        .input { width: 100%; background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 8px; padding: 10px 14px; color: white; font-size: 0.85rem; outline: none; }
+        .select { background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 8px; padding: 10px; color: white; font-size: 0.85rem; cursor: pointer; outline: none; }
+
+        /* TABLE */
+        .table-wrap { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); overflow: hidden; margin-bottom: 24px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        th { text-align: left; padding: 14px 16px; color: var(--text-muted); font-weight: 700; border-bottom: 1px solid var(--admin-border); background: rgba(0,0,0,0.1); }
+        td { padding: 14px 16px; border-bottom: 1px solid var(--admin-border); vertical-align: middle; }
+        
+        .notif-title { font-weight: 700; color: white; display: block; }
+        .notif-msg-prev { font-size: 0.7rem; color: var(--text-muted); display: block; max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .badge { font-size: 0.6rem; font-weight: 800; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; }
+        .st-read { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .st-unread { background: rgba(245, 158, 11, 0.1); color: var(--accent); }
+
+        .btn-view { padding: 6px 12px; border-radius: 6px; background: var(--admin-border); color: white; border: none; font-size: 0.7rem; font-weight: 700; cursor: pointer; }
+
+        /* MODAL */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+        .modal-overlay.active { display: flex; }
+        .modal-card { background: var(--admin-surface); border: 1px solid var(--admin-border); width: 100%; max-width: 500px; padding: 32px; border-radius: var(--radius); position: relative; }
+        .modal-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 20px; color: var(--accent); border-bottom: 1px solid var(--admin-border); padding-bottom: 10px; }
+        
+        /* FORM */
+        .form-group { margin-bottom: 16px; }
+        .label { display: block; font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        .textarea { height: 100px; resize: none; }
+
+        /* USER SELECTOR */
+        .user-search-res { position: absolute; left: 0; right: 0; top: 100%; background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: 8px; z-index: 10; max-height: 200px; overflow-y: auto; display: none; }
+        .user-search-item { padding: 10px; border-bottom: 1px solid var(--admin-border); cursor: pointer; font-size: 0.8rem; }
+        .user-search-item:hover { background: rgba(255,255,255,0.05); }
+
+        /* MOBILE VIEW */
+        .mobile-list { display: none; flex-direction: column; gap: 12px; }
+        .mobile-card { background: var(--admin-card); border: 1px solid var(--admin-border); border-radius: var(--radius); padding: 16px; }
+
+        @media (max-width: 1023px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-wrapper { margin-left: 0; }
+            .menu-toggle { display: block; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+            .table-wrap table { display: none; }
+            .mobile-list { display: flex; }
+            .action-bar { flex-direction: column; align-items: stretch; }
+        }
+
+        .menu-toggle { display: none; }
+        .pagination { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: rgba(0,0,0,0.1); }
+        .page-btn { padding: 8px 16px; border-radius: 6px; background: var(--admin-surface); border: 1px solid var(--admin-border); color: white; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+        .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .spinner { width: 18px; height: 18px; border: 3px solid rgba(0,0,0,0.1); border-radius: 50%; border-top-color: var(--admin-bg); animation: spin 0.8s linear infinite; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="auth-guard">
+        <div style="text-align: center;"><p style="font-weight: 800; letter-spacing: 2px;">AUTHORIZING ADMIN...</p></div>
+    </div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header"><div class="logo-box">C</div><span style="font-weight: 800; letter-spacing: 1px;">ADMIN</span></div>
+        <nav class="nav-list">
+            <a href="index.html" class="nav-link">📊 Dashboard</a>
+            <a href="users.html" class="nav-link">👥 Users</a>
+            <a href="products.html" class="nav-link">📦 Products</a>
+            <a href="inventory.html" class="nav-link">🏠 Inventory</a>
+            <a href="bulk-purchases.html" class="nav-link">🛍️ Bulk Purchases</a>
+            <a href="sales.html" class="nav-link">💰 Sales</a>
+            <a href="settlements.html" class="nav-link">🧾 Settlements</a>
+            <a href="deposits.html" class="nav-link">📥 Deposits</a>
+            <a href="withdrawals.html" class="nav-link">📤 Withdrawals</a>
+            <a href="notifications.html" class="nav-link active">🔔 Notifications</a>
+            <button onclick="signOut()" class="nav-link" style="width:100%; background:none; border:none; margin-top:40px; border-top:1px solid var(--admin-border); padding-top:20px;">🚪 Logout</button>
+        </nav>
+    </aside>
+
+    <div class="main-wrapper">
+        <header class="top-bar">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <h1 style="font-size: 1.1rem; font-weight: 800;">Notification Logs</h1>
+            </div>
+            <button class="btn-primary" onclick="openCreateModal()">+ Create New</button>
+        </header>
+
+        <main class="container">
+            <!-- Stats -->
+            <section class="stats-grid">
+                <div class="stat-card"><span class="stat-lbl">Total Sent</span><span class="stat-val" id="stat-total">0</span></div>
+                <div class="stat-card"><span class="stat-lbl">Unread by Users</span><span class="stat-val" id="stat-unread" style="color:var(--accent)">0</span></div>
+                <div class="stat-card"><span class="stat-lbl">Read Rate</span><span class="stat-val" id="stat-rate">0%</span></div>
+            </section>
+
+            <!-- Action Bar -->
+            <section class="action-bar">
+                <div class="search-box">
+                    <input type="text" id="search-input" class="input" placeholder="Search Title, Message, or User ID...">
+                </div>
+                <select id="type-filter" class="select">
+                    <option value="all">All Types</option>
+                    <option value="SYSTEM">System</option>
+                    <option value="ACCOUNT">Account</option>
+                    <option value="DEPOSIT">Deposit</option>
+                    <option value="WITHDRAWAL">Withdrawal</option>
+                </select>
+                <button class="page-btn" onclick="loadAll()">↻ Refresh</button>
+            </section>
+
+            <!-- Table -->
+            <div class="table-wrap">
+                <table id="notif-table">
+                    <thead>
+                        <tr>
+                            <th>Recipient</th>
+                            <th>Notification Content</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="notif-tbody"></tbody>
+                </table>
+                <div class="mobile-list" id="mobile-list"></div>
+                <div id="empty-state" class="empty-state" style="display:none; padding:40px; text-align:center;">No notifications found.</div>
+
+                <div class="pagination">
+                    <button class="page-btn" id="prev-btn" disabled>Previous</button>
+                    <span id="page-info" style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted);">Page 1</span>
+                    <button class="page-btn" id="next-btn">Next</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create Modal -->
+    <div class="modal-overlay" id="create-modal">
+        <div class="modal-card">
+            <h3 class="modal-title">Send Notification</h3>
+            <form id="create-form">
+                <div class="form-group" style="position:relative">
+                    <label class="label">Recipient (Search Name or Email)</label>
+                    <input type="text" id="user-search" class="input" placeholder="Start typing..." autocomplete="off">
+                    <input type="hidden" id="selected-user-id">
+                    <div id="user-results" class="user-search-res"></div>
+                    <p id="user-display" style="font-size: 0.75rem; color: var(--success); margin-top: 5px; font-weight: 700;"></p>
+                </div>
+                <div class="form-group">
+                    <label class="label">Notification Title</label>
+                    <input type="text" id="n-title" class="input" required placeholder="e.g. Action Required: Account Update">
+                </div>
+                <div class="form-group">
+                    <label class="label">Message Body</label>
+                    <textarea id="n-msg" class="input textarea" required placeholder="Enter the full message content..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="label">Type</label>
+                    <select id="n-type" class="select" style="width:100%">
+                        <option value="SYSTEM">SYSTEM Announcement</option>
+                        <option value="ACCOUNT">ACCOUNT Alert</option>
+                        <option value="SUPPORT">SUPPORT Update</option>
+                    </select>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px;">
+                    <button type="button" class="page-btn" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" id="send-btn">
+                        <span id="send-text">Send Now</span>
+                        <div class="spinner" id="send-spinner"></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal-overlay" id="detail-modal">
+        <div class="modal-card">
+            <h3 class="modal-title" id="d-title">Notification Details</h3>
+            <div id="modal-content"></div>
+            <button class="page-btn" style="width:100%; margin-top:20px; padding:14px;" onclick="closeModal()">Close Details</button>
+        </div>
+    </div>
+
+    <script>
+        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+
+        let page = 0;
+        const limit = 15;
+        let notifData = [];
+        let currentAdminId = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAdmin();
+            loadAll();
+            initListeners();
+            initMobileMenu();
+        });
+
+        async function checkAdmin() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return window.location.href = 'login.html';
+            const { data: admin } = await supabase.from('admin_users').select('id').eq('id', session.user.id).single();
+            if (!admin) { await supabase.auth.signOut(); return window.location.href = 'login.html'; }
+            currentAdminId = admin.id;
+            document.getElementById('auth-guard').style.display = 'none';
+        }
+
+        async function loadAll() {
+            loadStats();
+            fetchNotifications();
+        }
+
+        async function loadStats() {
+            const { data } = await supabase.from('notifications').select('is_read');
+            if (data) {
+                const total = data.length;
+                const unread = data.filter(n => !n.is_read).length;
+                const rate = total > 0 ? Math.round(((total - unread) / total) * 100) : 0;
+                document.getElementById('stat-total').textContent = total;
+                document.getElementById('stat-unread').textContent = unread;
+                document.getElementById('stat-rate').textContent = rate + '%';
+            }
+        }
+
+        async function fetchNotifications() {
+            const tbody = document.getElementById('notif-tbody');
+            tbody.innerHTML = `<tr><td colspan="6" style="padding:40px; text-align:center;">Scanning communication logs...</td></tr>`;
+
+            const start = page * limit;
+            const end = start + limit - 1;
+
+            let query = supabase
+                .from('notifications')
+                .select('*, profiles(full_name, email)', { count: 'exact' });
+
+            const type = document.getElementById('type-filter').value;
+            const search = document.getElementById('search-input').value.trim();
+
+            if (type !== 'all') query = query.eq('type', type);
+            if (search) query = query.or(`title.ilike.%${search}%, message.ilike.%${search}%, user_id.eq.${search}`);
+
+            const { data, count, error } = await query.order('created_at', { ascending: false }).range(start, end);
+
+            if (error || !data) {
+                tbody.innerHTML = '';
+                document.getElementById('empty-state').style.display = 'block';
+                return;
+            }
+
+            notifData = data;
+            renderList(data, count);
+        }
+
+        function renderList(data, count) {
+            const tbody = document.getElementById('notif-tbody');
+            const mList = document.getElementById('mobile-list');
+            const empty = document.getElementById('empty-state');
+
+            if (!data.length) { tbody.innerHTML = ''; mList.innerHTML = ''; empty.style.display = 'block'; return; }
+            empty.style.display = 'none';
+
+            tbody.innerHTML = data.map(n => `
+                <tr>
+                    <td><div style="font-weight:700;">${escape(n.profiles?.full_name || 'System')}</div><div style="font-size:0.65rem; color:var(--text-muted);">${n.profiles?.email || 'Global Broadcast'}</div></td>
+                    <td><span class="notif-title">${escape(n.title)}</span><span class="notif-msg-prev">${escape(n.message)}</span></td>
+                    <td><span style="font-weight:800; font-size:0.65rem; opacity:0.8;">${n.type}</span></td>
+                    <td><span class="badge ${n.is_read ? 'st-read' : 'st-unread'}">${n.is_read ? 'Read' : 'Unread'}</span></td>
+                    <td>${new Date(n.created_at).toLocaleDateString()}</td>
+                    <td><button class="btn-view" onclick="openDetails('${n.id}')">View</button></td>
+                </tr>
+            `).join('');
+
+            mList.innerHTML = data.map(n => `
+                <div class="mobile-card">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span style="font-size:0.75rem; font-weight:800; color:var(--accent);">${n.type}</span>
+                        <span class="badge ${n.is_read ? 'st-read' : 'st-unread'}">${n.is_read ? 'Read' : 'Unread'}</span>
+                    </div>
+                    <div style="font-weight:800; color:white; margin-bottom:4px;">${escape(n.title)}</div>
+                    <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:12px;">To: ${escape(n.profiles?.full_name || 'System')}</div>
+                    <button class="btn-view" style="width:100%" onclick="openDetails('${n.id}')">Review Message</button>
+                </div>
+            `).join('');
+
+            document.getElementById('page-info').textContent = `Page ${page + 1} of ${Math.ceil(count / limit) || 1}`;
+            document.getElementById('prev-btn').disabled = (page === 0);
+            document.getElementById('next-btn').disabled = (start + limit >= count);
+        }
+
+        window.openDetails = (id) => {
+            const n = notifData.find(x => x.id === id);
+            if (!n) return;
+            document.getElementById('modal-content').innerHTML = `
+                <div style="margin-bottom:20px;">
+                    <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; font-weight:800;">Title</div>
+                    <div style="font-weight:800; color:white; font-size:1.1rem; margin-top:4px;">${escape(n.title)}</div>
+                </div>
+                <div style="margin-bottom:20px;">
+                    <div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; font-weight:800;">Message</div>
+                    <div style="font-size:0.9rem; line-height:1.5; color:var(--text-main); margin-top:4px; padding:12px; background:rgba(0,0,0,0.2); border-radius:8px;">${escape(n.message)}</div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div><div style="font-size:0.6rem; color:var(--text-muted); text-transform:uppercase;">Recipient</div><div style="font-size:0.8rem; font-weight:700;">${escape(n.profiles?.full_name || 'N/A')}</div></div>
+                    <div><div style="font-size:0.6rem; color:var(--text-muted); text-transform:uppercase;">Sent Date</div><div style="font-size:0.8rem; font-weight:700;">${new Date(n.created_at).toLocaleString()}</div></div>
+                </div>
+            `;
+            document.getElementById('detail-modal').classList.add('active');
+        };
+
+        function initListeners() {
+            let timer;
+            document.getElementById('search-input').oninput = () => {
+                clearTimeout(timer);
+                timer = setTimeout(() => { page = 0; fetchNotifications(); }, 500);
+            };
+            document.getElementById('type-filter').onchange = () => { page = 0; fetchNotifications(); };
+            document.getElementById('prev-btn').onclick = () => { if(page > 0) { page--; fetchNotifications(); } };
+            document.getElementById('next-btn').onclick = () => { page++; fetchNotifications(); };
+            document.getElementById('create-form').onsubmit = handleSend;
+
+            // User Search for modal
+            const userSearch = document.getElementById('user-search');
+            userSearch.oninput = async () => {
+                const val = userSearch.value.trim();
+                if (val.length < 2) { document.getElementById('user-results').style.display = 'none'; return; }
+                const { data } = await supabase.from('profiles').select('id, full_name, email').or(`full_name.ilike.%${val}%,email.ilike.%${val}%`).limit(5);
+                if (data?.length) {
+                    const resBox = document.getElementById('user-results');
+                    resBox.innerHTML = data.map(u => `<div class="user-search-item" onclick="selectUser('${u.id}', '${escape(u.full_name)}')">${escape(u.full_name)} (${u.email})</div>`).join('');
+                    resBox.style.display = 'block';
+                }
+            };
+        }
+
+        window.selectUser = (id, name) => {
+            document.getElementById('selected-user-id').value = id;
+            document.getElementById('user-display').textContent = `Recipient Selected: ${name}`;
+            document.getElementById('user-results').style.display = 'none';
+            document.getElementById('user-search').value = '';
+        };
+
+        async function handleSend(e) {
+            e.preventDefault();
+            const userId = document.getElementById('selected-user-id').value;
+            const title = document.getElementById('n-title').value.trim();
+            const message = document.getElementById('n-msg').value.trim();
+            const type = document.getElementById('n-type').value;
+
+            if (!userId) return alert("Please select a recipient user from the search results.");
+
+            setLoading(true);
+            const { error } = await supabase.from('notifications').insert({
+                user_id: userId, title, message, type, is_read: false
+            });
+
+            if (error) {
+                alert("Failed: " + error.message);
+                setLoading(false);
+            } else {
+                await supabase.from('admin_logs').insert({ admin_id: currentAdminId, action: 'NOTIFICATION_SENT', target_id: userId, details: { title } });
+                closeModal();
+                loadAll();
+            }
+        }
+
+        window.openCreateModal = () => { document.getElementById('create-form').reset(); document.getElementById('user-display').textContent = ''; document.getElementById('selected-user-id').value = ''; document.getElementById('create-modal').classList.add('active'); };
+        window.closeModal = () => { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active')); setLoading(false); };
+        window.toggleSidebar = () => document.getElementById('sidebar').classList.toggle('open');
+        function setLoading(isLoading) { const btn = document.getElementById('send-btn'); btn.disabled = isLoading; document.getElementById('send-text').style.display = isLoading ? 'none' : 'block'; document.getElementById('send-spinner').style.display = isLoading ? 'block' : 'none'; }
+        function escape(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+        async function signOut() { await supabase.auth.signOut(); window.location.href = 'login.html'; }
+        function initMobileMenu() { document.getElementById('sidebar').onclick = (e) => { if(e.target.id === 'sidebar') toggleSidebar(); } }
+    </script>
+</body>
+</html>
