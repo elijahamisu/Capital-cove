@@ -225,11 +225,11 @@
         <a href="../index.html" class="back-link">← Back to CAPITAL COVE</a>
     </div>
 
-    <script>
+    <script type="module">
         // --- SUPABASE CONFIG ---
         const SB_URL = import.meta.env.VITE_SUPABASE_URL;
         const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+        const supabase = window.supabase.createClient(SB_URL, SB_KEY);
 
         // --- DOM ---
         const loginForm = document.getElementById('admin-login-form');
