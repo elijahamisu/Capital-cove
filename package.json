@@ -2,6 +2,7 @@
   "name": "capital-cove",
   "private": true,
   "version": "1.0.0",
+  "description": "Capital Cove physical-product bulk purchase and resale marketplace.",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,9 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.7"
+    "@supabase/supabase-js": "^2.45.1"
   },
   "devDependencies": {
-    "vite": "^5.1.4"
+    "vite": "^5.4.2"
   }
 }
