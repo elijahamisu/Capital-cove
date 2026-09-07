@@ -1,0 +1,65 @@
+# =============================================================================
+# CAPITAL COVE - GIT IGNORE CONFIGURATION
+# Purpose: Prevent sensitive data and local artifacts from being committed.
+# =============================================================================
+
+# --- Environment ---
+# Ignore real environment files containing secrets.
+.env
+.env.local
+.env.*.local
+
+# Note: .env.example is NOT ignored as it is a required template.
+
+# --- Dependencies ---
+node_modules/
+
+# --- Build Output ---
+# Vite production build directory.
+dist/
+
+# --- Vercel ---
+# Local Vercel configuration and cache.
+.vercel/
+
+# --- Logs ---
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Operating System ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- Editors ---
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# --- Temporary Files ---
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# --- Test / Coverage ---
+coverage/
+.nyc_output/
+
+# -----------------------------------------------------------------------------
+# SOURCE CONTROL NOTICE:
+# The following directories and files are EXPLICITLY TRACKED:
+# - index.html and all root HTML files
+# - admin/ (Administrator Panel)
+# - api/ (Serverless Functions)
+# - supabase/ (Database Schema, Functions, Triggers, RLS, Seed)
+# - assets/ (Images, Icons, Logos)
+# - package.json & vite.config.js
+# - README.md & .env.example
+# -----------------------------------------------------------------------------
