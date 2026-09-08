@@ -207,8 +207,6 @@
         <div class="modal-card">
             <h3 class="modal-title">Deposit Review</h3>
             <div id="modal-details"></div>
-            
-            <div id="proof-container"></div>
 
             <div id="admin-actions-area">
                 <div class="form-group" style="margin-top: 15px;">
@@ -303,7 +301,7 @@
             const range = document.getElementById('date-range').value;
 
             if (status !== 'all') query = query.eq('status', status);
-            if (search) query = query.or(`reference.ilike.%${search}%, profiles.full_name.ilike.%${search}%, profiles.email.ilike.%${search}%`);
+            if (search) query = query.or(`payer_account_name.ilike.%${search}%, payer_bank_name.ilike.%${search}%, profiles.full_name.ilike.%${search}%, profiles.email.ilike.%${search}%`);
             
             if (range !== 'all') {
                 const now = new Date();
@@ -339,7 +337,7 @@
                     <td style="font-family:monospace; font-size:0.7rem;">${d.id.substring(0,8)}</td>
                     <td><div style="font-weight:700;">${escape(d.profiles?.full_name)}</div><div style="font-size:0.65rem; color:var(--text-muted);">${d.profiles?.email}</div></td>
                     <td style="font-weight:800;">₦${parseFloat(d.amount).toLocaleString()}</td>
-                    <td><code style="color:var(--accent);">${escape(d.reference)}</code></td>
+                    <td><code style="color:var(--accent);">${escape(d.payer_bank_name)}</code></td>
                     <td><span class="badge st-${d.status.toLowerCase()}">${d.status}</span></td>
                     <td>${new Date(d.created_at).toLocaleDateString()}</td>
                     <td><button class="btn-view" onclick="openReview('${d.id}')">Review</button></td>
@@ -374,24 +372,11 @@
             container.innerHTML = `
                 <div class="detail-row"><span class="detail-lbl">User</span><span class="detail-val">${escape(d.profiles.full_name)}</span></div>
                 <div class="detail-row"><span class="detail-lbl">Amount</span><span class="detail-val" style="color:var(--success); font-size:1.1rem;">₦${parseFloat(d.amount).toLocaleString()}</span></div>
-                <div class="detail-row"><span class="detail-lbl">Payment Ref</span><span class="detail-val" style="color:var(--accent);">${escape(d.reference)}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Name on Bank</span><span class="detail-val" style="color:var(--accent);">${escape(d.payer_account_name)}</span></div>
+                <div class="detail-row"><span class="detail-lbl">Bank Name</span><span class="detail-val" style="color:var(--accent);">${escape(d.payer_bank_name)}</span></div>
                 <div class="detail-row"><span class="detail-lbl">Status</span><span class="detail-val">${d.status}</span></div>
                 <div class="detail-row"><span class="detail-lbl">Submitted</span><span class="detail-val">${new Date(d.created_at).toLocaleString()}</span></div>
             `;
-
-            const proofBox = document.getElementById('proof-container');
-            if (d.proof_url) {
-                // Fetch Signed URL for private bucket
-                const { data: urlData } = await supabase.storage.from('deposit-proofs').createSignedUrl(d.proof_url, 60);
-                proofBox.innerHTML = `
-                    <div class="proof-wrap">
-                        <img src="${urlData.signedUrl}" class="proof-img" onclick="window.open('${urlData.signedUrl}', '_blank')">
-                    </div>
-                    <p style="font-size:0.6rem; color:var(--text-muted); text-align:center;">Click image to expand</p>
-                `;
-            } else {
-                proofBox.innerHTML = `<div style="padding:20px; text-align:center; color:var(--error); font-size:0.8rem; border:1px dashed var(--admin-border); border-radius:8px; margin-top:15px;">No receipt uploaded</div>`;
-            }
 
             document.getElementById('admin-actions-area').style.display = d.status === 'PENDING' ? 'block' : 'none';
             document.getElementById('admin-note').value = d.admin_note || '';
