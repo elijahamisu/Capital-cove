@@ -293,18 +293,15 @@
 
                 // Validate Referral Code if provided
                 if (referralCode) {
-                    const { data: refOwner, error: refError } = await supabase
-                        .from('profiles')
-                        .select('id')
-                        .eq('referral_code', referralCode)
-                        .single();
-                    
-                    if (refError || !refOwner) {
+                    const { data: refOwnerId, error: refError } = await supabase
+                        .rpc('check_referral_code', { code: referralCode });
+
+                    if (refError || !refOwnerId) {
                         showAlert('Invalid referral code. Please check or leave empty.');
                         setLoading(false);
                         return;
                     }
-                    referredById = refOwner.id;
+                    referredById = refOwnerId;
                 }
 
                 // Supabase Auth SignUp
