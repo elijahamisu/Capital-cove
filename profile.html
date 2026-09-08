@@ -108,6 +108,17 @@
         .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8; text-decoration: none; font-size: 0.65rem; font-weight: 600; }
         .nav-item.active { color: var(--accent); }
         .nav-icon { font-size: 1.2rem; }
+
+        /* QUICK ACCESS */
+        .quick-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .quick-btn {
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+            background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 16px 8px;
+            text-decoration: none; color: var(--text-main); font-size: 0.7rem; font-weight: 700; text-align: center;
+            transition: 0.15s;
+        }
+        .quick-btn:hover { background: white; border-color: var(--accent); transform: translateY(-2px); }
+        .quick-icon { font-size: 1.4rem; }
     </style>
 </head>
 <body>
@@ -161,6 +172,25 @@
             <div class="form-group">
                 <label class="label">Member Since</label>
                 <input type="text" id="info-joined" class="input" readonly>
+            </div>
+        </div>
+
+        <div class="section-header">Quick Access</div>
+        <div class="card">
+            <div class="quick-grid">
+                <a href="dashboard.html" class="quick-btn"><span class="quick-icon">🏠</span> Dashboard</a>
+                <a href="marketplace.html" class="quick-btn"><span class="quick-icon">🛒</span> Marketplace</a>
+                <a href="wallet.html" class="quick-btn"><span class="quick-icon">💳</span> Wallet</a>
+                <a href="deposit.html" class="quick-btn"><span class="quick-icon">⬇️</span> Deposit</a>
+                <a href="withdraw.html" class="quick-btn"><span class="quick-icon">⬆️</span> Withdraw</a>
+                <a href="transactions.html" class="quick-btn"><span class="quick-icon">📜</span> Transactions</a>
+                <a href="my-products.html" class="quick-btn"><span class="quick-icon">📦</span> My Products</a>
+                <a href="buy-bulk.html" class="quick-btn"><span class="quick-icon">🧺</span> Buy Bulk</a>
+                <a href="product-sales.html" class="quick-btn"><span class="quick-icon">📈</span> My Sales</a>
+                <a href="referrals.html" class="quick-btn"><span class="quick-icon">🤝</span> Referrals</a>
+                <a href="gift-code.html" class="quick-btn"><span class="quick-icon">🎁</span> Gift Code</a>
+                <a href="notifications.html" class="quick-btn"><span class="quick-icon">🔔</span> Alerts</a>
+                <a href="support.html" class="quick-btn"><span class="quick-icon">💬</span> Support</a>
             </div>
         </div>
 
