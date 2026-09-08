@@ -241,10 +241,10 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
         const SB_URL = import.meta.env.VITE_SUPABASE_URL;
         const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
+        const supabase = window.supabase.createClient(SB_URL, SB_KEY);
 
         let page = 0;
         const limit = 15;
