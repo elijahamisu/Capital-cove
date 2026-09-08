@@ -288,7 +288,7 @@
                             </div>
                             <div class="ref-status">
                                 <span class="status-pill ${ref.status === 'QUALIFIED' ? 'pill-qualified' : 'pill-pending'}">
-                                    ${ref.status}
+                                    ${ref.status === 'QUALIFIED' ? 'ACTIVE' : 'PENDING'}
                                 </span>
                                 ${ref.commission_amount > 0 ? `<p style="font-size:0.7rem; font-weight:800; color:var(--success); margin-top:4px;">+₦${parseFloat(ref.commission_amount).toLocaleString()}</p>` : ''}
                             </div>
