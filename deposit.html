@@ -150,16 +150,12 @@
                 <input type="number" id="dep-amount" class="input" placeholder="e.g. 5000">
             </div>
             <div class="form-group">
-                <label class="label">Payment Reference / Remarks</label>
-                <input type="text" id="dep-ref" class="input" placeholder="e.g. Your Name / Bank Ref">
+                <label class="label">Name on Bank Account</label>
+                <input type="text" id="dep-account-name" class="input" placeholder="e.g. John Doe">
             </div>
             <div class="form-group">
-                <label class="label">Payment Proof (Screenshot/Receipt)</label>
-                <div class="file-input-wrap">
-                    <input type="file" id="dep-proof" accept="image/*">
-                    <span class="file-hint" id="file-label">Click to upload receipt</span>
-                    <img id="img-preview" class="preview-img">
-                </div>
+                <label class="label">Bank Name</label>
+                <input type="text" id="dep-bank-name" class="input" placeholder="e.g. GTBank">
             </div>
 
             <button class="btn-submit" id="submit-btn">
@@ -205,14 +201,12 @@
 
         // --- DOM ---
         const amountInput = document.getElementById('dep-amount');
-        const refInput = document.getElementById('dep-ref');
-        const proofInput = document.getElementById('dep-proof');
+        const accountNameInput = document.getElementById('dep-account-name');
+        const bankNameInput = document.getElementById('dep-bank-name');
         const submitBtn = document.getElementById('submit-btn');
         const btnText = document.getElementById('btn-text');
         const btnSpinner = document.getElementById('btn-spinner');
         const alertBox = document.getElementById('alert-box');
-        const fileLabel = document.getElementById('file-label');
-        const imgPreview = document.getElementById('img-preview');
         const historyList = document.getElementById('history-list');
 
         // --- INIT ---
@@ -237,51 +231,27 @@
         }
 
         function initListeners() {
-            proofInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    fileLabel.textContent = file.name;
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        imgPreview.src = e.target.result;
-                        imgPreview.style.display = 'block';
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-
             submitBtn.addEventListener('click', handleSubmit);
         }
 
         async function handleSubmit() {
             const amount = parseFloat(amountInput.value);
-            const ref = refInput.value.trim();
-            const file = proofInput.files[0];
+            const accountName = accountNameInput.value.trim();
+            const bankName = bankNameInput.value.trim();
 
             if (!amount || amount < minDeposit) return showAlert(`Minimum deposit is ₦${minDeposit}`, 'error');
-            if (!ref) return showAlert('Please provide a payment reference', 'error');
-            if (!file) return showAlert('Please upload your payment receipt', 'error');
+            if (!accountName) return showAlert('Please provide the name on your bank account', 'error');
+            if (!bankName) return showAlert('Please provide your bank name', 'error');
 
             setLoading(true);
             hideAlert();
 
             try {
-                // 1. Upload Proof to Storage
-                const fileName = `${user.id}/${Date.now()}_${file.name}`;
-                const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from('deposit-proofs')
-                    .upload(fileName, file);
-
-                if (uploadError) throw uploadError;
-
-                const proofUrl = uploadData.path;
-
-                // 2. Create Deposit Record
                 const { error: dbError } = await supabase.from('deposits').insert({
                     user_id: user.id,
                     amount: amount,
-                    reference: ref,
-                    proof_url: proofUrl,
+                    payer_account_name: accountName,
+                    payer_bank_name: bankName,
                     status: 'PENDING'
                 });
 
@@ -316,7 +286,7 @@
                 <div class="history-item">
                     <div class="h-info">
                         <h5>₦${Number(d.amount).toLocaleString()}</h5>
-                        <p>Ref: ${d.reference}</p>
+                        <p>${d.payer_bank_name || ''} — ${d.payer_account_name || ''}</p>
                         <p style="font-size: 0.6rem;">${new Date(d.created_at).toLocaleDateString()}</p>
                     </div>
                     <div>
@@ -353,10 +323,8 @@
 
         function resetForm() {
             amountInput.value = '';
-            refInput.value = '';
-            proofInput.value = '';
-            fileLabel.textContent = 'Click to upload receipt';
-            imgPreview.style.display = 'none';
+            accountNameInput.value = '';
+            bankNameInput.value = '';
         }
     </script>
 </body>
