@@ -408,7 +408,7 @@
         window.generateRandomCode = () => {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
             let res = 'CC-';
-            for (let i = 0; i < 8; i++) res += chars.charAt(Math.floor(Char = Math.random() * chars.length));
+            for (let i = 0; i < 8; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
             document.getElementById('c-code').value = res;
         };
 
