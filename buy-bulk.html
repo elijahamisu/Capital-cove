@@ -72,8 +72,51 @@
         .btn-deposit { display: inline-block; background: var(--accent); color: var(--primary); padding: 8px 16px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.8rem; margin-top: 10px; }
 
         /* SUCCESS STATE */
-        .success-overlay { position: fixed; inset: 0; background: var(--white); z-index: 1000; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center; }
-        .success-icon { width: 80px; height: 80px; background: var(--success); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; margin-bottom: 24px; }
+        .success-overlay {
+            position: fixed; inset: 0; z-index: 1000; display: none; flex-direction: column;
+            align-items: center; justify-content: center; padding: 32px;
+            background: radial-gradient(circle at 50% 0%, #1e293b 0%, var(--primary) 55%, #05070c 100%);
+            text-align: center; overflow-y: auto;
+        }
+        .success-icon-ring {
+            width: 96px; height: 96px; border-radius: 50%; margin-bottom: 28px;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(145deg, var(--accent), var(--accent-hover));
+            box-shadow: 0 0 0 8px rgba(245, 158, 11, 0.12), 0 12px 32px rgba(245, 158, 11, 0.35);
+            animation: successPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .success-icon-ring svg { width: 42px; height: 42px; }
+        @keyframes successPop {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .success-eyebrow {
+            color: var(--accent); font-size: 0.7rem; font-weight: 800; letter-spacing: 0.15em;
+            text-transform: uppercase; margin-bottom: 10px;
+        }
+        .success-title { color: #fff; font-weight: 800; font-size: 1.7rem; margin-bottom: 12px; letter-spacing: -0.02em; }
+        .success-subtext { color: #94a3b8; margin-bottom: 28px; font-size: 0.9rem; max-width: 340px; }
+        .success-receipt {
+            width: 100%; max-width: 360px; background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius);
+            padding: 20px; margin-bottom: 28px; backdrop-filter: blur(8px);
+        }
+        .success-receipt-row {
+            display: flex; justify-content: space-between; padding: 8px 0;
+            font-size: 0.85rem; color: #cbd5e1;
+        }
+        .success-receipt-row + .success-receipt-row { border-top: 1px dashed rgba(255,255,255,0.1); }
+        .success-receipt-row strong { color: #fff; font-weight: 700; }
+        .success-actions { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 12px; }
+        .btn-success-primary {
+            width: 100%; padding: 16px; border-radius: 12px; border: none; cursor: pointer;
+            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            color: var(--primary); font-weight: 800; font-size: 0.95rem; text-decoration: none;
+            display: block; box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+        }
+        .btn-success-secondary {
+            color: #94a3b8; font-weight: 700; text-decoration: none; font-size: 0.85rem; padding: 8px;
+        }
         
         /* ALERTS */
         .alert { padding: 12px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; margin-bottom: 20px; display: none; }
@@ -167,12 +210,21 @@
 
     <!-- Success Screen -->
     <div class="success-overlay" id="success-screen">
-        <div class="success-icon">✓</div>
-        <h1 style="font-weight: 800; margin-bottom: 10px;">Purchase Successful!</h1>
-        <p style="color: var(--text-muted); margin-bottom: 30px;" id="success-details">Your bulk packages have been acquired and units have been assigned to your account.</p>
-        <div style="width: 100%; display: flex; flex-direction: column; gap: 12px;">
-            <a href="my-products.html" class="btn-pay" style="text-decoration: none;">View My Products</a>
-            <a href="dashboard.html" style="color: var(--primary); font-weight: 700; text-decoration: none; font-size: 0.9rem;">Go to Dashboard</a>
+        <div class="success-icon-ring">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <p class="success-eyebrow">Order Confirmed</p>
+        <h1 class="success-title">Purchase Successful</h1>
+        <p class="success-subtext">Your units have been added to your collection and are ready to list for resale.</p>
+        <div class="success-receipt" id="success-receipt">
+            <div class="success-receipt-row"><span>Product</span><strong id="sr-product">—</strong></div>
+            <div class="success-receipt-row"><span>Bulk Packages</span><strong id="sr-packages">—</strong></div>
+            <div class="success-receipt-row"><span>Units Added</span><strong id="sr-units">—</strong></div>
+            <div class="success-receipt-row"><span>Total Paid</span><strong id="sr-total">—</strong></div>
+        </div>
+        <div class="success-actions">
+            <a href="my-products.html" class="btn-success-primary">View My Products</a>
+            <a href="dashboard.html" class="btn-success-secondary">Go to Dashboard</a>
         </div>
     </div>
 
@@ -324,7 +376,10 @@
                 if (error) throw error;
 
                 // Success
-                document.getElementById('success-details').textContent = `Purchased ${quantity} bulk package(s) of ${product.name}. ${quantity * product.units_per_bulk} individual units have been added to your collection.`;
+                document.getElementById('sr-product').textContent = product.name;
+                document.getElementById('sr-packages').textContent = `${quantity} bulk`;
+                document.getElementById('sr-units').textContent = `${quantity * product.units_per_bulk} units`;
+                document.getElementById('sr-total').textContent = `₦${(quantity * product.bulk_price).toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
                 document.getElementById('success-screen').style.display = 'flex';
                 
             } catch (err) {
