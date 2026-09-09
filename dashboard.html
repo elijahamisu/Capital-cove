@@ -414,8 +414,8 @@
                     return;
                 }
 
-                // Get unit counts for stats (In a real app, use a view or count trigger)
-                const { data: units } = await supabase.from('product_units').select('status').eq('owner_id', currentUser.id);
+                // Get unit counts for stats (grouped per purchase for accurate per-item progress)
+                const { data: units } = await supabase.from('product_units').select('status, bulk_purchase_id').eq('owner_id', currentUser.id);
                 
                 const total = units.length;
                 const sold = units.filter(u => u.status === 'SOLD').length;
@@ -426,12 +426,19 @@
                 document.getElementById('progress-percent').textContent = `${percent}%`;
                 document.getElementById('overall-progress-bar').style.width = `${percent}%`;
 
+                const unitsByPurchase = {};
+                units.forEach(u => {
+                    if (!unitsByPurchase[u.bulk_purchase_id]) unitsByPurchase[u.bulk_purchase_id] = { total: 0, sold: 0 };
+                    unitsByPurchase[u.bulk_purchase_id].total++;
+                    if (u.status === 'SOLD') unitsByPurchase[u.bulk_purchase_id].sold++;
+                });
+
                 // Render list
                 purchaseContainer.innerHTML = purchases.map(p => {
-                    // Simplified unit calculation for demo display
-                    const pTotal = p.unit_count;
-                    const pSold = Math.floor(Math.random() * pTotal); // Replace with real unit join in production
-                    const pPercent = Math.round((pSold/pTotal)*100);
+                    const stats = unitsByPurchase[p.id] || { total: p.unit_count, sold: 0 };
+                    const pTotal = stats.total;
+                    const pSold = stats.sold;
+                    const pPercent = pTotal > 0 ? Math.round((pSold/pTotal)*100) : 0;
 
                     return `
                         <div class="product-item">
