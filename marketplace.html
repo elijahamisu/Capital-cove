@@ -173,6 +173,11 @@
                 <button class="filter-chip active" data-cat="all">All Products</button>
                 <!-- Categories injected here -->
             </div>
+            <select id="sort-select" style="margin-top: 12px; width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-main); font-size: 0.85rem; font-weight: 600;">
+                <option value="default">Sort by: Featured</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+            </select>
         </div>
     </div>
 
@@ -295,13 +300,27 @@
             applyFilters();
         });
 
+        const sortSelect = document.getElementById('sort-select');
+        let sortOrder = 'default';
+
+        sortSelect.addEventListener('change', (e) => {
+            sortOrder = e.target.value;
+            applyFilters();
+        });
+
         function applyFilters() {
-            const filtered = allProducts.filter(p => {
+            let filtered = allProducts.filter(p => {
                 const matchesCat = activeCategory === 'all' || p.category === activeCategory;
                 const matchesSearch = p.name.toLowerCase().includes(searchQuery) || 
                                     (p.category && p.category.toLowerCase().includes(searchQuery));
                 return matchesCat && matchesSearch;
             });
+
+            if (sortOrder === 'price-asc') {
+                filtered = [...filtered].sort((a, b) => a.bulk_price - b.bulk_price);
+            } else if (sortOrder === 'price-desc') {
+                filtered = [...filtered].sort((a, b) => b.bulk_price - a.bulk_price);
+            }
 
             countLabel.textContent = `${filtered.length} bulk packages available`;
             renderProductList(filtered);
