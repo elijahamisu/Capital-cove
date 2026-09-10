@@ -75,8 +75,6 @@
         .btn-primary { background: var(--primary); color: white; }
 
         /* UNIT DRAWER (Conditional) */
-        .unit-list { margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 15px; display: none; }
-        .unit-list.active { display: block; }
         .unit-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 0.75rem; }
         .unit-code { font-family: monospace; font-weight: 700; color: var(--primary); }
         .status-pill { padding: 2px 8px; border-radius: 4px; font-weight: 800; font-size: 0.6rem; text-transform: uppercase; }
@@ -198,6 +196,8 @@
         const statSold = document.getElementById('stat-sold');
 
         // --- INIT ---
+        let soldToday = false;
+
         document.addEventListener('DOMContentLoaded', async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
@@ -205,9 +205,21 @@
                 return;
             }
             user = session.user;
+            await checkSoldToday();
             await fetchInventory();
             initListeners();
         });
+
+        async function checkSoldToday() {
+            const startOfToday = new Date();
+            startOfToday.setHours(0, 0, 0, 0);
+            const { count } = await supabase
+                .from('sales')
+                .select('*', { count: 'exact', head: true })
+                .eq('seller_user_id', user.id)
+                .gte('created_at', startOfToday.toISOString());
+            soldToday = (count || 0) >= 1;
+        }
 
         async function fetchInventory() {
             try {
@@ -313,27 +325,15 @@
                     </p>
 
                     <div class="card-actions">
-                        <button class="btn btn-outline" onclick="toggleUnits('${p.id}')">View Unit Codes</button>
-                        ${available > 0 ? `<a href="product-sales.html?product=${p.id}" class="btn btn-primary">Sale</a>` : `<button class="btn" style="background:#e2e8f0; color:#94a3b8; cursor:default">Sold Out</button>`}
-                    </div>
-
-                    <div class="unit-list" id="unit-list-${p.id}">
-                        ${group.units.map(u => `
-                            <div class="unit-row">
-                                <span class="unit-code">${u.unit_code}</span>
-                                <span class="status-pill status-${u.status.toLowerCase()}">${u.status === 'OWNED' ? 'Available' : u.status}</span>
-                            </div>
-                        `).join('')}
+                        ${available > 0 ? (soldToday
+                            ? `<button class="btn" style="background:#e2e8f0; color:#94a3b8; cursor:default; grid-column: span 2;">Already Sold Today</button>`
+                            : `<a href="product-sales.html?product=${p.id}" class="btn btn-primary" style="grid-column: span 2;">Sale</a>`)
+                            : `<button class="btn" style="background:#e2e8f0; color:#94a3b8; cursor:default; grid-column: span 2;">Sold Out</button>`}
                     </div>
                 </div>
                 `;
             }).join('');
         }
-
-        window.toggleUnits = (id) => {
-            const list = document.getElementById(`unit-list-${id}`);
-            list.classList.toggle('active');
-        };
 
         function renderEmpty() {
             productList.innerHTML = `
