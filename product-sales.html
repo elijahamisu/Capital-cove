@@ -117,7 +117,7 @@
                 <label class="label">Actual Sale Amount</label>
                 <div class="input-wrap">
                     <span class="input-icon">₦</span>
-                    <input type="number" id="sale-amount-input" class="input" placeholder="0.00" step="0.01">
+                    <input type="number" id="sale-amount-input" class="input" placeholder="0.00" step="0.01" readonly style="background: var(--bg); cursor: not-allowed;">
                 </div>
                 <p id="suggested-hint" style="font-size: 0.7rem; color: var(--text-muted); margin-top: 8px;"></p>
             </div>
@@ -269,7 +269,7 @@
                     </div>
                 </div>
             `;
-            suggestedHint.textContent = `Suggested selling price: ₦${Number(unit.products.unit_selling_price).toLocaleString()}`;
+            suggestedHint.textContent = `Fixed selling price: ₦${Number(unit.products.unit_selling_price).toLocaleString()}`;
             amountInput.value = unit.products.unit_selling_price;
             formCard.style.display = 'block';
             updatePreview();
