@@ -314,7 +314,7 @@
 
                     <div class="card-actions">
                         <button class="btn btn-outline" onclick="toggleUnits('${p.id}')">View Unit Codes</button>
-                        ${available > 0 ? `<a href="product-sales.html?product=${p.id}" class="btn btn-primary">Record Sale</a>` : `<button class="btn" style="background:#e2e8f0; color:#94a3b8; cursor:default">Sold Out</button>`}
+                        ${available > 0 ? `<a href="product-sales.html?product=${p.id}" class="btn btn-primary">Sale</a>` : `<button class="btn" style="background:#e2e8f0; color:#94a3b8; cursor:default">Sold Out</button>`}
                     </div>
 
                     <div class="unit-list" id="unit-list-${p.id}">
