@@ -196,8 +196,6 @@
         const statSold = document.getElementById('stat-sold');
 
         // --- INIT ---
-        let saleCreditsAvailable = 0;
-
         document.addEventListener('DOMContentLoaded', async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
@@ -205,35 +203,9 @@
                 return;
             }
             user = session.user;
-            await checkSaleCredits();
             await fetchInventory();
             initListeners();
         });
-
-        async function checkSaleCredits() {
-            const { data: firstUnit } = await supabase
-                .from('product_units')
-                .select('created_at')
-                .eq('owner_id', user.id)
-                .order('created_at', { ascending: true })
-                .limit(1)
-                .maybeSingle();
-
-            if (!firstUnit) { saleCreditsAvailable = 0; return; }
-
-            const firstDate = new Date(firstUnit.created_at);
-            firstDate.setHours(0, 0, 0, 0);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const daysElapsed = Math.floor((today - firstDate) / 86400000) + 1;
-
-            const { count } = await supabase
-                .from('sales')
-                .select('*', { count: 'exact', head: true })
-                .eq('seller_user_id', user.id);
-
-            saleCreditsAvailable = daysElapsed - (count || 0);
-        }
 
         async function fetchInventory() {
             try {
@@ -309,6 +281,15 @@
                 const sold = units.filter(u => u.status === 'SOLD').length;
                 const available = total - sold;
 
+                // Per-product sale credits: 1 credit per calendar day since
+                // this product was first owned, banked with no expiry.
+                const firstOwnedDate = new Date(Math.min(...units.map(u => new Date(u.created_at))));
+                firstOwnedDate.setHours(0, 0, 0, 0);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const daysElapsed = Math.floor((today - firstOwnedDate) / 86400000) + 1;
+                const productCredits = daysElapsed - sold;
+
                 return `
                 <div class="product-card">
                     <div class="product-header">
@@ -339,9 +320,9 @@
                     </p>
 
                     <div class="card-actions">
-                        ${available > 0 ? (saleCreditsAvailable <= 0
+                        ${available > 0 ? (productCredits <= 0
                             ? `<button class="btn" style="background:#e2e8f0; color:#94a3b8; cursor:default; grid-column: span 2;">No Sale Credits Left</button>`
-                            : `<a href="product-sales.html?product=${p.id}" class="btn btn-primary" style="grid-column: span 2;">Sale (${saleCreditsAvailable} credit${saleCreditsAvailable === 1 ? '' : 's'} left)</a>`)
+                            : `<a href="product-sales.html?product=${p.id}" class="btn btn-primary" style="grid-column: span 2;">Sale (${productCredits} credit${productCredits === 1 ? '' : 's'} left)</a>`)
                             : `<button class="btn" style="background:#e2e8f0; color:#94a3b8; cursor:default; grid-column: span 2;">Sold Out</button>`}
                     </div>
                 </div>
