@@ -282,12 +282,13 @@
                 const available = total - sold;
 
                 // Per-product sale credits: 1 credit per calendar day since
-                // this product was first owned, banked with no expiry.
+                // the day AFTER this product was first owned (purchase day
+                // itself grants no credit), banked with no expiry.
                 const firstOwnedDate = new Date(Math.min(...units.map(u => new Date(u.created_at))));
                 firstOwnedDate.setHours(0, 0, 0, 0);
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
-                const daysElapsed = Math.floor((today - firstOwnedDate) / 86400000) + 1;
+                const daysElapsed = Math.floor((today - firstOwnedDate) / 86400000);
                 const productCredits = daysElapsed - sold;
 
                 return `
