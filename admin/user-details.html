@@ -158,6 +158,7 @@
                 <div class="tab" data-target="purchases">Bulk Purchases</div>
                 <div class="tab" data-target="inventory">Unit Inventory</div>
                 <div class="tab" data-target="sales">Recorded Sales</div>
+                <div class="tab" data-target="referrals">Referrals</div>
                 <div class="tab" data-target="history">Deposits & Payouts</div>
             </div>
 
@@ -176,6 +177,18 @@
 
             <div id="sales" class="content-section">
                 <div class="card"><table><thead><tr><th>Unit</th><th>Sale Amount</th><th>Net Proceed</th><th>Status</th><th>Date</th></tr></thead><tbody id="sales-body"></tbody></table><div id="sales-empty" class="empty-state" style="display:none">No sales recorded.</div></div>
+            </div>
+
+            <div id="referrals" class="content-section">
+                <div class="card" style="margin-bottom:20px;">
+                    <div style="padding:16px; border-bottom:1px solid var(--admin-border); font-weight:800; font-size:0.75rem; text-transform:uppercase;">Referred By</div>
+                    <div id="referred-by-box" style="padding:16px; font-size:0.85rem; color:var(--text-muted);">Loading...</div>
+                </div>
+                <div class="card">
+                    <div style="padding:16px; border-bottom:1px solid var(--admin-border); font-weight:800; font-size:0.75rem; text-transform:uppercase;">Users Referred By This Account</div>
+                    <table><thead><tr><th>Name</th><th>Level</th><th>Status</th><th>Commission</th><th>Date</th></tr></thead><tbody id="referrals-body"></tbody></table>
+                    <div id="referrals-empty" class="empty-state" style="display:none">This user hasn't referred anyone yet.</div>
+                </div>
             </div>
 
             <div id="history" class="content-section">
@@ -246,6 +259,26 @@
         </div>
     </div>
 
+    <!-- Remove Product Modal -->
+    <div class="modal-overlay" id="remove-modal">
+        <div class="modal-card">
+            <h3 class="modal-title" style="color:var(--error);">Remove Product</h3>
+            <p class="modal-desc">Remove bulk product units this user currently owns (units already sold can't be removed). Removed stock is returned to available marketplace inventory.</p>
+            <div style="margin-bottom:16px;">
+                <label style="font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:block; margin-bottom:6px;">Product</label>
+                <select id="remove-product-select" style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--admin-border); background:var(--admin-bg); color:white; font-size:0.9rem;"></select>
+            </div>
+            <div style="margin-bottom:20px;">
+                <label style="font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:block; margin-bottom:6px;">Quantity (bulk packages)</label>
+                <input type="number" id="remove-quantity" value="1" min="1" style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--admin-border); background:var(--admin-bg); color:white; font-size:0.9rem;">
+            </div>
+            <div class="modal-btns">
+                <button class="btn-action" onclick="closeRemoveProductModal()">Cancel</button>
+                <button class="btn-action btn-danger" onclick="submitRemoveProduct()">Remove</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Delete User Modal -->
     <div class="modal-overlay" id="delete-user-modal">
         <div class="modal-card">
@@ -298,6 +331,7 @@
                 fetchPurchases(),
                 fetchInventory(),
                 fetchSales(),
+                fetchReferrals(),
                 fetchDepWith()
             ]);
         }
@@ -325,6 +359,7 @@
                             }
                             <button class="btn-action" onclick="openWalletModal()">💰 Add/Remove Funds</button>
                             <button class="btn-action" onclick="openAssignModal()">📦 Assign Product</button>
+                            <button class="btn-action btn-danger" onclick="openRemoveProductModal()">📤 Remove Product</button>
                             <button class="btn-action btn-danger" onclick="openDeleteUserModal()">🗑 Delete User</button>
                         </div>
                     </div>
@@ -399,6 +434,38 @@
                     <td style="color:var(--success); font-weight:800;">${formatNaira(s.net_amount)}</td>
                     <td>${s.status}</td>
                     <td>${new Date(s.sold_at).toLocaleDateString()}</td>
+                </tr>`).join('');
+        }
+
+        async function fetchReferrals() {
+            // Who referred this user
+            const { data: profile } = await supabase.from('profiles').select('referred_by').eq('id', targetUserId).single();
+            const referredByBox = document.getElementById('referred-by-box');
+            if (profile?.referred_by) {
+                const { data: referrer } = await supabase.from('profiles').select('full_name, email').eq('id', profile.referred_by).single();
+                referredByBox.innerHTML = referrer
+                    ? `<a href="user-details.html?id=${profile.referred_by}" style="color:var(--accent); font-weight:700; text-decoration:none;">${referrer.full_name || 'Unnamed User'}</a> <span style="color:var(--text-muted);">(${referrer.email})</span>`
+                    : 'Referrer not found (may have been deleted).';
+            } else {
+                referredByBox.textContent = 'This user was not referred by anyone.';
+            }
+
+            // Who this user has referred
+            const { data: referrals } = await supabase
+                .from('referrals')
+                .select('*, profiles!referrals_referred_id_fkey(full_name, email)')
+                .eq('referrer_id', targetUserId)
+                .order('created_at', { ascending: false });
+
+            const body = document.getElementById('referrals-body');
+            if (!referrals?.length) return document.getElementById('referrals-empty').style.display = 'block';
+            body.innerHTML = referrals.map(r => `
+                <tr>
+                    <td style="font-weight:700;">${r.profiles?.full_name || 'Unknown'}</td>
+                    <td>Level ${r.level}</td>
+                    <td><span class="badge ${r.status === 'QUALIFIED' ? 'st-active' : ''}">${r.status}</span></td>
+                    <td style="color:var(--success); font-weight:800;">${r.commission_amount > 0 ? formatNaira(r.commission_amount) : '—'}</td>
+                    <td>${new Date(r.created_at).toLocaleDateString()}</td>
                 </tr>`).join('');
         }
 
@@ -483,6 +550,43 @@
             closeAssignModal();
             fetchStats();
             fetchPurchases();
+            fetchInventory();
+        };
+
+        // --- REMOVE PRODUCT ---
+        window.openRemoveProductModal = async () => {
+            const { data: units } = await supabase
+                .from('product_units')
+                .select('product_id, status, products(name, units_per_bulk)')
+                .eq('owner_id', targetUserId)
+                .neq('status', 'SOLD');
+
+            const grouped = {};
+            (units || []).forEach(u => {
+                if (!grouped[u.product_id]) grouped[u.product_id] = { name: u.products.name, count: 0, perBulk: u.products.units_per_bulk };
+                grouped[u.product_id].count++;
+            });
+
+            const select = document.getElementById('remove-product-select');
+            const entries = Object.entries(grouped);
+            if (!entries.length) {
+                select.innerHTML = '<option value="">No removable products owned</option>';
+            } else {
+                select.innerHTML = entries.map(([id, g]) => `<option value="${id}">${g.name} (${g.count} unit${g.count === 1 ? '' : 's'} owned, not sold)</option>`).join('');
+            }
+            document.getElementById('remove-quantity').value = 1;
+            document.getElementById('remove-modal').classList.add('active');
+        };
+        window.closeRemoveProductModal = () => document.getElementById('remove-modal').classList.remove('active');
+        window.submitRemoveProduct = async () => {
+            const product_id = document.getElementById('remove-product-select').value;
+            const quantity = parseInt(document.getElementById('remove-quantity').value);
+            if (!product_id || !quantity || quantity < 1) return alert('Select a product and a valid quantity.');
+
+            const result = await callAdminAPI('remove-product', { user_id: targetUserId, product_id, quantity });
+            if (!result.success) return alert(result.error || 'Failed to remove product.');
+            closeRemoveProductModal();
+            fetchStats();
             fetchInventory();
         };
 
