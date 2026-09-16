@@ -292,6 +292,20 @@
                 margin-top: 40px;
             }
         }
+
+        /* Walking Mascot (original character) */
+        .mascot-scene { position: relative; height: 110px; display: flex; align-items: flex-end; justify-content: center; overflow: visible; margin-bottom: 4px; }
+        .mascot-walker { animation: walkIn 1.6s ease-out forwards; }
+        @keyframes walkIn { from { transform: translateX(-130px); } to { transform: translateX(0); } }
+        .mascot-idle { animation: idleBob 2.4s ease-in-out 1.6s infinite; transform-origin: bottom center; }
+        @keyframes idleBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+        .mascot-scene .limb { transform-box: fill-box; transform-origin: top center; animation: limbSwing 0.4s ease-in-out 4; }
+        .mascot-scene .limb.opp { animation-delay: 0.2s; }
+        @keyframes limbSwing { 0% { transform: rotate(-16deg); } 50% { transform: rotate(16deg); } 100% { transform: rotate(0deg); } }
+        .mascot-scene .briefcase-group { transform-box: fill-box; transform-origin: top center; animation: caseSwing 0.4s ease-in-out 4; }
+        @keyframes caseSwing { 0% { transform: rotate(10deg); } 50% { transform: rotate(-10deg); } 100% { transform: rotate(0deg); } }
+        .mascot-shadow { fill: rgba(15,23,42,0.18); animation: shadowPulse 2.4s ease-in-out 1.6s infinite; }
+        @keyframes shadowPulse { 0%, 100% { opacity: 0.5; transform: scaleX(1); } 50% { opacity: 0.3; transform: scaleX(0.85); } }
     </style>
 </head>
 <body>
@@ -301,6 +315,72 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
             Back to Capital Cove
         </a>
+
+        <div class="mascot-scene">
+            <svg class="mascot-walker" width="76" height="98" viewBox="0 0 76 98" fill="none">
+                <defs>
+                    <radialGradient id="headGrad" cx="35%" cy="30%" r="75%">
+                        <stop offset="0%" stop-color="#fcd34d"/>
+                        <stop offset="100%" stop-color="#d97706"/>
+                    </radialGradient>
+                    <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#334155"/>
+                        <stop offset="100%" stop-color="#0f172a"/>
+                    </linearGradient>
+                    <linearGradient id="limbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#1e293b"/>
+                        <stop offset="100%" stop-color="#0a0f1a"/>
+                    </linearGradient>
+                    <linearGradient id="armGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#fcd34d"/>
+                        <stop offset="100%" stop-color="#d97706"/>
+                    </linearGradient>
+                    <linearGradient id="caseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#f59e0b"/>
+                        <stop offset="100%" stop-color="#b45309"/>
+                    </linearGradient>
+                </defs>
+                <g class="mascot-idle">
+                    <ellipse class="mascot-shadow" cx="38" cy="92" rx="18" ry="4.5"/>
+
+                    <rect class="limb" x="28" y="56" width="8" height="26" rx="4" fill="url(#limbGrad)"/>
+                    <rect class="limb opp" x="40" y="56" width="8" height="26" rx="4" fill="url(#limbGrad)"/>
+
+                    <g class="limb">
+                        <rect x="25" y="80" width="14" height="7" rx="3.5" fill="#f8fafc"/>
+                        <rect x="25" y="83.5" width="14" height="3.5" rx="1.5" fill="#1e293b"/>
+                    </g>
+                    <g class="limb opp">
+                        <rect x="37" y="80" width="14" height="7" rx="3.5" fill="#f8fafc"/>
+                        <rect x="37" y="83.5" width="14" height="3.5" rx="1.5" fill="#1e293b"/>
+                    </g>
+
+                    <path d="M22 30 Q38 8 54 30 L50 34 Q38 18 26 34 Z" fill="url(#bodyGrad)"/>
+
+                    <rect x="22" y="28" width="32" height="32" rx="13" fill="url(#bodyGrad)"/>
+                    <ellipse cx="30" cy="35" rx="6" ry="9" fill="#ffffff" opacity="0.06"/>
+                    <line x1="35" y1="34" x2="34" y2="44" stroke="#0a0f1a" stroke-width="1.3" stroke-linecap="round"/>
+                    <line x1="41" y1="34" x2="42" y2="44" stroke="#0a0f1a" stroke-width="1.3" stroke-linecap="round"/>
+
+                    <rect class="limb opp" x="14" y="30" width="8" height="24" rx="4" fill="url(#armGrad)"/>
+
+                    <g class="briefcase-group">
+                        <rect x="52" y="46" width="16" height="13" rx="2.5" fill="url(#caseGrad)"/>
+                        <rect x="57" y="42" width="6" height="5" rx="1.5" fill="none" stroke="#b45309" stroke-width="1.5"/>
+                        <rect x="58.5" y="51" width="3" height="3" rx="0.5" fill="#fcd34d"/>
+                    </g>
+
+                    <rect class="limb" x="50" y="30" width="8" height="24" rx="4" fill="url(#armGrad)"/>
+
+                    <circle cx="38" cy="15" r="13" fill="url(#headGrad)"/>
+                    <path d="M25 17 Q24 2 38 3 Q52 2 51 17 Q44 8 38 8 Q32 8 25 17 Z" fill="url(#bodyGrad)"/>
+                    <ellipse cx="33" cy="10" rx="4" ry="3" fill="#ffffff" opacity="0.25"/>
+                    <circle cx="33" cy="15" r="1.8" fill="#1e293b"/>
+                    <circle cx="43" cy="15" r="1.8" fill="#1e293b"/>
+                    <path d="M33 21 Q38 24.5 43 21" stroke="#1e293b" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+                </g>
+            </svg>
+        </div>
 
         <div class="auth-card">
             <header class="auth-header">
