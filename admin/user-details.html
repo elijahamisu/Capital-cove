@@ -119,24 +119,13 @@
 
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header"><div class="logo-box">C</div><span style="font-weight: 800; letter-spacing: 1px;">ADMIN</span></div>
-                <nav class="nav-list">
+        <nav class="nav-list">
             <a href="index.html" class="nav-link">📊 Dashboard</a>
-            <a href="users.html" class="nav-link">👥 Users</a>
+            <a href="users.html" class="nav-link active">👥 Users</a>
             <a href="products.html" class="nav-link">📦 Products</a>
-            <a href="inventory.html" class="nav-link">🏠 Inventory</a>
-            <a href="bulk-purchases.html" class="nav-link">🛍️ Bulk Purchases</a>
-            <a href="sales.html" class="nav-link">💰 Sales</a>
-            <a href="settlements.html" class="nav-link">🧾 Settlements</a>
             <a href="deposits.html" class="nav-link">📥 Deposits</a>
             <a href="withdrawals.html" class="nav-link">📤 Withdrawals</a>
-            <a href="referrals.html" class="nav-link">🤝 Referrals</a>
-            <a href="gift-codes.html" class="nav-link">🎁 Gift Codes</a>
-            <a href="transactions.html" class="nav-link">📜 Transactions</a>
-            <a href="reports.html" class="nav-link">📈 Reports</a>
-            <a href="notifications.html" class="nav-link">🔔 Notifications</a>
-            <a href="admin-logs.html" class="nav-link">🗂️ Admin Logs</a>
-            <a href="settings.html" class="nav-link">⚙️ Settings</a>
-            <button onclick="signOut()" class="nav-link" style="width:100%; background:none; border:none; margin-top:40px; border-top:1px solid var(--admin-border); padding-top:20px; text-align:left; cursor:pointer;">🚪 Logout</button>
+            <button onclick="signOut()" class="nav-link" style="width:100%; background:none; border:none; margin-top:40px; border-top:1px solid var(--admin-border); padding-top:20px;">🚪 Logout</button>
         </nav>
     </aside>
 
@@ -182,7 +171,7 @@
             </div>
 
             <div id="inventory" class="content-section">
-                <div class="card"><table><thead><tr><th>Unit Code</th><th>Product</th><th>Status</th><th>Acquisition</th></tr></thead><tbody id="inventory-body"></tbody></table><div id="inventory-empty" class="empty-state" style="display:none">No units owned.</div></div>
+                <div class="card"><table><thead><tr><th>Unit Code</th><th>Product</th><th>Status</th><th>Acquisition</th><th>Action</th></tr></thead><tbody id="inventory-body"></tbody></table><div id="inventory-empty" class="empty-state" style="display:none">No units owned.</div></div>
             </div>
 
             <div id="sales" class="content-section">
@@ -213,6 +202,58 @@
             <div class="modal-actions">
                 <button class="btn-action" onclick="closeModal()">Cancel</button>
                 <button class="btn-action" id="m-confirm" style="background:white; color:black;">Proceed</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wallet Adjustment Modal -->
+    <div class="modal-overlay" id="wallet-modal">
+        <div class="modal-card">
+            <h3 class="modal-title">Add / Remove Funds</h3>
+            <p class="modal-desc">Enter a positive amount to add funds, or a negative amount to remove funds from this user's wallet.</p>
+            <div style="margin-bottom:16px;">
+                <label style="font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:block; margin-bottom:6px;">Amount (₦)</label>
+                <input type="number" id="wallet-amount" placeholder="e.g. 5000 or -5000" style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--admin-border); background:var(--admin-bg); color:white; font-size:0.9rem;">
+            </div>
+            <div style="margin-bottom:20px;">
+                <label style="font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:block; margin-bottom:6px;">Reason (optional)</label>
+                <input type="text" id="wallet-reason" placeholder="e.g. Compensation for delayed withdrawal" style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--admin-border); background:var(--admin-bg); color:white; font-size:0.9rem;">
+            </div>
+            <div class="modal-btns">
+                <button class="btn-action" onclick="closeWalletModal()">Cancel</button>
+                <button class="btn-action" style="background:var(--accent); color:var(--admin-bg); border-color:var(--accent);" onclick="submitWalletAdjustment()">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assign Product Modal -->
+    <div class="modal-overlay" id="assign-modal">
+        <div class="modal-card">
+            <h3 class="modal-title">Assign Product</h3>
+            <p class="modal-desc">Grant this user bulk product units directly, free of charge. This reduces available marketplace inventory.</p>
+            <div style="margin-bottom:16px;">
+                <label style="font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:block; margin-bottom:6px;">Product</label>
+                <select id="assign-product-select" style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--admin-border); background:var(--admin-bg); color:white; font-size:0.9rem;"></select>
+            </div>
+            <div style="margin-bottom:20px;">
+                <label style="font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:block; margin-bottom:6px;">Quantity (bulk packages)</label>
+                <input type="number" id="assign-quantity" value="1" min="1" style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--admin-border); background:var(--admin-bg); color:white; font-size:0.9rem;">
+            </div>
+            <div class="modal-btns">
+                <button class="btn-action" onclick="closeAssignModal()">Cancel</button>
+                <button class="btn-action" style="background:var(--accent); color:var(--admin-bg); border-color:var(--accent);" onclick="submitAssignProduct()">Assign</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete User Modal -->
+    <div class="modal-overlay" id="delete-user-modal">
+        <div class="modal-card">
+            <h3 class="modal-title" style="color:var(--error);">Delete User</h3>
+            <p class="modal-desc">This permanently deletes the user's login and profile. If they have existing transaction history (deposits, sales, wallet ledger entries), deletion may fail — suspending the account is usually safer. This action is logged and cannot be undone.</p>
+            <div class="modal-btns">
+                <button class="btn-action" onclick="closeDeleteUserModal()">Cancel</button>
+                <button class="btn-action btn-danger" onclick="submitDeleteUser()">Delete Permanently</button>
             </div>
         </div>
     </div>
@@ -277,11 +318,14 @@
                     </div>
                     <div class="p-status">
                         <span class="badge ${isSuspended ? 'st-suspended' : 'st-active'}">${data.status || 'ACTIVE'}</span>
-                        <div style="display:flex; gap:8px;">
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
                             ${isSuspended 
                                 ? `<button class="btn-action btn-success" onclick="confirmStatus('ACTIVE')">Reactivate User</button>`
                                 : `<button class="btn-action btn-danger" onclick="confirmStatus('SUSPENDED')">Suspend Account</button>`
                             }
+                            <button class="btn-action" onclick="openWalletModal()">💰 Add/Remove Funds</button>
+                            <button class="btn-action" onclick="openAssignModal()">📦 Assign Product</button>
+                            <button class="btn-action btn-danger" onclick="openDeleteUserModal()">🗑 Delete User</button>
                         </div>
                     </div>
                 </div>
@@ -340,6 +384,7 @@
                     <td>${u.products.name}</td>
                     <td><span class="badge ${u.status === 'SOLD' ? '' : 'st-active'}">${u.status}</span></td>
                     <td>${formatNaira(u.acquisition_price)}</td>
+                    <td>${u.status === 'SOLD' ? '<span style="color:var(--text-muted); font-size:0.7rem;">Sold — locked</span>' : `<button class="btn-action btn-danger" style="padding:4px 10px; font-size:0.7rem;" onclick="deleteUnit('${u.id}', '${u.unit_code}')">Delete</button>`}</td>
                 </tr>`).join('');
         }
 
@@ -385,6 +430,83 @@
         }
 
         window.closeModal = () => document.getElementById('status-modal').classList.remove('active');
+
+        // --- ADMIN API HELPER ---
+        async function callAdminAPI(action, body) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch(`/api/admin?action=${action}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify(body)
+            });
+            return res.json();
+        }
+
+        // --- WALLET ADJUSTMENT ---
+        window.openWalletModal = () => {
+            document.getElementById('wallet-amount').value = '';
+            document.getElementById('wallet-reason').value = '';
+            document.getElementById('wallet-modal').classList.add('active');
+        };
+        window.closeWalletModal = () => document.getElementById('wallet-modal').classList.remove('active');
+        window.submitWalletAdjustment = async () => {
+            const amount = parseFloat(document.getElementById('wallet-amount').value);
+            const reason = document.getElementById('wallet-reason').value.trim();
+            if (!amount || amount === 0) return alert('Enter a non-zero amount.');
+
+            const result = await callAdminAPI('adjust-wallet', { user_id: targetUserId, amount, reason });
+            if (!result.success) return alert(result.error || 'Failed to adjust wallet.');
+            closeWalletModal();
+            fetchStats();
+            fetchLedger();
+        };
+
+        // --- ASSIGN PRODUCT ---
+        window.openAssignModal = async () => {
+            const { data: products } = await supabase.from('products').select('id, name, available_inventory').eq('status', 'ACTIVE').order('name');
+            const select = document.getElementById('assign-product-select');
+            select.innerHTML = (products || []).map(p => `<option value="${p.id}">${p.name} (${p.available_inventory} available)</option>`).join('');
+            document.getElementById('assign-quantity').value = 1;
+            document.getElementById('assign-modal').classList.add('active');
+        };
+        window.closeAssignModal = () => document.getElementById('assign-modal').classList.remove('active');
+        window.submitAssignProduct = async () => {
+            const product_id = document.getElementById('assign-product-select').value;
+            const quantity = parseInt(document.getElementById('assign-quantity').value);
+            if (!product_id || !quantity || quantity < 1) return alert('Select a product and a valid quantity.');
+
+            const result = await callAdminAPI('assign-product', { user_id: targetUserId, product_id, quantity });
+            if (!result.success) return alert(result.error || 'Failed to assign product.');
+            closeAssignModal();
+            fetchStats();
+            fetchPurchases();
+            fetchInventory();
+        };
+
+        // --- DELETE PRODUCT UNIT ---
+        window.deleteUnit = async (unitId, unitCode) => {
+            if (!confirm(`Delete unit ${unitCode}? This cannot be undone.`)) return;
+            const result = await callAdminAPI('delete-unit', { unit_id: unitId });
+            if (!result.success) return alert(result.error || 'Failed to delete unit.');
+            fetchStats();
+            fetchInventory();
+        };
+
+        // --- DELETE USER ---
+        window.openDeleteUserModal = () => document.getElementById('delete-user-modal').classList.add('active');
+        window.closeDeleteUserModal = () => document.getElementById('delete-user-modal').classList.remove('active');
+        window.submitDeleteUser = async () => {
+            const result = await callAdminAPI('delete-user', { user_id: targetUserId });
+            if (!result.success) {
+                alert(result.error || 'Failed to delete user.');
+                return;
+            }
+            alert('User deleted successfully.');
+            window.location.href = 'users.html';
+        };
 
         function initTabs() {
             document.querySelectorAll('.tab').forEach(t => {
