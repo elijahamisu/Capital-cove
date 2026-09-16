@@ -50,6 +50,8 @@ export default async function handler(req, res) {
                 return await handleDeleteUser(user.id, req, res);
             case 'assign-product':
                 return await handleAssignProduct(user.id, req, res);
+            case 'remove-product':
+                return await handleRemoveProduct(user.id, req, res);
             case 'delete-unit':
                 return await handleDeleteUnit(user.id, req, res);
             case 'adjust-wallet':
@@ -163,6 +165,41 @@ async function handleDeleteUser(adminId, req, res) {
 
     await logAdminAction(adminId, 'USER_DELETED', user_id, {});
     return res.status(200).json({ success: true, message: 'User deleted successfully' });
+}
+
+async function handleRemoveProduct(adminId, req, res) {
+    const { user_id, product_id, quantity } = req.body;
+    const qty = parseInt(quantity);
+    if (!user_id || !product_id || !qty || qty < 1) {
+        return res.status(400).json({ success: false, error: 'user_id, product_id and a positive quantity are required' });
+    }
+
+    const { data: product, error: productError } = await adminClient.from('products').select('*').eq('id', product_id).single();
+    if (productError || !product) return res.status(404).json({ success: false, error: 'Product not found' });
+
+    const unitsToRemove = product.units_per_bulk * qty;
+
+    const { data: ownedUnits, error: unitsFetchError } = await adminClient
+        .from('product_units')
+        .select('id')
+        .eq('owner_id', user_id)
+        .eq('product_id', product_id)
+        .neq('status', 'SOLD')
+        .limit(unitsToRemove);
+    if (unitsFetchError) throw unitsFetchError;
+
+    if (!ownedUnits || ownedUnits.length < unitsToRemove) {
+        return res.status(400).json({ success: false, error: `User only has ${ownedUnits?.length || 0} removable unit(s) of this product (sold units can't be removed) — need ${unitsToRemove} to remove ${qty} bulk package(s).` });
+    }
+
+    const idsToDelete = ownedUnits.map(u => u.id);
+    const { error: deleteError } = await adminClient.from('product_units').delete().in('id', idsToDelete);
+    if (deleteError) throw deleteError;
+
+    await adminClient.from('products').update({ available_inventory: product.available_inventory + qty }).eq('id', product_id);
+
+    await logAdminAction(adminId, 'PRODUCT_REMOVED', user_id, { product_id, quantity: qty, units_removed: unitsToRemove });
+    return res.status(200).json({ success: true, message: `Removed ${qty} bulk package(s) (${unitsToRemove} units) of ${product.name}` });
 }
 
 async function handleAssignProduct(adminId, req, res) {
