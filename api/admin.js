@@ -46,6 +46,14 @@ export default async function handler(req, res) {
                 return await handleGetUserDetails(req, res);
             case 'update-user-status':
                 return await handleUpdateUserStatus(user.id, req, res);
+            case 'delete-user':
+                return await handleDeleteUser(user.id, req, res);
+            case 'assign-product':
+                return await handleAssignProduct(user.id, req, res);
+            case 'delete-unit':
+                return await handleDeleteUnit(user.id, req, res);
+            case 'adjust-wallet':
+                return await handleAdjustWallet(user.id, req, res);
 
             // --- PRODUCT & INVENTORY ---
             case 'manage-product':
@@ -136,6 +144,108 @@ async function handleUpdateUserStatus(adminId, req, res) {
 
     await logAdminAction(adminId, 'USER_STATUS_CHANGE', user_id, { new_status: status });
     return res.status(200).json({ success: true, message: `User status updated to ${status}` });
+}
+
+async function handleDeleteUser(adminId, req, res) {
+    const { user_id } = req.body;
+    if (!user_id) return res.status(400).json({ success: false, error: 'User ID required' });
+    if (user_id === adminId) return res.status(400).json({ success: false, error: 'You cannot delete your own admin account here.' });
+
+    const { error } = await adminClient.auth.admin.deleteUser(user_id);
+    if (error) {
+        // Most likely cause: foreign key constraints from related financial
+        // records (wallet_transactions, sales, deposits, etc.) blocking deletion.
+        return res.status(400).json({ success: false, error: `Could not delete user: ${error.message}. They likely have existing transaction/order history that must be handled first — consider suspending the account instead.` });
+    }
+
+    // Best-effort cleanup in case profiles isn't set to cascade-delete
+    await adminClient.from('profiles').delete().eq('id', user_id);
+
+    await logAdminAction(adminId, 'USER_DELETED', user_id, {});
+    return res.status(200).json({ success: true, message: 'User deleted successfully' });
+}
+
+async function handleAssignProduct(adminId, req, res) {
+    const { user_id, product_id, quantity } = req.body;
+    const qty = parseInt(quantity);
+    if (!user_id || !product_id || !qty || qty < 1) {
+        return res.status(400).json({ success: false, error: 'user_id, product_id and a positive quantity are required' });
+    }
+
+    const { data: product, error: productError } = await adminClient.from('products').select('*').eq('id', product_id).single();
+    if (productError || !product) return res.status(404).json({ success: false, error: 'Product not found' });
+
+    if (product.available_inventory < qty) {
+        return res.status(400).json({ success: false, error: `Only ${product.available_inventory} bulk package(s) available for this product` });
+    }
+
+    const totalUnits = product.units_per_bulk * qty;
+    const unitCost = product.bulk_price / product.units_per_bulk;
+
+    const { data: purchase, error: purchaseError } = await adminClient
+        .from('bulk_purchases')
+        .insert({ user_id, product_id, quantity: qty, unit_count: totalUnits, total_amount: 0, status: 'COMPLETED' })
+        .select()
+        .single();
+    if (purchaseError) throw purchaseError;
+
+    const slugPrefix = (product.slug || product.name || 'PRD').replace(/[^a-zA-Z0-9]/g, '').substring(0, 4).toUpperCase();
+    const purchaseFragment = purchase.id.replace(/-/g, '').substring(0, 6).toUpperCase();
+    const unitsToInsert = Array.from({ length: totalUnits }, (_, i) => ({
+        product_id,
+        bulk_purchase_id: purchase.id,
+        owner_id: user_id,
+        unit_code: `${slugPrefix}-${purchaseFragment}-${String(i + 1).padStart(4, '0')}`,
+        status: 'OWNED',
+        acquisition_price: unitCost,
+        selling_price: product.unit_selling_price
+    }));
+
+    const { error: unitsError } = await adminClient.from('product_units').insert(unitsToInsert);
+    if (unitsError) throw unitsError;
+
+    await adminClient.from('products').update({ available_inventory: product.available_inventory - qty }).eq('id', product_id);
+
+    await logAdminAction(adminId, 'PRODUCT_ASSIGNED', user_id, { product_id, quantity: qty, total_units: totalUnits });
+    return res.status(200).json({ success: true, message: `Assigned ${qty} bulk package(s) (${totalUnits} units) of ${product.name}` });
+}
+
+async function handleDeleteUnit(adminId, req, res) {
+    const { unit_id } = req.body;
+    if (!unit_id) return res.status(400).json({ success: false, error: 'unit_id required' });
+
+    const { data: unit, error: unitError } = await adminClient.from('product_units').select('*').eq('id', unit_id).single();
+    if (unitError || !unit) return res.status(404).json({ success: false, error: 'Unit not found' });
+
+    if (unit.status === 'SOLD') {
+        return res.status(400).json({ success: false, error: 'This unit has already been sold and has an associated sales record, so it cannot be deleted.' });
+    }
+
+    const { error: deleteError } = await adminClient.from('product_units').delete().eq('id', unit_id);
+    if (deleteError) throw deleteError;
+
+    await logAdminAction(adminId, 'PRODUCT_UNIT_DELETED', unit_id, { product_id: unit.product_id, owner_id: unit.owner_id, unit_code: unit.unit_code });
+    return res.status(200).json({ success: true, message: `Unit ${unit.unit_code} deleted successfully` });
+}
+
+async function handleAdjustWallet(adminId, req, res) {
+    const { user_id, amount, reason } = req.body;
+    const amt = parseFloat(amount);
+    if (!user_id || !amt || amt === 0) {
+        return res.status(400).json({ success: false, error: 'user_id and a non-zero amount are required' });
+    }
+
+    const { error } = await adminClient.rpc('adjust_wallet_balance', {
+        p_user_id: user_id,
+        p_amount: amt,
+        p_type: 'ADMIN_ADJUSTMENT',
+        p_reference: null,
+        p_description: reason || (amt > 0 ? 'Admin fund addition' : 'Admin fund deduction')
+    });
+    if (error) return res.status(400).json({ success: false, error: error.message });
+
+    await logAdminAction(adminId, 'WALLET_ADJUSTED', user_id, { amount: amt, reason: reason || null });
+    return res.status(200).json({ success: true, message: `Wallet adjusted by ₦${amt.toLocaleString()}` });
 }
 
 async function handleManageProduct(adminId, req, res) {
