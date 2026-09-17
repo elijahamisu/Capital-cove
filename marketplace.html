@@ -175,7 +175,7 @@
             </div>
             <select id="sort-select" style="margin-top: 12px; width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-main); font-size: 0.85rem; font-weight: 600;">
                 <option value="default">Sort by: Featured</option>
-                <option value="price-asc">Price: Low to High</option>
+                <option value="price-asc" selected>Price: Low to High</option>
                 <option value="price-desc">Price: High to Low</option>
             </select>
         </div>
@@ -301,7 +301,7 @@
         });
 
         const sortSelect = document.getElementById('sort-select');
-        let sortOrder = 'default';
+        let sortOrder = 'price-asc';
 
         sortSelect.addEventListener('change', (e) => {
             sortOrder = e.target.value;
