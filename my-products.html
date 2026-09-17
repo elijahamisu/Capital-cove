@@ -267,23 +267,27 @@
             }
 
             // Group units by product_id
+            // Group units by purchase batch (bulk_purchase_id), not just
+            // product — buying the same product again later creates a
+            // separate, independently-tracked batch rather than merging
+            // into an existing one.
             const groups = filtered.reduce((acc, unit) => {
-                const pid = unit.product_id;
-                if (!acc[pid]) acc[pid] = { details: unit.products, units: [] };
-                acc[pid].units.push(unit);
+                const batchId = unit.bulk_purchase_id;
+                if (!acc[batchId]) acc[batchId] = { details: unit.products, units: [] };
+                acc[batchId].units.push(unit);
                 return acc;
             }, {});
 
-            productList.innerHTML = Object.values(groups).map(group => {
+            productList.innerHTML = Object.entries(groups).map(([batchId, group]) => {
                 const p = group.details;
                 const units = group.units;
                 const total = units.length;
                 const sold = units.filter(u => u.status === 'SOLD').length;
                 const available = total - sold;
 
-                // Per-product sale credits: 1 credit per calendar day since
-                // the day AFTER this product was first owned (purchase day
-                // itself grants no credit), banked with no expiry.
+                // Per-batch sale credits: 1 credit per calendar day since
+                // the day AFTER this specific purchase was made (purchase
+                // day itself grants no credit), banked with no expiry.
                 const firstOwnedDate = new Date(Math.min(...units.map(u => new Date(u.created_at))));
                 firstOwnedDate.setHours(0, 0, 0, 0);
                 const today = new Date();
@@ -298,6 +302,7 @@
                         <div class="product-info">
                             <span class="product-cat">${p.category || 'Bulk Product'}</span>
                             <h3 class="product-name">${p.name}</h3>
+                            <span style="font-size:0.65rem; color:var(--text-muted);">Purchased ${firstOwnedDate.toLocaleDateString()}</span>
                         </div>
                     </div>
                     
@@ -323,7 +328,7 @@
                     <div class="card-actions">
                         ${available > 0 ? (productCredits <= 0
                             ? `<button class="btn" style="background:#e2e8f0; color:#94a3b8; cursor:default; grid-column: span 2;">No Sale Credits Left</button>`
-                            : `<a href="product-sales.html?product=${p.id}" class="btn btn-primary" style="grid-column: span 2;">Sale (${productCredits} credit${productCredits === 1 ? '' : 's'} left)</a>`)
+                            : `<a href="product-sales.html?product=${p.id}&batch=${batchId}" class="btn btn-primary" style="grid-column: span 2;">Sale (${productCredits} credit${productCredits === 1 ? '' : 's'} left)</a>`)
                             : `<button class="btn" style="background:#e2e8f0; color:#94a3b8; cursor:default; grid-column: span 2;">Sold Out</button>`}
                     </div>
                 </div>
