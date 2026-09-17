@@ -179,20 +179,49 @@ async function handleRemoveProduct(adminId, req, res) {
 
     const unitsToRemove = product.units_per_bulk * qty;
 
-    const { data: ownedUnits, error: unitsFetchError } = await adminClient
+    // Prefer removing non-sold units first (less destructive); only reach
+    // into sold units if there aren't enough non-sold ones to make up the count.
+    const { data: nonSoldUnits, error: nonSoldError } = await adminClient
         .from('product_units')
-        .select('id')
+        .select('id, status')
         .eq('owner_id', user_id)
         .eq('product_id', product_id)
         .neq('status', 'SOLD')
         .limit(unitsToRemove);
-    if (unitsFetchError) throw unitsFetchError;
+    if (nonSoldError) throw nonSoldError;
 
-    if (!ownedUnits || ownedUnits.length < unitsToRemove) {
-        return res.status(400).json({ success: false, error: `User only has ${ownedUnits?.length || 0} removable unit(s) of this product (sold units can't be removed) — need ${unitsToRemove} to remove ${qty} bulk package(s).` });
+    let unitsToDelete = nonSoldUnits || [];
+    const stillNeeded = unitsToRemove - unitsToDelete.length;
+
+    if (stillNeeded > 0) {
+        const { data: soldUnits, error: soldError } = await adminClient
+            .from('product_units')
+            .select('id, status')
+            .eq('owner_id', user_id)
+            .eq('product_id', product_id)
+            .eq('status', 'SOLD')
+            .limit(stillNeeded);
+        if (soldError) throw soldError;
+        unitsToDelete = unitsToDelete.concat(soldUnits || []);
     }
 
-    const idsToDelete = ownedUnits.map(u => u.id);
+    if (unitsToDelete.length < unitsToRemove) {
+        return res.status(400).json({ success: false, error: `User only owns ${unitsToDelete.length} unit(s) of this product in total — need ${unitsToRemove} to remove ${qty} bulk package(s).` });
+    }
+
+    const soldIdsBeingRemoved = unitsToDelete.filter(u => u.status === 'SOLD').map(u => u.id);
+    if (soldIdsBeingRemoved.length) {
+        // Cascade-delete linked sales/settlements for any sold units being force-removed.
+        // Wallet proceeds already paid out are intentionally left untouched.
+        const { data: relatedSales } = await adminClient.from('sales').select('id').in('product_unit_id', soldIdsBeingRemoved);
+        if (relatedSales?.length) {
+            const saleIds = relatedSales.map(s => s.id);
+            await adminClient.from('settlements').delete().in('sale_id', saleIds);
+            await adminClient.from('sales').delete().in('id', saleIds);
+        }
+    }
+
+    const idsToDelete = unitsToDelete.map(u => u.id);
     const { error: deleteError } = await adminClient.from('product_units').delete().in('id', idsToDelete);
     if (deleteError) throw deleteError;
 
@@ -254,15 +283,26 @@ async function handleDeleteUnit(adminId, req, res) {
     const { data: unit, error: unitError } = await adminClient.from('product_units').select('*').eq('id', unit_id).single();
     if (unitError || !unit) return res.status(404).json({ success: false, error: 'Unit not found' });
 
+    let cascadedSale = false;
     if (unit.status === 'SOLD') {
-        return res.status(400).json({ success: false, error: 'This unit has already been sold and has an associated sales record, so it cannot be deleted.' });
+        // Force-delete: this unit has a linked sales record (and possibly a
+        // settlement). Removing it permanently erases that sale from
+        // financial history/reports. Wallet balance is intentionally left
+        // untouched — proceeds already paid out are not clawed back.
+        const { data: relatedSales } = await adminClient.from('sales').select('id').eq('product_unit_id', unit_id);
+        if (relatedSales?.length) {
+            const saleIds = relatedSales.map(s => s.id);
+            await adminClient.from('settlements').delete().in('sale_id', saleIds);
+            await adminClient.from('sales').delete().in('id', saleIds);
+            cascadedSale = true;
+        }
     }
 
     const { error: deleteError } = await adminClient.from('product_units').delete().eq('id', unit_id);
     if (deleteError) throw deleteError;
 
-    await logAdminAction(adminId, 'PRODUCT_UNIT_DELETED', unit_id, { product_id: unit.product_id, owner_id: unit.owner_id, unit_code: unit.unit_code });
-    return res.status(200).json({ success: true, message: `Unit ${unit.unit_code} deleted successfully` });
+    await logAdminAction(adminId, 'PRODUCT_UNIT_DELETED', unit_id, { product_id: unit.product_id, owner_id: unit.owner_id, unit_code: unit.unit_code, forced_sold_unit: cascadedSale });
+    return res.status(200).json({ success: true, message: `Unit ${unit.unit_code} deleted successfully${cascadedSale ? ' (its linked sale/settlement records were also removed)' : ''}` });
 }
 
 async function handleAdjustWallet(adminId, req, res) {
