@@ -235,20 +235,30 @@
         const headerAuth = document.getElementById('header-auth');
 
         // --- INIT ---
+        let currentUser = null;
+        let claimedFreeProductIds = new Set();
+
         document.addEventListener('DOMContentLoaded', () => {
             initAuth();
-            fetchProducts();
         });
 
         async function initAuth() {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
+                currentUser = session.user;
                 headerAuth.innerHTML = `
                     <a href="notifications.html" class="action-btn">🔔</a>
                     <a href="wallet.html" class="action-btn">💳</a>
                     <a href="profile.html" class="action-btn">👤</a>
                 `;
+                const { data: freePurchases } = await supabase
+                    .from('bulk_purchases')
+                    .select('product_id, products!inner(bulk_price)')
+                    .eq('user_id', currentUser.id)
+                    .eq('products.bulk_price', 0);
+                (freePurchases || []).forEach(p => claimedFreeProductIds.add(p.product_id));
             }
+            fetchProducts();
         }
 
         async function fetchProducts() {
@@ -340,6 +350,8 @@
 
             productList.innerHTML = products.map(p => {
                 const isSoldOut = p.available_inventory <= 0;
+                const isFree = Number(p.bulk_price) === 0;
+                const alreadyClaimed = isFree && claimedFreeProductIds.has(p.id);
                 return `
                 <div class="product-card">
                     <div class="product-img-wrap">
@@ -359,7 +371,7 @@
                             </div>
                             <div class="stat">
                                 <span class="stat-lbl">Inventory</span>
-                                <span class="stat-val">${isSoldOut ? 'Sold Out' : p.available_inventory + ' Left'}</span>
+                                <span class="stat-val">${alreadyClaimed ? 'Claimed' : isSoldOut ? 'Sold Out' : p.available_inventory + ' Left'}</span>
                             </div>
                         </div>
 
@@ -369,7 +381,9 @@
                         </div>
 
                         <div class="product-footer">
-                            ${isSoldOut ? 
+                            ${alreadyClaimed ?
+                                `<div class="btn btn-soldout" style="grid-column: span 2;">Already Claimed (1 per user)</div>` :
+                                isSoldOut ? 
                                 `<div class="btn btn-soldout">Unavailable</div>` : 
                                 `<a href="product-details.html?id=${p.id}" class="btn btn-outline">View</a>
                                  <a href="buy-bulk.html?product=${p.id}" class="btn btn-primary">Buy Bulk</a>`
