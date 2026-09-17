@@ -117,7 +117,7 @@
                 <label class="label">Actual Sale Amount</label>
                 <div class="input-wrap">
                     <span class="input-icon">₦</span>
-                    <input type="number" id="sale-amount-input" class="input" placeholder="0.00" step="0.01" readonly style="background: var(--bg); cursor: not-allowed;">
+                    <input type="number" id="sale-amount-input" class="input" placeholder="0.00" step="0.01">
                 </div>
                 <p id="suggested-hint" style="font-size: 0.7rem; color: var(--text-muted); margin-top: 8px;"></p>
             </div>
@@ -138,7 +138,7 @@
             </div>
 
             <button class="btn btn-primary" id="record-btn">
-                <span id="btn-text">Sale</span>
+                <span id="btn-text">Record Sale Now</span>
                 <div class="spinner" id="btn-spinner"></div>
             </button>
             <p style="font-size: 0.7rem; text-align: center; color: var(--text-muted); margin-top: 10px;">
@@ -175,11 +175,11 @@
         </a>
     </nav>
 
-    <script type="module">
+    <script>
         // --- CONFIG ---
         const SB_URL = import.meta.env.VITE_SUPABASE_URL;
         const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-        const supabase = window.supabase.createClient(SB_URL, SB_KEY);
+        const supabase = collections = net = supabase.createClient(SB_URL, SB_KEY);
 
         // --- STATE ---
         let user = null;
@@ -210,11 +210,12 @@
             const params = new URLSearchParams(window.location.search);
             const unitId = params.get('unit');
             const productId = params.get('product');
+            const batchId = params.get('batch');
 
             if (unitId) {
                 await fetchSpecificUnit(unitId);
             } else if (productId) {
-                await fetchFirstAvailableUnit(productId);
+                await fetchFirstAvailableUnit(productId, batchId);
             } else {
                 renderSelectionError("Please select a unit from your 'My Products' page first.");
             }
@@ -238,18 +239,20 @@
             }
         }
 
-        async function fetchFirstAvailableUnit(pid) {
-            const { data, error } = await supabase
+        async function fetchFirstAvailableUnit(pid, batchId) {
+            let query = supabase
                 .from('product_units')
                 .select('*, products(*)')
                 .eq('product_id', pid)
                 .eq('owner_id', user.id)
-                .neq('status', 'SOLD')
-                .limit(1)
-                .single();
+                .neq('status', 'SOLD');
+
+            if (batchId) query = query.eq('bulk_purchase_id', batchId);
+
+            const { data, error } = await query.limit(1).single();
 
             if (error || !data) {
-                renderSelectionError("No available units found for this product.");
+                renderSelectionError(batchId ? "No available units found in this purchase batch." : "No available units found for this product.");
             } else {
                 handleUnitSelected(data);
             }
@@ -269,7 +272,7 @@
                     </div>
                 </div>
             `;
-            suggestedHint.textContent = `Fixed selling price: ₦${Number(unit.products.unit_selling_price).toLocaleString()}`;
+            suggestedHint.textContent = `Suggested selling price: ₦${Number(unit.products.unit_selling_price).toLocaleString()}`;
             amountInput.value = unit.products.unit_selling_price;
             formCard.style.display = 'block';
             updatePreview();
