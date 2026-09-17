@@ -263,7 +263,7 @@
     <div class="modal-overlay" id="remove-modal">
         <div class="modal-card">
             <h3 class="modal-title" style="color:var(--error);">Remove Product</h3>
-            <p class="modal-desc">Remove bulk product units this user currently owns (units already sold can't be removed). Removed stock is returned to available marketplace inventory.</p>
+            <p class="modal-desc">Remove bulk product units this user currently owns. Prefers non-sold units first, but will fall back to already-sold units if needed — in that case, the linked sale and settlement records are permanently deleted too (wallet balance is left untouched). Removed stock is returned to available marketplace inventory.</p>
             <div style="margin-bottom:16px;">
                 <label style="font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:block; margin-bottom:6px;">Product</label>
                 <select id="remove-product-select" style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--admin-border); background:var(--admin-bg); color:white; font-size:0.9rem;"></select>
@@ -419,7 +419,9 @@
                     <td>${u.products.name}</td>
                     <td><span class="badge ${u.status === 'SOLD' ? '' : 'st-active'}">${u.status}</span></td>
                     <td>${formatNaira(u.acquisition_price)}</td>
-                    <td>${u.status === 'SOLD' ? '<span style="color:var(--text-muted); font-size:0.7rem;">Sold — locked</span>' : `<button class="btn-action btn-danger" style="padding:4px 10px; font-size:0.7rem;" onclick="deleteUnit('${u.id}', '${u.unit_code}')">Delete</button>`}</td>
+                    <td>${u.status === 'SOLD'
+                        ? `<button class="btn-action btn-danger" style="padding:4px 10px; font-size:0.7rem;" onclick="deleteUnit('${u.id}', '${u.unit_code}', true)">Force Delete</button>`
+                        : `<button class="btn-action btn-danger" style="padding:4px 10px; font-size:0.7rem;" onclick="deleteUnit('${u.id}', '${u.unit_code}', false)">Delete</button>`}</td>
                 </tr>`).join('');
         }
 
@@ -591,8 +593,11 @@
         };
 
         // --- DELETE PRODUCT UNIT ---
-        window.deleteUnit = async (unitId, unitCode) => {
-            if (!confirm(`Delete unit ${unitCode}? This cannot be undone.`)) return;
+        window.deleteUnit = async (unitId, unitCode, isSold) => {
+            const message = isSold
+                ? `Force-delete SOLD unit ${unitCode}? This permanently erases its linked sale and settlement records from your financial history and reports. The seller's wallet balance will NOT be reversed. This cannot be undone.`
+                : `Delete unit ${unitCode}? This cannot be undone.`;
+            if (!confirm(message)) return;
             const result = await callAdminAPI('delete-unit', { unit_id: unitId });
             if (!result.success) return alert(result.error || 'Failed to delete unit.');
             fetchStats();
