@@ -361,7 +361,11 @@
             }
         };
 
+        let purchaseInFlight = false;
+
         async function handlePurchase() {
+            if (purchaseInFlight) return;
+            purchaseInFlight = true;
             setLoading(true);
             errorAlert.style.display = 'none';
 
@@ -386,6 +390,7 @@
                 console.error(err);
                 showError(err.message || "Purchase failed. Please try again.");
                 setLoading(false);
+                purchaseInFlight = false;
             }
         }
 
