@@ -200,37 +200,56 @@
 
         // --- INIT ---
         document.addEventListener('DOMContentLoaded', async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                window.location.href = 'login.html';
-                return;
+            try {
+                const { data: { session }, error: sessionError } = await withTimeout(supabase.auth.getSession(), 15000, 'Checking your login session');
+                if (sessionError) throw sessionError;
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                user = session.user;
+
+                const params = new URLSearchParams(window.location.search);
+                const unitId = params.get('unit');
+                const productId = params.get('product');
+                const batchId = params.get('batch');
+
+                if (unitId) {
+                    await fetchSpecificUnit(unitId);
+                } else if (productId) {
+                    await fetchFirstAvailableUnit(productId, batchId);
+                } else {
+                    renderSelectionError("Please select a unit from your 'My Products' page first.");
+                }
+
+                await fetchHistory();
+                initListeners();
+            } catch (err) {
+                console.error('Record a Sale — init failed:', err);
+                renderSelectionError(`Something went wrong loading this page: ${err.message || 'unknown error'}. Please go back and try again, or check your connection.`);
+                document.getElementById('history-list').innerHTML = `<p style="text-align:center; color: var(--error); font-size: 0.8rem; padding: 20px;">Couldn't load sales history: ${err.message || 'unknown error'}</p>`;
             }
-            user = session.user;
-
-            const params = new URLSearchParams(window.location.search);
-            const unitId = params.get('unit');
-            const productId = params.get('product');
-            const batchId = params.get('batch');
-
-            if (unitId) {
-                await fetchSpecificUnit(unitId);
-            } else if (productId) {
-                await fetchFirstAvailableUnit(productId, batchId);
-            } else {
-                renderSelectionError("Please select a unit from your 'My Products' page first.");
-            }
-
-            fetchHistory();
-            initListeners();
         });
 
+        // Wraps a promise so it never hangs forever — rejects with a clear
+        // message if it doesn't resolve within the given time, instead of
+        // leaving the page stuck on a loading state with no feedback.
+        function withTimeout(promise, ms, label) {
+            return Promise.race([
+                promise,
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error(`${label} timed out — your connection may be too slow or unstable right now.`)), ms)
+                )
+            ]);
+        }
+
         async function fetchSpecificUnit(id) {
-            const { data, error } = await supabase
+            const { data, error } = await withTimeout(supabase
                 .from('product_units')
                 .select('*, products(*)')
                 .eq('id', id)
                 .eq('owner_id', user.id)
-                .single();
+                .single(), 15000, 'Loading your product unit');
             
             if (error || !data) {
                 renderSelectionError("Unit not found or unauthorized.");
@@ -249,7 +268,7 @@
 
             if (batchId) query = query.eq('bulk_purchase_id', batchId);
 
-            const { data, error } = await query.limit(1).single();
+            const { data, error } = await withTimeout(query.limit(1).single(), 15000, 'Loading your product unit');
 
             if (error || !data) {
                 renderSelectionError(batchId ? "No available units found in this purchase batch." : "No available units found for this product.");
@@ -319,12 +338,12 @@
 
         async function fetchHistory() {
             try {
-                const { data, error } = await supabase
+                const { data, error } = await withTimeout(supabase
                     .from('sales')
                     .select('*, product_units(unit_code), products(name)')
                     .eq('seller_user_id', user.id)
                     .order('sold_at', { ascending: false })
-                    .limit(10);
+                    .limit(10), 15000, 'Loading sales history');
 
                 if (error) throw error;
 
