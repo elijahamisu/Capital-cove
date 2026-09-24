@@ -160,6 +160,13 @@
                             <div class="label-wrap"><label class="label">Processing Fee (%)</label><span class="hint">0 to 100</span></div>
                             <input type="number" id="s-withdrawal_charge_percent" class="input" required min="0" max="100">
                         </div>
+                        <div class="form-group">
+                            <div class="label-wrap"><label class="label">Withdrawal Lock</label><span class="hint">Blocks ALL users</span></div>
+                            <select id="s-withdrawals_locked" class="input">
+                                <option value="false">🟢 Unlocked — withdrawals allowed</option>
+                                <option value="true">🔴 Locked — withdrawals disabled</option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- Deposits -->
