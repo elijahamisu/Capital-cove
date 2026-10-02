@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://js.paystack.co/v1/inline.js"></script>
     
     <style>
         :root {
@@ -113,8 +114,27 @@
         
         <div id="alert-box" class="alert"></div>
 
+        <!-- Deposit Method Tabs -->
+        <div class="method-tabs" style="display:flex; gap:8px; margin-bottom:20px;">
+            <button class="method-tab active" id="tab-instant" onclick="switchMethod('instant')" style="flex:1; padding:12px; border-radius:10px; border:2px solid var(--accent); background:var(--accent); color:var(--primary); font-weight:800; font-size:0.85rem; cursor:pointer;">⚡ Instant (Card)</button>
+            <button class="method-tab" id="tab-manual" onclick="switchMethod('manual')" style="flex:1; padding:12px; border-radius:10px; border:2px solid var(--border); background:transparent; color:var(--text-main); font-weight:800; font-size:0.85rem; cursor:pointer;">🏦 Bank Transfer</button>
+        </div>
+
+        <!-- Instant (Paystack) Section -->
+        <div id="instant-section" class="card">
+            <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:16px;">Pay instantly with your card or bank account via Paystack. Your wallet is credited automatically — no waiting for admin approval.</p>
+            <div class="form-group">
+                <label class="label">Amount</label>
+                <input type="number" id="paystack-amount" class="input" placeholder="e.g. 5000">
+            </div>
+            <button class="btn-submit" id="paystack-btn">
+                <span id="paystack-btn-text">Pay with Paystack</span>
+                <div class="spinner" id="paystack-spinner"></div>
+            </button>
+        </div>
+
         <!-- Bank Details -->
-        <div class="bank-card">
+        <div class="bank-card" id="manual-bank-details" style="display:none;">
             <div>
                 <span class="bank-label">Bank Name</span>
                 <div class="bank-val-wrap">
@@ -138,13 +158,13 @@
             </div>
         </div>
 
-        <div class="instruction-box">
+        <div class="instruction-box" id="manual-instructions" style="display:none;">
             <h4>Instructions</h4>
             <p>1. Transfer funds to the account above.<br>2. Enter the name and bank the transfer was made from.<br>3. Submit your deposit request.<br>4. Wait for admin approval (usually within 1-24 hours).</p>
         </div>
 
         <!-- Deposit Form -->
-        <div class="card">
+        <div class="card" id="manual-section" style="display:none;">
             <div class="form-group">
                 <label class="label">Amount Transferred</label>
                 <input type="number" id="dep-amount" class="input" placeholder="e.g. 5000">
@@ -198,6 +218,7 @@
         // --- STATE ---
         let user = null;
         let minDeposit = 3500;
+        let paystackPublicKey = null;
 
         // --- DOM ---
         const amountInput = document.getElementById('dep-amount');
@@ -208,6 +229,10 @@
         const btnSpinner = document.getElementById('btn-spinner');
         const alertBox = document.getElementById('alert-box');
         const historyList = document.getElementById('history-list');
+        const paystackAmountInput = document.getElementById('paystack-amount');
+        const paystackBtn = document.getElementById('paystack-btn');
+        const paystackBtnText = document.getElementById('paystack-btn-text');
+        const paystackSpinner = document.getElementById('paystack-spinner');
 
         // --- INIT ---
         document.addEventListener('DOMContentLoaded', async () => {
@@ -228,10 +253,109 @@
                 minDeposit = parseFloat(data.value);
                 document.getElementById('min-dep-tag').textContent = `Min: ₦${minDeposit.toLocaleString()}`;
             }
+            const { data: pkRow } = await supabase.from('settings').select('value').eq('key', 'paystack_public_key').maybeSingle();
+            paystackPublicKey = pkRow?.value || null;
         }
+
+        window.switchMethod = (method) => {
+            const isInstant = method === 'instant';
+            document.getElementById('instant-section').style.display = isInstant ? 'block' : 'none';
+            document.getElementById('manual-bank-details').style.display = isInstant ? 'none' : 'block';
+            document.getElementById('manual-instructions').style.display = isInstant ? 'none' : 'block';
+            document.getElementById('manual-section').style.display = isInstant ? 'none' : 'block';
+
+            const instantTab = document.getElementById('tab-instant');
+            const manualTab = document.getElementById('tab-manual');
+            instantTab.style.background = isInstant ? 'var(--accent)' : 'transparent';
+            instantTab.style.color = isInstant ? 'var(--primary)' : 'var(--text-main)';
+            instantTab.style.borderColor = 'var(--accent)';
+            manualTab.style.background = isInstant ? 'transparent' : 'var(--accent)';
+            manualTab.style.color = isInstant ? 'var(--text-main)' : 'var(--primary)';
+            manualTab.style.borderColor = isInstant ? 'var(--border)' : 'var(--accent)';
+        };
 
         function initListeners() {
             submitBtn.addEventListener('click', handleSubmit);
+            paystackBtn.addEventListener('click', handlePaystackPay);
+        }
+
+        function setPaystackLoading(isLoading) {
+            paystackBtn.disabled = isLoading;
+            paystackBtnText.style.display = isLoading ? 'none' : 'inline';
+            paystackSpinner.style.display = isLoading ? 'block' : 'none';
+        }
+
+        async function handlePaystackPay() {
+            const amount = parseFloat(paystackAmountInput.value);
+            if (!amount || amount < minDeposit) return showAlert(`Minimum deposit is ₦${minDeposit}`, 'error');
+            if (!paystackPublicKey) return showAlert('Card payments are not configured yet. Please use bank transfer or contact support.', 'error');
+
+            setPaystackLoading(true);
+            hideAlert();
+
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                const res = await fetch('/api/paystack-initialize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    },
+                    body: JSON.stringify({ amount })
+                });
+                const result = await res.json();
+                if (!result.success) {
+                    showAlert(result.error || 'Could not start payment.', 'error');
+                    setPaystackLoading(false);
+                    return;
+                }
+
+                const handler = PaystackPop.setup({
+                    key: paystackPublicKey,
+                    email: user.email,
+                    amount: Math.round(amount * 100),
+                    ref: result.reference,
+                    callback: function(response) {
+                        verifyPaystackPayment(response.reference);
+                    },
+                    onClose: function() {
+                        setPaystackLoading(false);
+                    }
+                });
+                handler.openIframe();
+            } catch (err) {
+                showAlert(err.message || 'Something went wrong starting your payment.', 'error');
+                setPaystackLoading(false);
+            }
+        }
+
+        async function verifyPaystackPayment(reference) {
+            paystackBtnText.textContent = 'Confirming payment...';
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                const res = await fetch('/api/paystack-verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    },
+                    body: JSON.stringify({ reference })
+                });
+                const result = await res.json();
+
+                if (result.success) {
+                    showAlert(`₦${result.amount.toLocaleString()} deposited successfully! Your wallet has been credited.`, 'success');
+                    paystackAmountInput.value = '';
+                    fetchHistory();
+                } else {
+                    showAlert(result.error || 'We could not confirm your payment yet. If you were charged, it will reflect shortly — contact support if not.', 'error');
+                }
+            } catch (err) {
+                showAlert('Payment made, but we could not confirm it automatically. Please contact support with your reference: ' + reference, 'error');
+            } finally {
+                setPaystackLoading(false);
+                paystackBtnText.textContent = 'Pay with Paystack';
+            }
         }
 
         async function handleSubmit() {
