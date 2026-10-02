@@ -255,7 +255,7 @@
             document.getElementById('auth-guard').style.display = 'none';
         }
 
-        async function loadAll() {
+        window.loadAll = async function() {
             const { data, error } = await supabase.from('settings').select('*');
             if (data) {
                 originalSettings = {};
@@ -310,7 +310,7 @@
             document.getElementById('dirty-banner').style.display = isDirty ? 'flex' : 'none';
         }
 
-        async function handleSave() {
+        window.handleSave = async function() {
             setLoading(true);
             const updates = [];
             const changes = {};
@@ -356,7 +356,7 @@
             document.getElementById('save-text').style.display = isLoading ? 'none' : 'block';
             document.getElementById('save-spinner').style.display = isLoading ? 'block' : 'none';
         }
-        async function signOut() { await supabase.auth.signOut(); window.location.href = 'login.html'; }
+        window.signOut = async function() { await supabase.auth.signOut(); window.location.href = 'login.html'; }
     </script>
 </body>
 </html>
