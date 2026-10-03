@@ -101,5 +101,18 @@ export async function creditPaystackDeposit(paystackData) {
   });
   if (creditError) throw creditError;
 
+  // Referral commissions are tied to Paystack deposits — this is the only
+  // deposit path now that manual bank transfers have been removed.
+  const { error: commissionError } = await supabase.rpc('process_referral_commissions', {
+    p_depositor_id: userId,
+    p_deposit_amount: depositAmount,
+    p_reference_id: deposit.id
+  });
+  if (commissionError) {
+    // Don't fail the whole deposit over a commission-processing issue —
+    // the depositor's own funds are already safely credited above.
+    console.error('Referral commission processing failed:', commissionError.message);
+  }
+
   return { credited: true, amount: depositAmount };
 }
