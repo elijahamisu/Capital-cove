@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
     <title>Dashboard | CAPITAL COVE</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -27,7 +29,6 @@
             --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1),
                        0 2px 4px -2px rgb(0 0 0 / 0.1);
             --radius: 16px;
-            --nav-height: 70px;
         }
 
         * {
@@ -39,28 +40,29 @@
         }
 
         body {
-            background-color: var(--bg);
+            background: var(--bg);
             color: var(--text-main);
             padding-bottom: 100px;
             min-height: 100vh;
         }
 
+        body.sidebar-open {
+            overflow: hidden;
+        }
+
         /* =========================
-           PAGE LOADER
+           LOADER
         ========================= */
 
         #page-loader {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            inset: 0;
             background: var(--bg);
-            z-index: 9999;
+            z-index: 99999;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: opacity 0.3s ease;
+            transition: opacity .3s ease;
         }
 
         /* =========================
@@ -70,7 +72,7 @@
         .telegram-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(15, 23, 42, 0.72);
+            background: rgba(15, 23, 42, .72);
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
             z-index: 10000;
@@ -80,7 +82,7 @@
             padding: 20px;
             opacity: 0;
             visibility: hidden;
-            transition: all 0.3s ease;
+            transition: .3s ease;
         }
 
         .telegram-overlay.show {
@@ -91,14 +93,14 @@
         .telegram-popup {
             width: 100%;
             max-width: 420px;
-            background: #ffffff;
+            background: white;
             border-radius: 24px;
             padding: 28px 22px 22px;
             text-align: center;
             position: relative;
-            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
-            transform: translateY(25px) scale(0.96);
-            transition: all 0.3s ease;
+            box-shadow: 0 25px 60px rgba(0,0,0,.25);
+            transform: translateY(25px) scale(.96);
+            transition: .3s ease;
         }
 
         .telegram-overlay.show .telegram-popup {
@@ -117,9 +119,6 @@
             color: #64748b;
             font-size: 20px;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         .telegram-icon {
@@ -132,26 +131,26 @@
             align-items: center;
             justify-content: center;
             font-size: 38px;
-            box-shadow: 0 12px 25px rgba(34, 158, 217, 0.25);
+            box-shadow: 0 12px 25px rgba(34,158,217,.25);
         }
 
         .telegram-popup h2 {
             font-size: 1.35rem;
             font-weight: 800;
-            color: #0f172a;
+            color: var(--primary);
             margin-bottom: 10px;
         }
 
         .telegram-popup p {
-            font-size: 0.88rem;
+            font-size: .88rem;
             line-height: 1.65;
-            color: #64748b;
+            color: var(--text-muted);
             margin-bottom: 20px;
         }
 
         .telegram-benefits {
             background: #f8fafc;
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--border);
             border-radius: 14px;
             padding: 13px;
             text-align: left;
@@ -161,8 +160,7 @@
         .telegram-benefit {
             display: flex;
             gap: 9px;
-            align-items: flex-start;
-            font-size: 0.78rem;
+            font-size: .78rem;
             color: #475569;
             margin-bottom: 9px;
         }
@@ -184,36 +182,169 @@
             background: #229ed9;
             color: white;
             text-decoration: none;
-            font-size: 0.9rem;
+            font-size: .9rem;
             font-weight: 800;
-            transition: all 0.2s ease;
-            box-shadow: 0 8px 18px rgba(34, 158, 217, 0.25);
-        }
-
-        .telegram-join-btn:hover {
-            transform: translateY(-2px);
-            background: #168ac0;
         }
 
         .telegram-later {
             border: none;
             background: transparent;
             color: #64748b;
-            font-size: 0.78rem;
+            font-size: .78rem;
             font-weight: 600;
             margin-top: 13px;
             cursor: pointer;
         }
 
         /* =========================
-           LAYOUT
+           SIDEBAR
         ========================= */
 
-        .container {
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.55);
+            backdrop-filter: blur(3px);
+            z-index: 5000;
+            opacity: 0;
+            visibility: hidden;
+            transition: .3s ease;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 300px;
+            max-width: 88%;
+            height: 100vh;
+            background: var(--primary);
+            color: white;
+            z-index: 6000;
+            transform: translateX(-100%);
+            transition: transform .3s ease;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 15px 0 40px rgba(0,0,0,.25);
+        }
+
+        .sidebar.active {
+            transform: translateX(0);
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255,255,255,.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-logo {
+            width: 43px;
+            height: 43px;
+            border-radius: 13px;
+            background: var(--accent);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 1.05rem;
+        }
+
+        .brand-name {
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: .5px;
+        }
+
+        .brand-subtitle {
+            font-size: .65rem;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        .sidebar-close {
+            width: 35px;
+            height: 35px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255,255,255,.08);
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .sidebar-menu {
+            padding: 15px 12px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .sidebar-label {
+            color: #64748b;
+            font-size: .65rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 12px 12px 7px;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 13px;
             width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
+            padding: 12px 13px;
+            border-radius: 12px;
+            color: #cbd5e1;
+            text-decoration: none;
+            font-size: .82rem;
+            font-weight: 600;
+            margin-bottom: 3px;
+            transition: .2s;
+        }
+
+        .sidebar-link:hover,
+        .sidebar-link.active {
+            background: rgba(245,158,11,.13);
+            color: var(--accent);
+        }
+
+        .sidebar-icon {
+            width: 29px;
+            text-align: center;
+            font-size: 1.05rem;
+        }
+
+        .sidebar-footer {
+            padding: 15px;
+            border-top: 1px solid rgba(255,255,255,.08);
+        }
+
+        .sidebar-support {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 13px;
+            background: rgba(255,255,255,.05);
+            border-radius: 13px;
+            color: #cbd5e1;
+            text-decoration: none;
+            font-size: .78rem;
+            font-weight: 600;
         }
 
         /* =========================
@@ -222,7 +353,7 @@
 
         header {
             background: var(--card-bg);
-            padding: 20px;
+            padding: 15px 20px;
             border-bottom: 1px solid var(--border);
             position: sticky;
             top: 0;
@@ -232,22 +363,40 @@
             align-items: center;
         }
 
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .menu-btn {
+            width: 42px;
+            height: 42px;
+            border: none;
+            border-radius: 12px;
+            background: var(--primary);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
         .greeting h1 {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: 800;
-            color: var(--primary);
         }
 
         .greeting p {
-            font-size: 0.85rem;
+            font-size: .78rem;
             color: var(--text-muted);
             font-weight: 500;
         }
 
         .header-actions {
             display: flex;
-            gap: 12px;
-            align-items: center;
+            gap: 10px;
         }
 
         .icon-btn {
@@ -259,10 +408,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
-            position: relative;
-            color: var(--primary);
             text-decoration: none;
+            position: relative;
         }
 
         .badge {
@@ -271,15 +418,26 @@
             right: -5px;
             background: var(--error);
             color: white;
-            font-size: 0.65rem;
+            font-size: .65rem;
             padding: 2px 6px;
             border-radius: 10px;
             font-weight: 800;
-            border: 2px solid var(--card-bg);
+            border: 2px solid white;
         }
 
         /* =========================
-           WALLET CARD
+           MAIN
+        ========================= */
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        /* =========================
+           WALLET
         ========================= */
 
         .wallet-card {
@@ -288,24 +446,13 @@
             padding: 24px;
             border-radius: var(--radius);
             margin-bottom: 24px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,.1);
             position: relative;
             overflow: hidden;
         }
 
-        .wallet-card::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -20%;
-            width: 200px;
-            height: 200px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 50%;
-        }
-
         .wallet-label {
-            font-size: 0.8rem;
+            font-size: .8rem;
             color: #94a3b8;
             font-weight: 600;
             text-transform: uppercase;
@@ -316,15 +463,12 @@
             font-size: 2.2rem;
             font-weight: 800;
             margin: 8px 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
 
         .pending-box {
-            font-size: 0.85rem;
+            font-size: .85rem;
             color: #cbd5e1;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255,255,255,.1);
             padding: 8px 12px;
             border-radius: 8px;
             display: inline-block;
@@ -341,12 +485,11 @@
             padding: 14px;
             border-radius: 12px;
             font-weight: 700;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: all 0.2s;
+            font-size: .95rem;
             border: none;
             text-align: center;
             text-decoration: none;
+            cursor: pointer;
         }
 
         .btn-accent {
@@ -354,15 +497,52 @@
             color: var(--primary);
         }
 
-        .btn-accent:hover {
-            background: var(--accent-hover);
-            transform: translateY(-2px);
+        .btn-white {
+            background: rgba(255,255,255,.15);
+            color: white;
         }
 
-        .btn-white {
-            background: rgba(255, 255, 255, 0.15);
-            color: white;
-            backdrop-filter: blur(5px);
+        /* =========================
+           QUICK ACTIONS
+        ========================= */
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(4,1fr);
+            gap: 12px;
+        }
+
+        .action-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 15px 8px;
+            background: white;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            text-decoration: none;
+            color: var(--primary);
+            font-size: .72rem;
+            font-weight: 700;
+            transition: .2s;
+            text-align: center;
+        }
+
+        .action-item:hover {
+            transform: translateY(-3px);
+            border-color: var(--accent);
+        }
+
+        .action-icon {
+            width: 42px;
+            height: 42px;
+            background: var(--bg);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
         }
 
         /* =========================
@@ -371,22 +551,19 @@
 
         .dashboard-grid {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-top: 24px;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
             gap: 20px;
         }
 
-        @media (min-width: 1024px) {
-            .dashboard-grid {
-                grid-template-columns: 2fr 1fr;
-            }
-        }
-
-        /* =========================
-           CARDS
-        ========================= */
-
         .card {
-            background: var(--card-bg);
+            background: white;
             border-radius: var(--radius);
             padding: 20px;
             border: 1px solid var(--border);
@@ -403,11 +580,10 @@
         .card-title {
             font-size: 1rem;
             font-weight: 700;
-            color: var(--primary);
         }
 
         .card-link {
-            font-size: 0.85rem;
+            font-size: .85rem;
             color: var(--accent-hover);
             font-weight: 600;
             text-decoration: none;
@@ -433,18 +609,17 @@
         .stat-box .val {
             font-size: 1.2rem;
             font-weight: 800;
-            color: var(--primary);
         }
 
         .stat-box .lbl {
-            font-size: 0.75rem;
+            font-size: .75rem;
             color: var(--text-muted);
             font-weight: 600;
             margin-top: 4px;
         }
 
         /* =========================
-           PRODUCT LIST
+           PRODUCTS
         ========================= */
 
         .product-item {
@@ -471,9 +646,8 @@
         }
 
         .product-name {
-            font-size: 0.9rem;
+            font-size: .9rem;
             font-weight: 700;
-            margin-bottom: 4px;
         }
 
         .product-progress {
@@ -488,57 +662,14 @@
             height: 100%;
             background: var(--success);
             border-radius: 10px;
-            transition: width 0.5s ease;
         }
 
         .product-stats {
             display: flex;
             justify-content: space-between;
-            font-size: 0.75rem;
-            font-weight: 600;
+            font-size: .75rem;
             color: var(--text-muted);
-        }
-
-        /* =========================
-           QUICK ACTIONS
-        ========================= */
-
-        .quick-actions {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-        }
-
-        .action-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            padding: 16px;
-            background: var(--card-bg);
-            border-radius: 16px;
-            border: 1px solid var(--border);
-            text-decoration: none;
-            color: var(--primary);
-            transition: all 0.2s;
-            font-size: 0.75rem;
-            font-weight: 700;
-        }
-
-        .action-item:hover {
-            transform: translateY(-3px);
-            border-color: var(--accent);
-        }
-
-        .action-icon {
-            width: 44px;
-            height: 44px;
-            background: var(--bg);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
+            font-weight: 600;
         }
 
         /* =========================
@@ -554,18 +685,17 @@
         }
 
         .tx-info h4 {
-            font-size: 0.85rem;
-            font-weight: 700;
+            font-size: .85rem;
         }
 
         .tx-info p {
-            font-size: 0.75rem;
+            font-size: .75rem;
             color: var(--text-muted);
         }
 
         .tx-amount {
             font-weight: 800;
-            font-size: 0.9rem;
+            font-size: .9rem;
         }
 
         .tx-credit {
@@ -581,8 +711,7 @@
         ========================= */
 
         .referral-box {
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-            border: none;
+            background: linear-gradient(135deg,#fef3c7,#fde68a);
         }
 
         .ref-code-wrap {
@@ -600,15 +729,13 @@
             font-weight: 800;
             font-family: monospace;
             font-size: 1.1rem;
-            color: var(--primary);
         }
 
         .copy-btn {
             color: var(--accent-hover);
-            font-size: 0.75rem;
+            font-size: .75rem;
             font-weight: 800;
             cursor: pointer;
-            text-transform: uppercase;
         }
 
         /* =========================
@@ -629,7 +756,7 @@
             align-items: center;
             justify-content: space-around;
             z-index: 1000;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 25px rgba(0,0,0,.3);
         }
 
         .nav-item {
@@ -639,7 +766,7 @@
             gap: 4px;
             color: #94a3b8;
             text-decoration: none;
-            font-size: 0.65rem;
+            font-size: .65rem;
             font-weight: 600;
         }
 
@@ -652,7 +779,7 @@
         }
 
         /* =========================
-           SKELETONS
+           SKELETON
         ========================= */
 
         .sk {
@@ -668,38 +795,51 @@
         }
 
         @keyframes shimmer {
-            0% {
-                background-position: 200% 0;
-            }
-
-            100% {
-                background-position: -200% 0;
-            }
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
         }
-
-        /* =========================
-           EMPTY STATE
-        ========================= */
 
         .empty-state {
             text-align: center;
             padding: 30px 10px;
             color: var(--text-muted);
-            font-size: 0.85rem;
+            font-size: .85rem;
         }
 
         /* =========================
            MOBILE
         ========================= */
 
-        @media (max-width: 480px) {
+        @media(max-width: 800px) {
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-actions {
+                grid-template-columns: repeat(4,1fr);
+            }
+        }
+
+        @media(max-width: 500px) {
 
             .container {
                 padding: 15px;
             }
 
-            header {
-                padding: 16px;
+            .quick-actions {
+                grid-template-columns: repeat(4,1fr);
+                gap: 8px;
+            }
+
+            .action-item {
+                padding: 12px 4px;
+                font-size: .62rem;
+            }
+
+            .action-icon {
+                width: 38px;
+                height: 38px;
             }
 
             .balance-main {
@@ -707,12 +847,7 @@
             }
 
             .telegram-popup {
-                max-width: 380px;
                 padding: 25px 18px 20px;
-            }
-
-            .telegram-popup h2 {
-                font-size: 1.2rem;
             }
         }
     </style>
@@ -720,1131 +855,1461 @@
 
 <body>
 
-    <!-- =========================
-         PAGE LOADER
-    ========================= -->
+<!-- =========================
+     PAGE LOADER
+========================= -->
 
-    <div id="page-loader">
-        <div style="color: var(--primary); font-weight: 800; font-size: 1.2rem;">
-            CAPITAL COVE
+<div id="page-loader">
+    <div style="color:var(--primary);font-weight:800;font-size:1.2rem;">
+        CAPITAL COVE
+    </div>
+</div>
+
+
+<!-- =========================
+     SIDEBAR OVERLAY
+========================= -->
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+
+<!-- =========================
+     SIDEBAR
+========================= -->
+
+<aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-header">
+
+        <div class="brand-area">
+
+            <div class="brand-logo">
+                CC
+            </div>
+
+            <div>
+                <div class="brand-name">
+                    CAPITAL COVE
+                </div>
+
+                <div class="brand-subtitle">
+                    Member Dashboard
+                </div>
+            </div>
+
         </div>
+
+        <button
+            class="sidebar-close"
+            id="sidebar-close"
+        >
+            ×
+        </button>
+
     </div>
 
-    <!-- =========================
-         TELEGRAM POPUP
-    ========================= -->
 
-    <div class="telegram-overlay" id="telegram-overlay">
+    <div class="sidebar-menu">
 
-        <div class="telegram-popup">
-
-            <button
-                class="telegram-close"
-                id="telegram-close"
-                aria-label="Close Telegram popup"
-            >
-                ×
-            </button>
-
-            <div class="telegram-icon">
-                ✈️
-            </div>
-
-            <h2>Join CAPITAL COVE on Telegram</h2>
-
-            <p>
-                Stay connected with CAPITAL COVE and never miss important
-                announcements, platform updates, community information,
-                and new opportunities.
-            </p>
-
-            <div class="telegram-benefits">
-
-                <div class="telegram-benefit">
-                    <span>✓</span>
-                    <span>
-                        Receive important CAPITAL COVE announcements.
-                    </span>
-                </div>
-
-                <div class="telegram-benefit">
-                    <span>✓</span>
-                    <span>
-                        Stay updated with platform news and updates.
-                    </span>
-                </div>
-
-                <div class="telegram-benefit">
-                    <span>✓</span>
-                    <span>
-                        Connect with other CAPITAL COVE members.
-                    </span>
-                </div>
-
-            </div>
-
-            <a
-                href="https://t.me/+Fgs-FXjN1UlmNjA0"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="telegram-join-btn"
-            >
-                ✈️ Join Our Telegram Group
-            </a>
-
-            <button
-                class="telegram-later"
-                id="telegram-later"
-            >
-                Maybe later
-            </button>
-
+        <div class="sidebar-label">
+            Main
         </div>
-    </div>
-
-    <!-- =========================
-         HEADER
-    ========================= -->
-
-    <header>
-
-        <div class="greeting">
-            <p id="time-greeting">Welcome back,</p>
-            <h1 id="user-name-display">...</h1>
-        </div>
-
-        <div class="header-actions">
-
-            <a href="notifications.html" class="icon-btn">
-                <span>🔔</span>
-                <span
-                    id="notif-badge"
-                    class="badge"
-                    style="display:none"
-                >
-                    0
-                </span>
-            </a>
-
-            <a href="profile.html" class="icon-btn">
-                <span>👤</span>
-            </a>
-
-        </div>
-
-    </header>
-
-    <!-- =========================
-         MAIN
-    ========================= -->
-
-    <main class="container">
-
-        <!-- Wallet Section -->
-
-        <section class="wallet-card">
-
-            <div class="wallet-label">
-                Available Balance
-            </div>
-
-            <div
-                class="balance-main"
-                id="available-balance"
-            >
-                ₦0.00
-            </div>
-
-            <div class="pending-box">
-                Pending Settlement:
-                <span id="pending-balance">
-                    ₦0.00
-                </span>
-            </div>
-
-            <div class="wallet-actions">
-
-                <a
-                    href="deposit.html"
-                    class="btn btn-accent"
-                >
-                    Deposit
-                </a>
-
-                <a
-                    href="withdraw.html"
-                    class="btn btn-white"
-                >
-                    Withdraw
-                </a>
-
-            </div>
-
-        </section>
-
-        <!-- Quick Actions -->
-
-        <section style="margin-bottom: 24px;">
-
-            <div class="quick-actions">
-
-                <a
-                    href="marketplace.html"
-                    class="action-item"
-                >
-                    <div class="action-icon">
-                        🛒
-                    </div>
-                    Market
-                </a>
-
-                <a
-                    href="my-products.html"
-                    class="action-item"
-                >
-                    <div class="action-icon">
-                        📦
-                    </div>
-                    Products
-                </a>
-
-                <a
-                    href="transactions.html"
-                    class="action-item"
-                >
-                    <div class="action-icon">
-                        🧾
-                    </div>
-                    History
-                </a>
-
-            </div>
-
-        </section>
-
-        <!-- Dashboard Grid -->
-
-        <div class="dashboard-grid">
-
-            <!-- LEFT COLUMN -->
-
-            <div
-                style="
-                    display:flex;
-                    flex-direction:column;
-                    gap:20px;
-                "
-            >
-
-                <!-- Active Products -->
-
-                <div class="card">
-
-                    <div class="card-header">
-
-                        <h2 class="card-title">
-                            Active Bulk Purchases
-                        </h2>
-
-                        <a
-                            href="my-products.html"
-                            class="card-link"
-                        >
-                            View All
-                        </a>
-
-                    </div>
-
-                    <div id="active-purchases-container">
-
-                        <div
-                            class="sk"
-                            style="height:60px;margin-bottom:10px;"
-                        ></div>
-
-                        <div
-                            class="sk"
-                            style="height:60px;"
-                        ></div>
-
-                    </div>
-
-                </div>
-
-                <!-- Sales Summary -->
-
-                <div class="card">
-
-                    <div class="card-header">
-
-                        <h2 class="card-title">
-                            Performance Summary
-                        </h2>
-
-                    </div>
-
-                    <div class="stats-row">
-
-                        <div class="stat-box">
-
-                            <div
-                                class="val"
-                                id="total-units"
-                            >
-                                0
-                            </div>
-
-                            <div class="lbl">
-                                Units Owned
-                            </div>
-
-                        </div>
-
-                        <div class="stat-box">
-
-                            <div
-                                class="val"
-                                id="sold-units"
-                            >
-                                0
-                            </div>
-
-                            <div class="lbl">
-                                Units Sold
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                    <div
-                        style="
-                            margin-top:12px;
-                            padding:12px;
-                            background:#f8fafc;
-                            border-radius:12px;
-                            border:1px solid var(--border);
-                        "
-                    >
-
-                        <div
-                            style="
-                                display:flex;
-                                justify-content:space-between;
-                                margin-bottom:4px;
-                            "
-                        >
-
-                            <span
-                                style="
-                                    font-size:0.75rem;
-                                    color:var(--text-muted);
-                                    font-weight:600;
-                                "
-                            >
-                                Overall Sales Progress
-                            </span>
-
-                            <span
-                                style="
-                                    font-size:0.75rem;
-                                    color:var(--primary);
-                                    font-weight:800;
-                                "
-                                id="progress-percent"
-                            >
-                                0%
-                            </span>
-
-                        </div>
-
-                        <div class="product-progress">
-
-                            <div
-                                class="progress-bar"
-                                id="overall-progress-bar"
-                                style="width:0%"
-                            ></div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-            <!-- RIGHT COLUMN -->
-
-            <div
-                style="
-                    display:flex;
-                    flex-direction:column;
-                    gap:20px;
-                "
-            >
-
-                <!-- Recent Transactions -->
-
-                <div class="card">
-
-                    <div class="card-header">
-
-                        <h2 class="card-title">
-                            Recent Activity
-                        </h2>
-
-                        <a
-                            href="transactions.html"
-                            class="card-link"
-                        >
-                            See More
-                        </a>
-
-                    </div>
-
-                    <div id="recent-tx-container">
-
-                        <div
-                            class="sk"
-                            style="height:50px;margin-bottom:10px;"
-                        ></div>
-
-                        <div
-                            class="sk"
-                            style="height:50px;"
-                        ></div>
-
-                    </div>
-
-                </div>
-
-                <!-- Referral Card -->
-
-                <div class="card referral-box">
-
-                    <h2
-                        class="card-title"
-                        style="color:#92400e;"
-                    >
-                        Invite & Earn
-                    </h2>
-
-                    <p
-                        style="
-                            font-size:0.75rem;
-                            color:#b45309;
-                            margin-top:4px;
-                            font-weight:500;
-                        "
-                    >
-                        Earn 20% on qualifying bulk product
-                        acquisitions from your referrals.
-                    </p>
-
-                    <div class="ref-code-wrap">
-
-                        <span
-                            class="ref-code"
-                            id="ref-code-display"
-                        >
-                            ---
-                        </span>
-
-                        <span
-                            class="copy-btn"
-                            id="copy-ref-btn"
-                        >
-                            Copy
-                        </span>
-
-                    </div>
-
-                </div>
-
-                <!-- Gift Code -->
-
-                <a
-                    href="gift-code.html"
-                    style="text-decoration:none;"
-                >
-
-                    <div
-                        class="card"
-                        style="
-                            background:var(--primary);
-                            color:white;
-                            display:flex;
-                            align-items:center;
-                            justify-content:space-between;
-                        "
-                    >
-
-                        <div>
-
-                            <h2
-                                class="card-title"
-                                style="color:white;"
-                            >
-                                Gift Code
-                            </h2>
-
-                            <p
-                                style="
-                                    font-size:0.7rem;
-                                    color:#94a3b8;
-                                "
-                            >
-                                Redeem your code here
-                            </p>
-
-                        </div>
-
-                        <span style="font-size:1.5rem;">
-                            🎁
-                        </span>
-
-                    </div>
-
-                </a>
-
-            </div>
-
-        </div>
-
-    </main>
-
-    <!-- =========================
-         BOTTOM NAVIGATION
-    ========================= -->
-
-    <nav class="bottom-nav">
 
         <a
             href="dashboard.html"
-            class="nav-item active"
+            class="sidebar-link active"
         >
-            <span class="nav-icon">🏠</span>
-            Home
+            <span class="sidebar-icon">🏠</span>
+            Dashboard
         </a>
 
         <a
             href="marketplace.html"
-            class="nav-item"
+            class="sidebar-link"
         >
-            <span class="nav-icon">🛒</span>
-            Market
+            <span class="sidebar-icon">🛒</span>
+            Marketplace
         </a>
 
         <a
             href="my-products.html"
-            class="nav-item"
+            class="sidebar-link"
         >
-            <span class="nav-icon">📦</span>
-            Products
+            <span class="sidebar-icon">📦</span>
+            My Products
         </a>
 
         <a
-            href="wallet.html"
-            class="nav-item"
+            href="buy-bulk.html"
+            class="sidebar-link"
         >
-            <span class="nav-icon">💳</span>
+            <span class="sidebar-icon">🧺</span>
+            Buy Bulk
+        </a>
+
+        <a
+            href="product-sales.html"
+            class="sidebar-link"
+        >
+            <span class="sidebar-icon">📈</span>
+            My Sales
+        </a>
+
+
+        <div class="sidebar-label">
+            Wallet
+        </div>
+
+        <a
+            href="wallet.html"
+            class="sidebar-link"
+        >
+            <span class="sidebar-icon">💳</span>
             Wallet
         </a>
 
         <a
-            href="profile.html"
-            class="nav-item"
+            href="deposit.html"
+            class="sidebar-link"
         >
-            <span class="nav-icon">👤</span>
+            <span class="sidebar-icon">⬇️</span>
+            Deposit
+        </a>
+
+        <a
+            href="withdraw.html"
+            class="sidebar-link"
+        >
+            <span class="sidebar-icon">⬆️</span>
+            Withdraw
+        </a>
+
+        <a
+            href="transactions.html"
+            class="sidebar-link"
+        >
+            <span class="sidebar-icon">📜</span>
+            Transactions
+        </a>
+
+
+        <div class="sidebar-label">
+            Rewards
+        </div>
+
+        <a
+            href="referrals.html"
+            class="sidebar-link"
+        >
+            <span class="sidebar-icon">🤝</span>
+            Referrals
+        </a>
+
+        <a
+            href="gift-code.html"
+            class="sidebar-link"
+        >
+            <span class="sidebar-icon">🎁</span>
+            Gift Code
+        </a>
+
+
+        <div class="sidebar-label">
+            Account
+        </div>
+
+        <a
+            href="notifications.html"
+            class="sidebar-link"
+        >
+            <span class="sidebar-icon">🔔</span>
+            Notifications
+        </a>
+
+        <a
+            href="support.html"
+            class="sidebar-link"
+        >
+            <span class="sidebar-icon">💬</span>
+            Support
+        </a>
+
+        <a
+            href="profile.html"
+            class="sidebar-link"
+        >
+            <span class="sidebar-icon">👤</span>
             Profile
         </a>
 
-    </nav>
+    </div>
 
-    <!-- =========================
-         JAVASCRIPT
-    ========================= -->
 
-    <script type="module">
+    <div class="sidebar-footer">
 
-        // =========================
-        // SUPABASE CONFIG
-        // =========================
+        <a
+            href="support.html"
+            class="sidebar-support"
+        >
+            <span>💬</span>
+            <span>Need help? Contact Support</span>
+        </a>
 
-        const SB_URL = import.meta.env.VITE_SUPABASE_URL;
-        const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    </div>
 
-        const supabase =
-            window.supabase.createClient(
-                SB_URL,
-                SB_KEY
+</aside>
+
+
+<!-- =========================
+     TELEGRAM POPUP
+========================= -->
+
+<div
+    class="telegram-overlay"
+    id="telegram-overlay"
+>
+
+    <div class="telegram-popup">
+
+        <button
+            class="telegram-close"
+            id="telegram-close"
+        >
+            ×
+        </button>
+
+        <div class="telegram-icon">
+            ✈️
+        </div>
+
+        <h2>
+            Join CAPITAL COVE on Telegram
+        </h2>
+
+        <p>
+            Stay connected with CAPITAL COVE and never miss
+            important announcements, platform updates,
+            community information and new opportunities.
+        </p>
+
+        <div class="telegram-benefits">
+
+            <div class="telegram-benefit">
+                <span>✓</span>
+                <span>
+                    Receive important CAPITAL COVE announcements.
+                </span>
+            </div>
+
+            <div class="telegram-benefit">
+                <span>✓</span>
+                <span>
+                    Stay updated with platform news and updates.
+                </span>
+            </div>
+
+            <div class="telegram-benefit">
+                <span>✓</span>
+                <span>
+                    Connect with other CAPITAL COVE members.
+                </span>
+            </div>
+
+        </div>
+
+        <a
+            href="https://t.me/+Fgs-FXjN1UlmNjA0"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="telegram-join-btn"
+        >
+            ✈️ Join Our Telegram Group
+        </a>
+
+        <button
+            class="telegram-later"
+            id="telegram-later"
+        >
+            Maybe later
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     HEADER
+========================= -->
+
+<header>
+
+    <div class="header-left">
+
+        <button
+            class="menu-btn"
+            id="menu-btn"
+            aria-label="Open menu"
+        >
+            ☰
+        </button>
+
+        <div class="greeting">
+
+            <p id="time-greeting">
+                Welcome back,
+            </p>
+
+            <h1 id="user-name-display">
+                ...
+            </h1>
+
+        </div>
+
+    </div>
+
+
+    <div class="header-actions">
+
+        <a
+            href="notifications.html"
+            class="icon-btn"
+        >
+            🔔
+
+            <span
+                id="notif-badge"
+                class="badge"
+                style="display:none"
+            >
+                0
+            </span>
+        </a>
+
+        <a
+            href="profile.html"
+            class="icon-btn"
+        >
+            👤
+        </a>
+
+    </div>
+
+</header>
+
+
+<!-- =========================
+     MAIN
+========================= -->
+
+<main class="container">
+
+
+    <!-- WALLET -->
+
+    <section class="wallet-card">
+
+        <div class="wallet-label">
+            Available Balance
+        </div>
+
+        <div
+            class="balance-main"
+            id="available-balance"
+        >
+            ₦0.00
+        </div>
+
+        <div class="pending-box">
+
+            Pending Settlement:
+
+            <span id="pending-balance">
+                ₦0.00
+            </span>
+
+        </div>
+
+        <div class="wallet-actions">
+
+            <a
+                href="deposit.html"
+                class="btn btn-accent"
+            >
+                Deposit
+            </a>
+
+            <a
+                href="withdraw.html"
+                class="btn btn-white"
+            >
+                Withdraw
+            </a>
+
+        </div>
+
+    </section>
+
+
+    <!-- QUICK ACTIONS -->
+
+    <section style="margin-bottom:24px;">
+
+        <div class="quick-actions">
+
+            <a
+                href="marketplace.html"
+                class="action-item"
+            >
+                <div class="action-icon">🛒</div>
+                Market
+            </a>
+
+            <a
+                href="my-products.html"
+                class="action-item"
+            >
+                <div class="action-icon">📦</div>
+                Products
+            </a>
+
+            <a
+                href="transactions.html"
+                class="action-item"
+            >
+                <div class="action-icon">🧾</div>
+                History
+            </a>
+
+            <!-- REFERRAL BUTTON ADDED -->
+
+            <a
+                href="referrals.html"
+                class="action-item"
+            >
+                <div class="action-icon">🤝</div>
+                Referrals
+            </a>
+
+        </div>
+
+    </section>
+
+
+    <!-- DASHBOARD GRID -->
+
+    <div class="dashboard-grid">
+
+
+        <!-- LEFT -->
+
+        <div class="column">
+
+
+            <!-- PRODUCTS -->
+
+            <div class="card">
+
+                <div class="card-header">
+
+                    <h2 class="card-title">
+                        Active Bulk Purchases
+                    </h2>
+
+                    <a
+                        href="my-products.html"
+                        class="card-link"
+                    >
+                        View All
+                    </a>
+
+                </div>
+
+                <div id="active-purchases-container">
+
+                    <div
+                        class="sk"
+                        style="height:60px;margin-bottom:10px;"
+                    ></div>
+
+                    <div
+                        class="sk"
+                        style="height:60px;"
+                    ></div>
+
+                </div>
+
+            </div>
+
+
+            <!-- PERFORMANCE -->
+
+            <div class="card">
+
+                <div class="card-header">
+
+                    <h2 class="card-title">
+                        Performance Summary
+                    </h2>
+
+                </div>
+
+                <div class="stats-row">
+
+                    <div class="stat-box">
+
+                        <div
+                            class="val"
+                            id="total-units"
+                        >
+                            0
+                        </div>
+
+                        <div class="lbl">
+                            Units Owned
+                        </div>
+
+                    </div>
+
+                    <div class="stat-box">
+
+                        <div
+                            class="val"
+                            id="sold-units"
+                        >
+                            0
+                        </div>
+
+                        <div class="lbl">
+                            Units Sold
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    style="
+                        margin-top:12px;
+                        padding:12px;
+                        background:#f8fafc;
+                        border-radius:12px;
+                        border:1px solid var(--border);
+                    "
+                >
+
+                    <div
+                        style="
+                            display:flex;
+                            justify-content:space-between;
+                            margin-bottom:4px;
+                        "
+                    >
+
+                        <span
+                            style="
+                                font-size:.75rem;
+                                color:var(--text-muted);
+                                font-weight:600;
+                            "
+                        >
+                            Overall Sales Progress
+                        </span>
+
+                        <span
+                            style="
+                                font-size:.75rem;
+                                font-weight:800;
+                            "
+                            id="progress-percent"
+                        >
+                            0%
+                        </span>
+
+                    </div>
+
+                    <div class="product-progress">
+
+                        <div
+                            class="progress-bar"
+                            id="overall-progress-bar"
+                            style="width:0%"
+                        ></div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- RIGHT -->
+
+        <div class="column">
+
+
+            <!-- TRANSACTIONS -->
+
+            <div class="card">
+
+                <div class="card-header">
+
+                    <h2 class="card-title">
+                        Recent Activity
+                    </h2>
+
+                    <a
+                        href="transactions.html"
+                        class="card-link"
+                    >
+                        See More
+                    </a>
+
+                </div>
+
+                <div id="recent-tx-container">
+
+                    <div
+                        class="sk"
+                        style="height:50px;margin-bottom:10px;"
+                    ></div>
+
+                    <div
+                        class="sk"
+                        style="height:50px;"
+                    ></div>
+
+                </div>
+
+            </div>
+
+
+            <!-- REFERRAL -->
+
+            <div class="card referral-box">
+
+                <h2
+                    class="card-title"
+                    style="color:#92400e;"
+                >
+                    Invite & Earn
+                </h2>
+
+                <p
+                    style="
+                        font-size:.75rem;
+                        color:#b45309;
+                        margin-top:4px;
+                        font-weight:500;
+                    "
+                >
+                    Earn 20% on qualifying bulk product
+                    acquisitions from your referrals.
+                </p>
+
+                <div class="ref-code-wrap">
+
+                    <span
+                        class="ref-code"
+                        id="ref-code-display"
+                    >
+                        ---
+                    </span>
+
+                    <span
+                        class="copy-btn"
+                        id="copy-ref-btn"
+                    >
+                        Copy
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- GIFT CODE -->
+
+            <a
+                href="gift-code.html"
+                style="text-decoration:none;"
+            >
+
+                <div
+                    class="card"
+                    style="
+                        background:var(--primary);
+                        color:white;
+                        display:flex;
+                        align-items:center;
+                        justify-content:space-between;
+                    "
+                >
+
+                    <div>
+
+                        <h2
+                            class="card-title"
+                            style="color:white;"
+                        >
+                            Gift Code
+                        </h2>
+
+                        <p
+                            style="
+                                font-size:.7rem;
+                                color:#94a3b8;
+                            "
+                        >
+                            Redeem your code here
+                        </p>
+
+                    </div>
+
+                    <span style="font-size:1.5rem;">
+                        🎁
+                    </span>
+
+                </div>
+
+            </a>
+
+        </div>
+
+    </div>
+
+</main>
+
+
+<!-- =========================
+     BOTTOM NAV
+========================= -->
+
+<nav class="bottom-nav">
+
+    <a
+        href="dashboard.html"
+        class="nav-item active"
+    >
+        <span class="nav-icon">🏠</span>
+        Home
+    </a>
+
+    <a
+        href="marketplace.html"
+        class="nav-item"
+    >
+        <span class="nav-icon">🛒</span>
+        Market
+    </a>
+
+    <a
+        href="my-products.html"
+        class="nav-item"
+    >
+        <span class="nav-icon">📦</span>
+        Products
+    </a>
+
+    <a
+        href="wallet.html"
+        class="nav-item"
+    >
+        <span class="nav-icon">💳</span>
+        Wallet
+    </a>
+
+    <a
+        href="profile.html"
+        class="nav-item"
+    >
+        <span class="nav-icon">👤</span>
+        Profile
+    </a>
+
+</nav>
+
+
+<script type="module">
+
+    /* =========================
+       SUPABASE
+    ========================= */
+
+    const SB_URL =
+        import.meta.env.VITE_SUPABASE_URL;
+
+    const SB_KEY =
+        import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+    const supabase =
+        window.supabase.createClient(
+            SB_URL,
+            SB_KEY
+        );
+
+
+    /* =========================
+       STATE
+    ========================= */
+
+    let currentUser = null;
+
+
+    /* =========================
+       DOM
+    ========================= */
+
+    const pageLoader =
+        document.getElementById('page-loader');
+
+    const availableDisplay =
+        document.getElementById('available-balance');
+
+    const pendingDisplay =
+        document.getElementById('pending-balance');
+
+    const userNameDisplay =
+        document.getElementById('user-name-display');
+
+    const purchaseContainer =
+        document.getElementById(
+            'active-purchases-container'
+        );
+
+    const txContainer =
+        document.getElementById(
+            'recent-tx-container'
+        );
+
+    const refCodeDisplay =
+        document.getElementById(
+            'ref-code-display'
+        );
+
+    const notifBadge =
+        document.getElementById(
+            'notif-badge'
+        );
+
+
+    /* =========================
+       SIDEBAR
+    ========================= */
+
+    const sidebar =
+        document.getElementById('sidebar');
+
+    const sidebarOverlay =
+        document.getElementById(
+            'sidebar-overlay'
+        );
+
+    const menuBtn =
+        document.getElementById('menu-btn');
+
+    const sidebarClose =
+        document.getElementById(
+            'sidebar-close'
+        );
+
+
+    function openSidebar() {
+
+        sidebar.classList.add('active');
+        sidebarOverlay.classList.add('active');
+
+        document.body.classList.add(
+            'sidebar-open'
+        );
+    }
+
+
+    function closeSidebar() {
+
+        sidebar.classList.remove('active');
+        sidebarOverlay.classList.remove(
+            'active'
+        );
+
+        document.body.classList.remove(
+            'sidebar-open'
+        );
+    }
+
+
+    menuBtn.addEventListener(
+        'click',
+        openSidebar
+    );
+
+    sidebarClose.addEventListener(
+        'click',
+        closeSidebar
+    );
+
+    sidebarOverlay.addEventListener(
+        'click',
+        closeSidebar
+    );
+
+
+    /* Close sidebar after selecting page */
+
+    document.querySelectorAll(
+        '.sidebar-link'
+    ).forEach(link => {
+
+        link.addEventListener(
+            'click',
+            closeSidebar
+        );
+
+    });
+
+
+    /* =========================
+       TELEGRAM POPUP
+    ========================= */
+
+    const telegramOverlay =
+        document.getElementById(
+            'telegram-overlay'
+        );
+
+    const telegramClose =
+        document.getElementById(
+            'telegram-close'
+        );
+
+    const telegramLater =
+        document.getElementById(
+            'telegram-later'
+        );
+
+
+    function showTelegramPopup() {
+
+        telegramOverlay.classList.add(
+            'show'
+        );
+
+        document.body.style.overflow =
+            'hidden';
+    }
+
+
+    function hideTelegramPopup() {
+
+        telegramOverlay.classList.remove(
+            'show'
+        );
+
+        document.body.style.overflow =
+            '';
+    }
+
+
+    telegramClose.addEventListener(
+        'click',
+        hideTelegramPopup
+    );
+
+    telegramLater.addEventListener(
+        'click',
+        hideTelegramPopup
+    );
+
+
+    telegramOverlay.addEventListener(
+        'click',
+        event => {
+
+            if (
+                event.target ===
+                telegramOverlay
+            ) {
+                hideTelegramPopup();
+            }
+
+        }
+    );
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    document.addEventListener(
+        'DOMContentLoaded',
+        async () => {
+
+            await checkAuth();
+
+            if (currentUser) {
+
+                setGreeting();
+
+                await Promise.all([
+                    fetchProfileAndWallet(),
+                    fetchActivePurchases(),
+                    fetchTransactions(),
+                    fetchNotificationCount()
+                ]);
+
+            }
+
+            hideLoader();
+
+            /* Show Telegram popup every time */
+            setTimeout(
+                showTelegramPopup,
+                700
             );
 
-        // =========================
-        // STATE
-        // =========================
+        }
+    );
 
-        let currentUser = null;
 
-        // =========================
-        // DOM ELEMENTS
-        // =========================
+    /* =========================
+       AUTH
+    ========================= */
 
-        const pageLoader =
-            document.getElementById('page-loader');
+    async function checkAuth() {
 
-        const availableDisplay =
-            document.getElementById('available-balance');
+        const {
+            data: { session }
+        } = await supabase.auth.getSession();
 
-        const pendingDisplay =
-            document.getElementById('pending-balance');
+        if (!session) {
 
-        const userNameDisplay =
-            document.getElementById('user-name-display');
+            window.location.href =
+                'login.html';
 
-        const purchaseContainer =
-            document.getElementById(
-                'active-purchases-container'
-            );
-
-        const txContainer =
-            document.getElementById(
-                'recent-tx-container'
-            );
-
-        const refCodeDisplay =
-            document.getElementById(
-                'ref-code-display'
-            );
-
-        const notifBadge =
-            document.getElementById(
-                'notif-badge'
-            );
-
-        // =========================
-        // TELEGRAM POPUP
-        // =========================
-
-        const telegramOverlay =
-            document.getElementById(
-                'telegram-overlay'
-            );
-
-        const telegramClose =
-            document.getElementById(
-                'telegram-close'
-            );
-
-        const telegramLater =
-            document.getElementById(
-                'telegram-later'
-            );
-
-        function showTelegramPopup() {
-
-            if (!telegramOverlay) return;
-
-            telegramOverlay.classList.add('show');
-
-            document.body.style.overflow =
-                'hidden';
+            return;
         }
 
-        function hideTelegramPopup() {
+        currentUser =
+            session.user;
+    }
 
-            if (!telegramOverlay) return;
 
-            telegramOverlay.classList.remove('show');
+    /* =========================
+       GREETING
+    ========================= */
 
-            document.body.style.overflow =
-                '';
-        }
+    function setGreeting() {
 
-        // Show popup every time dashboard loads
+        const hour =
+            new Date().getHours();
+
+        const text =
+            hour < 12
+                ? 'Good morning,'
+                : hour < 18
+                    ? 'Good afternoon,'
+                    : 'Good evening,';
+
+        document.getElementById(
+            'time-greeting'
+        ).textContent = text;
+    }
+
+
+    /* =========================
+       LOADER
+    ========================= */
+
+    function hideLoader() {
+
+        pageLoader.style.opacity = '0';
+
         setTimeout(() => {
-            showTelegramPopup();
-        }, 700);
 
-        telegramClose.addEventListener(
-            'click',
-            hideTelegramPopup
-        );
+            pageLoader.style.display =
+                'none';
 
-        telegramLater.addEventListener(
-            'click',
-            hideTelegramPopup
-        );
+        }, 300);
+    }
 
-        // Close when clicking outside popup
-        telegramOverlay.addEventListener(
-            'click',
-            (event) => {
 
-                if (
-                    event.target === telegramOverlay
-                ) {
-                    hideTelegramPopup();
-                }
+    /* =========================
+       PROFILE + WALLET
+    ========================= */
 
-            }
-        );
+    async function fetchProfileAndWallet() {
 
-        // =========================
-        // INITIALIZATION
-        // =========================
-
-        document.addEventListener(
-            'DOMContentLoaded',
-            async () => {
-
-                await checkAuth();
-
-                if (currentUser) {
-
-                    setGreeting();
-
-                    await Promise.all([
-                        fetchProfileAndWallet(),
-                        fetchActivePurchases(),
-                        fetchTransactions(),
-                        fetchNotificationCount()
-                    ]);
-
-                }
-
-                hideLoader();
-
-            }
-        );
-
-        // =========================
-        // AUTH
-        // =========================
-
-        async function checkAuth() {
+        try {
 
             const {
-                data: { session }
-            } = await supabase.auth.getSession();
+                data: profile
+            } = await supabase
+                .from('profiles')
+                .select(
+                    'full_name, referral_code'
+                )
+                .eq(
+                    'id',
+                    currentUser.id
+                )
+                .single();
 
-            if (!session) {
+            if (profile) {
 
-                window.location.href =
-                    'login.html';
+                userNameDisplay.textContent =
+                    profile.full_name
+                        ? profile.full_name
+                            .split(' ')[0]
+                        : 'User';
 
-                return;
-
+                refCodeDisplay.textContent =
+                    profile.referral_code ||
+                    '---';
             }
 
-            currentUser =
-                session.user;
-        }
 
-        // =========================
-        // GREETING
-        // =========================
+            const {
+                data: wallet
+            } = await supabase
+                .from('wallets')
+                .select('*')
+                .eq(
+                    'user_id',
+                    currentUser.id
+                )
+                .single();
 
-        function setGreeting() {
+            if (wallet) {
 
-            const hour =
-                new Date().getHours();
-
-            const text =
-                hour < 12
-                    ? 'Good morning,'
-                    : hour < 18
-                        ? 'Good afternoon,'
-                        : 'Good evening,';
-
-            document.getElementById(
-                'time-greeting'
-            ).textContent = text;
-        }
-
-        // =========================
-        // HIDE LOADER
-        // =========================
-
-        function hideLoader() {
-
-            pageLoader.style.opacity =
-                '0';
-
-            setTimeout(() => {
-
-                pageLoader.style.display =
-                    'none';
-
-            }, 300);
-
-        }
-
-        // =========================
-        // PROFILE + WALLET
-        // =========================
-
-        async function fetchProfileAndWallet() {
-
-            try {
-
-                const {
-                    data: profile
-                } = await supabase
-                    .from('profiles')
-                    .select(
-                        'full_name, referral_code'
-                    )
-                    .eq(
-                        'id',
-                        currentUser.id
-                    )
-                    .single();
-
-                if (profile) {
-
-                    userNameDisplay.textContent =
-                        profile.full_name
-                            ? profile.full_name.split(' ')[0]
-                            : 'User';
-
-                    refCodeDisplay.textContent =
-                        profile.referral_code ||
-                        '---';
-                }
-
-                const {
-                    data: wallet
-                } = await supabase
-                    .from('wallets')
-                    .select('*')
-                    .eq(
-                        'user_id',
-                        currentUser.id
-                    )
-                    .single();
-
-                if (wallet) {
-
-                    availableDisplay.textContent =
-                        formatNaira(
-                            wallet.available_balance
-                        );
-
-                    pendingDisplay.textContent =
-                        formatNaira(
-                            wallet.pending_balance
-                        );
-                }
-
-            } catch (e) {
-
-                console.error(
-                    'Profile/Wallet error:',
-                    e
-                );
-
-            }
-        }
-
-        // =========================
-        // ACTIVE PURCHASES
-        // =========================
-
-        async function fetchActivePurchases() {
-
-            try {
-
-                const {
-                    data: purchases,
-                    error
-                } = await supabase
-                    .from('bulk_purchases')
-                    .select(
-                        '*, products(name, image_url)'
-                    )
-                    .eq(
-                        'user_id',
-                        currentUser.id
-                    )
-                    .order(
-                        'created_at',
-                        {
-                            ascending: false
-                        }
-                    )
-                    .limit(3);
-
-                if (error) throw error;
-
-                if (
-                    !purchases ||
-                    purchases.length === 0
-                ) {
-
-                    purchaseContainer.innerHTML = `
-                        <div class="empty-state">
-                            No bulk purchases yet.<br>
-                            <a
-                                href="marketplace.html"
-                                style="
-                                    color:var(--accent-hover);
-                                    font-weight:700;
-                                "
-                            >
-                                Browse Marketplace
-                            </a>
-                        </div>
-                    `;
-
-                    return;
-                }
-
-                const {
-                    data: units
-                } = await supabase
-                    .from('product_units')
-                    .select(
-                        'status, bulk_purchase_id'
-                    )
-                    .eq(
-                        'owner_id',
-                        currentUser.id
+                availableDisplay.textContent =
+                    formatNaira(
+                        wallet.available_balance
                     );
 
-                const safeUnits =
-                    units || [];
+                pendingDisplay.textContent =
+                    formatNaira(
+                        wallet.pending_balance
+                    );
+            }
 
-                const total =
-                    safeUnits.length;
+        } catch (e) {
 
-                const sold =
-                    safeUnits.filter(
-                        u => u.status === 'SOLD'
-                    ).length;
+            console.error(
+                'Profile/Wallet error:',
+                e
+            );
 
-                const percent =
-                    total > 0
-                        ? Math.round(
-                            (sold / total) * 100
-                        )
-                        : 0;
+        }
+    }
 
-                document.getElementById(
-                    'total-units'
-                ).textContent = total;
 
-                document.getElementById(
-                    'sold-units'
-                ).textContent = sold;
+    /* =========================
+       ACTIVE PURCHASES
+    ========================= */
 
-                document.getElementById(
-                    'progress-percent'
-                ).textContent =
-                    `${percent}%`;
+    async function fetchActivePurchases() {
 
-                document.getElementById(
-                    'overall-progress-bar'
-                ).style.width =
-                    `${percent}%`;
+        try {
 
-                const unitsByPurchase = {};
-
-                safeUnits.forEach(u => {
-
-                    if (
-                        !unitsByPurchase[
-                            u.bulk_purchase_id
-                        ]
-                    ) {
-
-                        unitsByPurchase[
-                            u.bulk_purchase_id
-                        ] = {
-                            total: 0,
-                            sold: 0
-                        };
-
+            const {
+                data: purchases,
+                error
+            } = await supabase
+                .from('bulk_purchases')
+                .select(
+                    '*, products(name, image_url)'
+                )
+                .eq(
+                    'user_id',
+                    currentUser.id
+                )
+                .order(
+                    'created_at',
+                    {
+                        ascending: false
                     }
+                )
+                .limit(3);
+
+            if (error) throw error;
+
+
+            if (
+                !purchases ||
+                purchases.length === 0
+            ) {
+
+                purchaseContainer.innerHTML = `
+                    <div class="empty-state">
+                        No bulk purchases yet.<br>
+
+                        <a
+                            href="marketplace.html"
+                            style="
+                                color:var(--accent-hover);
+                                font-weight:700;
+                            "
+                        >
+                            Browse Marketplace
+                        </a>
+                    </div>
+                `;
+
+                return;
+            }
+
+
+            const {
+                data: units
+            } = await supabase
+                .from('product_units')
+                .select(
+                    'status, bulk_purchase_id'
+                )
+                .eq(
+                    'owner_id',
+                    currentUser.id
+                );
+
+
+            const safeUnits =
+                units || [];
+
+            const total =
+                safeUnits.length;
+
+            const sold =
+                safeUnits.filter(
+                    u => u.status === 'SOLD'
+                ).length;
+
+            const percent =
+                total > 0
+                    ? Math.round(
+                        (sold / total) * 100
+                    )
+                    : 0;
+
+
+            document.getElementById(
+                'total-units'
+            ).textContent = total;
+
+            document.getElementById(
+                'sold-units'
+            ).textContent = sold;
+
+            document.getElementById(
+                'progress-percent'
+            ).textContent =
+                `${percent}%`;
+
+            document.getElementById(
+                'overall-progress-bar'
+            ).style.width =
+                `${percent}%`;
+
+
+            const unitsByPurchase = {};
+
+
+            safeUnits.forEach(u => {
+
+                if (
+                    !unitsByPurchase[
+                        u.bulk_purchase_id
+                    ]
+                ) {
 
                     unitsByPurchase[
                         u.bulk_purchase_id
-                    ].total++;
+                    ] = {
+                        total: 0,
+                        sold: 0
+                    };
+                }
 
-                    if (
-                        u.status === 'SOLD'
-                    ) {
+                unitsByPurchase[
+                    u.bulk_purchase_id
+                ].total++;
 
-                        unitsByPurchase[
-                            u.bulk_purchase_id
-                        ].sold++;
+                if (
+                    u.status === 'SOLD'
+                ) {
 
-                    }
+                    unitsByPurchase[
+                        u.bulk_purchase_id
+                    ].sold++;
 
-                });
+                }
 
-                purchaseContainer.innerHTML =
-                    purchases.map(p => {
+            });
 
-                        const stats =
-                            unitsByPurchase[p.id] ||
-                            {
-                                total:
-                                    p.unit_count || 0,
-                                sold: 0
-                            };
 
-                        const pTotal =
-                            stats.total;
+            purchaseContainer.innerHTML =
+                purchases.map(p => {
 
-                        const pSold =
-                            stats.sold;
+                    const stats =
+                        unitsByPurchase[p.id] ||
+                        {
+                            total:
+                                p.unit_count || 0,
+                            sold: 0
+                        };
 
-                        const pPercent =
-                            pTotal > 0
-                                ? Math.round(
-                                    (pSold / pTotal) *
-                                    100
-                                )
-                                : 0;
+                    const pTotal =
+                        stats.total;
 
-                        const product =
-                            p.products || {};
+                    const pSold =
+                        stats.sold;
 
-                        const image =
-                            product.image_url ||
-                            'https://via.placeholder.com/100';
+                    const pPercent =
+                        pTotal > 0
+                            ? Math.round(
+                                (pSold / pTotal) *
+                                100
+                            )
+                            : 0;
 
-                        const name =
-                            product.name ||
-                            'Product';
+                    const product =
+                        p.products || {};
 
-                        return `
-                            <div class="product-item">
+                    return `
+                        <div class="product-item">
 
-                                <img
-                                    src="${image}"
-                                    class="product-img"
-                                    alt="${name}"
-                                    onerror="
-                                        this.src='https://via.placeholder.com/100'
-                                    "
-                                >
+                            <img
+                                src="${
+                                    product.image_url ||
+                                    'https://via.placeholder.com/100'
+                                }"
+                                class="product-img"
+                                alt="Product"
+                            >
 
-                                <div class="product-meta">
+                            <div class="product-meta">
 
-                                    <h3 class="product-name">
-                                        ${name}
-                                    </h3>
+                                <h3 class="product-name">
+                                    ${
+                                        product.name ||
+                                        'Product'
+                                    }
+                                </h3>
 
-                                    <div class="product-progress">
+                                <div class="product-progress">
 
-                                        <div
-                                            class="progress-bar"
-                                            style="
-                                                width:${pPercent}%;
-                                            "
-                                        ></div>
+                                    <div
+                                        class="progress-bar"
+                                        style="
+                                            width:${pPercent}%;
+                                        "
+                                    ></div>
 
-                                    </div>
+                                </div>
 
-                                    <div class="product-stats">
+                                <div class="product-stats">
 
-                                        <span>
-                                            ${pTotal} Units
-                                        </span>
+                                    <span>
+                                        ${pTotal} Units
+                                    </span>
 
-                                        <span>
-                                            ${pPercent}% Sold
-                                        </span>
-
-                                    </div>
+                                    <span>
+                                        ${pPercent}% Sold
+                                    </span>
 
                                 </div>
 
                             </div>
-                        `;
 
-                    }).join('');
-
-            } catch (e) {
-
-                console.error(
-                    'Products error:',
-                    e
-                );
-
-                purchaseContainer.innerHTML = `
-                    <div class="empty-state">
-                        Error loading products.
-                    </div>
-                `;
-
-            }
-        }
-
-        // =========================
-        // TRANSACTIONS
-        // =========================
-
-        async function fetchTransactions() {
-
-            try {
-
-                const {
-                    data: txs
-                } = await supabase
-                    .from('wallet_transactions')
-                    .select('*')
-                    .eq(
-                        'user_id',
-                        currentUser.id
-                    )
-                    .order(
-                        'created_at',
-                        {
-                            ascending: false
-                        }
-                    )
-                    .limit(4);
-
-                if (
-                    !txs ||
-                    txs.length === 0
-                ) {
-
-                    txContainer.innerHTML = `
-                        <div class="empty-state">
-                            No recent activity.
                         </div>
                     `;
 
-                    return;
-                }
+                }).join('');
 
-                txContainer.innerHTML =
-                    txs.map(t => {
+        } catch (e) {
 
-                        const isCredit =
-                            Number(t.amount) > 0;
+            console.error(
+                'Products error:',
+                e
+            );
 
-                        const description =
-                            t.description ||
-                            (t.type || '')
-                                .replace('_', ' ');
+            purchaseContainer.innerHTML = `
+                <div class="empty-state">
+                    Error loading products.
+                </div>
+            `;
+        }
+    }
 
-                        return `
-                            <div class="tx-item">
 
-                                <div class="tx-info">
+    /* =========================
+       TRANSACTIONS
+    ========================= */
 
-                                    <h4>
-                                        ${description}
-                                    </h4>
+    async function fetchTransactions() {
 
-                                    <p>
-                                        ${new Date(
+        try {
+
+            const {
+                data: txs
+            } = await supabase
+                .from('wallet_transactions')
+                .select('*')
+                .eq(
+                    'user_id',
+                    currentUser.id
+                )
+                .order(
+                    'created_at',
+                    {
+                        ascending: false
+                    }
+                )
+                .limit(4);
+
+
+            if (
+                !txs ||
+                txs.length === 0
+            ) {
+
+                txContainer.innerHTML = `
+                    <div class="empty-state">
+                        No recent activity.
+                    </div>
+                `;
+
+                return;
+            }
+
+
+            txContainer.innerHTML =
+                txs.map(t => {
+
+                    const isCredit =
+                        Number(t.amount) > 0;
+
+                    return `
+                        <div class="tx-item">
+
+                            <div class="tx-info">
+
+                                <h4>
+                                    ${
+                                        t.description ||
+                                        (t.type || '')
+                                            .replace(
+                                                '_',
+                                                ' '
+                                            )
+                                    }
+                                </h4>
+
+                                <p>
+                                    ${
+                                        new Date(
                                             t.created_at
                                         ).toLocaleDateString(
                                             'en-NG',
@@ -1852,161 +2317,153 @@
                                                 day: 'numeric',
                                                 month: 'short'
                                             }
-                                        )}
-                                    </p>
-
-                                </div>
-
-                                <div
-                                    class="
-                                        tx-amount
-                                        ${
-                                            isCredit
-                                                ? 'tx-credit'
-                                                : 'tx-debit'
-                                        }
-                                    "
-                                >
-                                    ${
-                                        isCredit
-                                            ? '+'
-                                            : ''
-                                    }${formatNaira(
-                                        t.amount
-                                    )}
-                                </div>
+                                        )
+                                    }
+                                </p>
 
                             </div>
-                        `;
 
-                    }).join('');
+                            <div
+                                class="
+                                    tx-amount
+                                    ${
+                                        isCredit
+                                            ? 'tx-credit'
+                                            : 'tx-debit'
+                                    }
+                                "
+                            >
+                                ${
+                                    isCredit
+                                        ? '+'
+                                        : ''
+                                }${formatNaira(t.amount)}
+                            </div>
 
-            } catch (e) {
+                        </div>
+                    `;
 
-                console.error(
-                    'Transactions error:',
-                    e
-                );
+                }).join('');
 
-                txContainer.innerHTML = `
-                    <div class="empty-state">
-                        Error loading activity.
-                    </div>
-                `;
+        } catch (e) {
 
-            }
-        }
-
-        // =========================
-        // NOTIFICATIONS
-        // =========================
-
-        async function fetchNotificationCount() {
-
-            try {
-
-                const {
-                    count
-                } = await supabase
-                    .from('notifications')
-                    .select(
-                        '*',
-                        {
-                            count: 'exact',
-                            head: true
-                        }
-                    )
-                    .eq(
-                        'user_id',
-                        currentUser.id
-                    )
-                    .eq(
-                        'is_read',
-                        false
-                    );
-
-                if (count > 0) {
-
-                    notifBadge.textContent =
-                        count;
-
-                    notifBadge.style.display =
-                        'block';
-
-                }
-
-            } catch (e) {
-
-                console.error(
-                    'Notification error:',
-                    e
-                );
-
-            }
-        }
-
-        // =========================
-        // FORMAT NAIRA
-        // =========================
-
-        function formatNaira(amount) {
-
-            return '₦' +
-                Number(amount || 0)
-                    .toLocaleString(
-                        'en-NG',
-                        {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2
-                        }
-                    );
-        }
-
-        // =========================
-        // COPY REFERRAL CODE
-        // =========================
-
-        document
-            .getElementById('copy-ref-btn')
-            .addEventListener(
-                'click',
-                () => {
-
-                    const code =
-                        refCodeDisplay.textContent;
-
-                    navigator.clipboard
-                        .writeText(code)
-                        .then(() => {
-
-                            const btn =
-                                document.getElementById(
-                                    'copy-ref-btn'
-                                );
-
-                            btn.textContent =
-                                'Copied!';
-
-                            setTimeout(() => {
-
-                                btn.textContent =
-                                    'Copy';
-
-                            }, 2000);
-
-                        })
-                        .catch(() => {
-
-                            alert(
-                                'Unable to copy referral code.'
-                            );
-
-                        });
-
-                }
+            console.error(
+                'Transactions error:',
+                e
             );
 
-    </script>
+            txContainer.innerHTML = `
+                <div class="empty-state">
+                    Error loading activity.
+                </div>
+            `;
+        }
+    }
+
+
+    /* =========================
+       NOTIFICATIONS
+    ========================= */
+
+    async function fetchNotificationCount() {
+
+        try {
+
+            const {
+                count
+            } = await supabase
+                .from('notifications')
+                .select(
+                    '*',
+                    {
+                        count: 'exact',
+                        head: true
+                    }
+                )
+                .eq(
+                    'user_id',
+                    currentUser.id
+                )
+                .eq(
+                    'is_read',
+                    false
+                );
+
+
+            if (count > 0) {
+
+                notifBadge.textContent =
+                    count;
+
+                notifBadge.style.display =
+                    'block';
+            }
+
+        } catch (e) {
+
+            console.error(
+                'Notification error:',
+                e
+            );
+        }
+    }
+
+
+    /* =========================
+       FORMAT NAIRA
+    ========================= */
+
+    function formatNaira(amount) {
+
+        return '₦' +
+            Number(amount || 0)
+                .toLocaleString(
+                    'en-NG',
+                    {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    }
+                );
+    }
+
+
+    /* =========================
+       COPY REFERRAL CODE
+    ========================= */
+
+    document
+        .getElementById('copy-ref-btn')
+        .addEventListener(
+            'click',
+            () => {
+
+                const code =
+                    refCodeDisplay.textContent;
+
+                navigator.clipboard
+                    .writeText(code)
+                    .then(() => {
+
+                        const button =
+                            document.getElementById(
+                                'copy-ref-btn'
+                            );
+
+                        button.textContent =
+                            'Copied!';
+
+                        setTimeout(() => {
+
+                            button.textContent =
+                                'Copy';
+
+                        }, 2000);
+
+                    });
+            }
+        );
+
+</script>
 
 </body>
 </html>
